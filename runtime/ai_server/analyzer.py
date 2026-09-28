@@ -1,5 +1,7 @@
 ﻿from pathlib import Path
 import json
+import os
+import time
 import requests
 import cv2
 import numpy as np
@@ -7,7 +9,17 @@ from skimage import measure
 from scipy import ndimage
 
 
-TORCHSERVE_URL = "http://127.0.0.1:8080"
+# Docker: http://torchserve:8080 (docker-compose.yml) / Local: http://127.0.0.1:8080
+TORCHSERVE_URL = os.getenv("TORCHSERVE_URL", "http://127.0.0.1:8080")
+
+MODEL_VERSION = "meta-animated-drawings-pretrained"
+PIPELINE_VERSION = "0.1.0"
+
+# 좌표계: 업로드된 원본 이미지의 픽셀. 원점 왼쪽 위, x 오른쪽, y 아래.
+COORDINATE_SPACE = "image_px"
+
+# Meta 원본 코드와 동일하게 분석 시 최대 dimension을 이 값으로 제한한다.
+MAX_ANALYSIS_SIZE = 1000
 
 
 def check_torchserve() -> bool:
@@ -385,7 +397,18 @@ def estimate_pose(cropped: np.ndarray, bbox: dict) -> list:
     return joints
 
 
+def to_original_scale(bbox: dict, scale: float) -> dict:
+    """분석용으로 줄인 이미지 기준 bbox를 원본 이미지 기준으로 되돌린다."""
+
+    return {
+        key: round(value / scale)
+        for key, value in bbox.items()
+    }
+
+
 def analyze_image(image_path: str) -> dict:
+    started_at = time.perf_counter()
+
     path = Path(image_path)
 
     if not path.exists():
@@ -419,10 +442,12 @@ def analyze_image(image_path: str) -> dict:
             "message": "INVALID_IMAGE: Image must have 3 channels"
         }
 
-    # Meta 원본 코드와 동일하게
-    # 최대 dimension을 1000px로 제한한다.
-    if np.max(img.shape) > 1000:
-        scale = 1000 / np.max(img.shape)
+    # Meta 원본 코드와 동일하게 분석은 최대 1000px로 줄인 이미지로 한다.
+    # 단, 응답 좌표는 scale로 다시 나눠 원본 이미지 기준으로 되돌린다.
+    scale = 1.0
+
+    if np.max(img.shape) > MAX_ANALYSIS_SIZE:
+        scale = MAX_ANALYSIS_SIZE / np.max(img.shape)
 
         img = cv2.resize(
             img,
@@ -470,14 +495,30 @@ def analyze_image(image_path: str) -> dict:
 
     mask = create_mask(cropped)
 
-    # 4. 최종 분석 결과
+    # 4. 모든 좌표를 원본 이미지 기준으로 복원
+    bbox = to_original_scale(bbox, scale)
+
+    joints = [
+        {
+            "name": joint["name"],
+            "x": round(joint["x"] / scale),
+            "y": round(joint["y"] / scale),
+        }
+        for joint in joints
+    ]
+
+    # 5. 최종 분석 결과
     return {
-    "success": True,
-    "bbox": bbox,
-    "joints": joints,
-    "mask": {
-        "width": int(mask.shape[1]),
-        "height": int(mask.shape[0])
-    },
-    "message": "Analysis complete"
-}
+        "success": True,
+        "bbox": bbox,
+        "joints": joints,
+        "mask": {
+            "width": round(mask.shape[1] / scale),
+            "height": round(mask.shape[0] / scale),
+        },
+        "message": "Analysis complete",
+        "model_version": MODEL_VERSION,
+        "pipeline_version": PIPELINE_VERSION,
+        "coordinate_space": COORDINATE_SPACE,
+        "processing_time_ms": round((time.perf_counter() - started_at) * 1000),
+    }

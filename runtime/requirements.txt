@@ -1,0 +1,11 @@
+# AI Runtime server (Python 3.10)
+# Versions of numpy / scipy / scikit-image / opencv / requests match Meta AnimatedDrawings setup.py,
+# so installing third_party/AnimatedDrawings later (for /render) does not conflict.
+fastapi==0.141.1
+uvicorn[standard]==0.54.0
+python-multipart==0.0.32
+requests==2.31.0
+numpy==1.24.4
+scipy==1.10.0
+scikit-image==0.19.3
+opencv-python==4.6.0.66

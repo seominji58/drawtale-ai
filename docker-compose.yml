@@ -1,0 +1,23 @@
+# AI Runtime = torchserve (Meta models) + ai (FastAPI, called only by Backend)
+#   docker compose up -d --build
+#   http://127.0.0.1:8001/docs
+services:
+  torchserve:
+    build: ./torchserve
+    ports:
+      - "127.0.0.1:8080:8080"   # for local debugging only; not exposed in production
+    healthcheck:
+      test: ["CMD-SHELL", "curl -fsS http://localhost:8080/ping || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 30
+
+  ai:
+    build: ./runtime
+    environment:
+      TORCHSERVE_URL: http://torchserve:8080
+    ports:
+      - "127.0.0.1:8001:8001"
+    depends_on:
+      torchserve:
+        condition: service_healthy
