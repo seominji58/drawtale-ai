@@ -21,6 +21,19 @@ COORDINATE_SPACE = "image_px"
 # Meta 원본 코드와 동일하게 분석 시 최대 dimension을 이 값으로 제한한다.
 MAX_ANALYSIS_SIZE = 1000
 
+# 마스크 생성 시 crop 이미지 둘레에 붙이는 흰 여백 (px)
+MASK_PADDING = 20
+
+# 선이 끊긴 그림을 위해 틈 메우기 강도를 단계적으로 올리며 재시도한다.
+MASK_CLOSE_ATTEMPTS = (2, 6, 12, 20)
+
+# 관절이 캐릭터 영역 위에 있어야 정상. 이 비율 미만이면 마스크가 뒤집힌 것으로 본다.
+MASK_JOINT_HIT_RATIO = 0.6
+
+# 마스크를 만들 때 bbox 바깥으로 더 잘라내는 여유 (px).
+# 캐릭터가 bbox 경계에 닿으면 선이 잘려 배경이 새어 들어간다.
+MASK_CROP_MARGIN = 30
+
 
 def check_torchserve() -> bool:
     try:
@@ -91,7 +104,7 @@ def detect_character(img: np.ndarray) -> dict:
         "score": detection_results[0]["score"],
     }
 
-def create_mask(img: np.ndarray) -> np.ndarray:
+def create_mask(img: np.ndarray, close_iterations: int = 2) -> np.ndarray:
     """
     Meta Animated Drawings의 원본 segment() 방식을 사용해서
     캐릭터 영역의 binary mask를 생성한다.
@@ -123,11 +136,12 @@ def create_mask(img: np.ndarray) -> np.ndarray:
         (3, 3)
     )
 
+    # 선이 끊긴 그림은 이 단계에서 틈을 메워야 배경이 캐릭터 안으로 새지 않는다.
     img = cv2.morphologyEx(
         img,
         cv2.MORPH_CLOSE,
         kernel,
-        iterations=2
+        iterations=close_iterations
     )
 
     img = cv2.morphologyEx(
@@ -397,6 +411,105 @@ def estimate_pose(cropped: np.ndarray, bbox: dict) -> list:
     return joints
 
 
+def joints_on_mask_ratio(mask: np.ndarray, joints: list, offset_x: int, offset_y: int) -> float:
+    """관절 15개 중 마스크(캐릭터 영역) 위에 있는 비율을 센다.
+
+    마스크 안팎이 뒤집히면 관절 대부분이 배경 쪽에 놓이므로 이 값이 크게 떨어진다.
+    """
+
+    height, width = mask.shape[:2]
+    hits = 0
+
+    for joint in joints:
+        x = round(joint["x"]) - offset_x
+        y = round(joint["y"]) - offset_y
+
+        if 0 <= x < width and 0 <= y < height and mask[y, x] > 127:
+            hits += 1
+
+    return hits / len(joints) if joints else 0.0
+
+
+def build_mask(img: np.ndarray, bbox: dict, joints: list) -> np.ndarray:
+    """bbox 영역의 캐릭터 마스크를 만든다. 선이 끊기거나 잘린 그림도 처리한다.
+
+    create_mask는 이미지 가장자리에서 배경을 채워 나가는 방식이라,
+    선이 끊겨 있거나 bbox 경계에서 잘리면 배경이 캐릭터 안으로 새어 안팎이 뒤집힌다.
+
+    대응: (1) bbox보다 넓게 잘라 선이 경계에서 끊기지 않게 하고
+          (2) 틈 메우기 강도를 올려가며 관절이 캐릭터 위에 놓일 때까지 재시도한다.
+    """
+
+    left, top = round(bbox["left"]), round(bbox["top"])
+    right, bottom = round(bbox["right"]), round(bbox["bottom"])
+
+    # bbox 바깥까지 포함해 자른다. 원본 범위를 넘는 만큼은 흰 여백으로 채운다.
+    margin = MASK_CROP_MARGIN
+    wide = img[
+        max(0, top - margin):min(img.shape[0], bottom + margin),
+        max(0, left - margin):min(img.shape[1], right + margin),
+    ]
+
+    # 잘라낸 영역이 원본 경계에 걸려 여백이 부족하면 흰색으로 채워 준다
+    pad_left = margin - (left - max(0, left - margin))
+    pad_top = margin - (top - max(0, top - margin))
+    pad_right = margin - (min(img.shape[1], right + margin) - right)
+    pad_bottom = margin - (min(img.shape[0], bottom + margin) - bottom)
+
+    pad = MASK_PADDING
+    padded = cv2.copyMakeBorder(
+        wide,
+        pad + pad_top, pad + pad_bottom, pad + pad_left, pad + pad_right,
+        cv2.BORDER_CONSTANT,
+        value=(255, 255, 255)
+    )
+
+    def to_full_image(mask: np.ndarray) -> np.ndarray:
+        """padded 기준 마스크를 원본 이미지 크기의 제자리에 놓는다."""
+
+        full = np.zeros(img.shape[:2], dtype=np.uint8)
+
+        # padded에서 잘라낼 영역(원본과 겹치는 부분)
+        src_x = pad + pad_left
+        src_y = pad + pad_top
+        dst_x = max(0, left - margin)
+        dst_y = max(0, top - margin)
+        w = wide.shape[1]
+        h = wide.shape[0]
+
+        full[dst_y:dst_y + h, dst_x:dst_x + w] = mask[src_y:src_y + h, src_x:src_x + w]
+        return full
+
+    best_mask = None
+    best_ratio = -1.0
+
+    for iterations in MASK_CLOSE_ATTEMPTS:
+        try:
+            mask = to_full_image(create_mask(padded, close_iterations=iterations))
+        except RuntimeError:
+            continue
+
+        ratio = joints_on_mask_ratio(mask, joints, 0, 0)
+
+        if ratio > best_ratio:
+            best_mask, best_ratio = mask, ratio
+
+        if ratio >= MASK_JOINT_HIT_RATIO:
+            return mask
+
+    if best_mask is None:
+        raise RuntimeError("NO_CHARACTER_DETECTED: Mask contour not found")
+
+    # 어떤 강도로도 관절이 캐릭터 위에 놓이지 않으면 안팎이 뒤집힌 것으로 보고 되돌린다.
+    if best_ratio < MASK_JOINT_HIT_RATIO:
+        inverted = cv2.bitwise_not(best_mask)
+
+        if joints_on_mask_ratio(inverted, joints, 0, 0) > best_ratio:
+            return inverted
+
+    return best_mask
+
+
 def to_original_scale(bbox: dict, scale: float) -> dict:
     """분석용으로 줄인 이미지 기준 bbox를 원본 이미지 기준으로 되돌린다."""
 
@@ -499,18 +612,17 @@ def analyze_image(image_path: str, mask_path: str | None = None) -> dict:
         bbox
     )
 
-    mask = create_mask(cropped)
+    mask = build_mask(img, bbox, joints)
 
     # 마스크를 원본 이미지 크기로 되돌려 저장한다 (렌더링에서 사용)
     mask_saved = False
 
     if mask_path is not None:
-        mask_w = round(mask.shape[1] / scale)
-        mask_h = round(mask.shape[0] / scale)
-
+        # 마스크는 분석용으로 줄인 이미지 기준이므로 원본 크기로 되돌려 저장한다.
+        # 캐릭터 영역(bbox)이 아니라 이미지 전체 크기다.
         mask_original = cv2.resize(
             mask,
-            (mask_w, mask_h),
+            (round(mask.shape[1] / scale), round(mask.shape[0] / scale)),
             interpolation=cv2.INTER_NEAREST
         )
 
@@ -538,6 +650,7 @@ def analyze_image(image_path: str, mask_path: str | None = None) -> dict:
             "width": round(mask.shape[1] / scale),
             "height": round(mask.shape[0] / scale),
             "saved": mask_saved,
+            "covers": "full_image",
         },
         "message": "Analysis complete",
         "model_version": MODEL_VERSION,

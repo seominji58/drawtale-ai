@@ -53,6 +53,10 @@ MOTIONS: dict[str, tuple[str, str]] = {
 }
 DEFAULT_MOTION = "wave_hello"
 
+# 렌더링 시 캐릭터 영역 둘레에 두는 여유 (bbox 크기 대비 비율).
+# 캐릭터가 잘리지 않을 때까지 앞에서부터 차례로 시도한다.
+CROP_MARGINS = (0.12, 0.25, 0.40, 0.60)
+
 
 class RenderError(RuntimeError):
     """message는 "CODE: 설명" 형식으로 둬 Backend가 코드를 읽을 수 있게 한다."""
@@ -85,6 +89,44 @@ def build_char_cfg(joints: list[dict], width: int, height: int) -> dict:
     return {"height": height, "width": width, "skeleton": skeleton}
 
 
+def expand_crop(
+    mask: np.ndarray, bbox: dict, image_width: int, image_height: int
+) -> tuple[int, int, int, int]:
+    """캐릭터가 잘리지 않는 crop 범위를 찾는다.
+
+    mask는 원본 이미지 전체 크기다. crop 경계에 캐릭터가 닿아 있으면
+    그만큼 잘린 것이므로 여유를 넓힌다. 이미지 범위를 넘을 수는 없다.
+    """
+
+    bbox_left, bbox_top = round(bbox["left"]), round(bbox["top"])
+    bbox_w = round(bbox["right"]) - bbox_left
+    bbox_h = round(bbox["bottom"]) - bbox_top
+
+    result = (bbox_left, bbox_top, bbox_left + bbox_w, bbox_top + bbox_h)
+
+    for ratio in CROP_MARGINS:
+        margin_x = round(ratio * bbox_w)
+        margin_y = round(ratio * bbox_h)
+
+        left = max(0, bbox_left - margin_x)
+        top = max(0, bbox_top - margin_y)
+        right = min(image_width, bbox_left + bbox_w + margin_x)
+        bottom = min(image_height, bbox_top + bbox_h + margin_y)
+        result = (left, top, right, bottom)
+
+        # 이 범위로 잘랐을 때 캐릭터가 경계에 닿는지 본다
+        part = mask[top:bottom, left:right] > 127
+        touching = (
+            part[0].any() or part[-1].any()
+            or part[:, 0].any() or part[:, -1].any()
+        )
+
+        if not touching:
+            break
+
+    return result
+
+
 def prepare_character(
     image_path: str,
     mask_path: str,
@@ -108,10 +150,12 @@ def prepare_character(
     if mask is None:
         raise RenderError("MASK_NOT_FOUND: could not read mask image")
 
-    left = max(0, round(bbox["left"]))
-    top = max(0, round(bbox["top"]))
-    right = min(image.shape[1], round(bbox["right"]))
-    bottom = min(image.shape[0], round(bbox["bottom"]))
+    if mask.shape[:2] != image.shape[:2]:
+        raise RenderError("MASK_SIZE_MISMATCH: mask must cover the whole image")
+
+    # bbox는 캐릭터에 딱 맞게(때로는 팔다리 끝을 빼고) 잡히므로, 그대로 자르면 끝이 잘린다.
+    # 마스크가 가장자리에 닿지 않을 때까지 여유를 넓혀 가며 자른다.
+    left, top, right, bottom = expand_crop(mask, bbox, image.shape[1], image.shape[0])
 
     if right <= left or bottom <= top:
         raise RenderError("INVALID_BBOX: character bounding box is invalid")
@@ -119,9 +163,8 @@ def prepare_character(
     cropped = image[top:bottom, left:right]
     height, width = cropped.shape[:2]
 
-    # 마스크는 원본 크기로 저장돼 있지만 crop 영역 기준이므로 크기만 맞춘다
-    if mask.shape[:2] != (height, width):
-        mask = cv2.resize(mask, (width, height), interpolation=cv2.INTER_NEAREST)
+    # 마스크는 원본 전체 크기이므로 같은 범위로 자른다
+    mask = mask[top:bottom, left:right]
 
     # texture는 RGBA여야 한다. 마스크 밖은 투명 처리.
     texture = cv2.cvtColor(cropped, cv2.COLOR_BGR2BGRA)
