@@ -118,7 +118,23 @@ Backend 연동 테스트 완료 (2026-09-28): 업로드 → 분석 → 관절 15
 4. DELETE /internal/v1/sessions/{request_id}  (정리)
 ```
 
-**사용 가능한 motion**: `wave_hello`, `jumping`, `jumping_jacks`, `dab`, `zombie`
+**사용 가능한 motion**: `wave_hello`, `jumping`, `jumping_jacks`, `dab`, `zombie`,
+**`wave_hello_gentle`, `jumping_gentle`** (순화 동작, 아래)
+
+### 순화 동작 (`*_gentle`)
+
+아이 그림은 팔을 몸통에 붙여 그리는 경우가 많다. 그런 그림은 **팔이 몸 쪽으로 내려오거나 팔꿈치가
+접힐 때** 겨드랑이 메시가 몸통 위로 눌려 팔이 덩어리처럼 뭉개진다 (팔이 벌어져 있을 때는 멀쩡하다).
+
+`*_gentle` 은 Meta BVH 에서 만든 판이다.
+
+- 팔(쇄골·위팔) 회전을 50% 로 줄인다 — fair1 기본 자세가 T자라서 팔이 벌어진 쪽에 머문다
+- 팔꿈치(아래팔) 회전은 20% 만 남긴다 — 거의 편 채로
+- 몸 전체의 수평 이동을 고정한다 — 제자리에서 움직여 벌린 손이 화면 밖으로 잘리지 않는다
+
+`runtime/tools/make_gentle_motions.py` 가 만들고 결과(`runtime/ai_server/motions/`)를 커밋해 둔다.
+`third_party/` 는 고치지 않는다. cmu1 뼈대(`jumping_jacks`)는 기본 자세가 팔 내림이라 같은 방법이
+맞지 않아 만들지 않았다. 원본 동작은 그대로 남아 있다.
 
 ## 완료된 작업
 

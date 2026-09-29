@@ -43,13 +43,22 @@ JOINT_PARENTS: dict[str, str | None] = {
     "left_foot": "left_knee",
 }
 
-# 사용 가능한 동작. Backend가 이 이름으로 요청한다.
-MOTIONS: dict[str, tuple[str, str]] = {
-    "wave_hello": ("wave_hello", "fair1_ppf"),
-    "jumping": ("jumping", "fair1_ppf"),
-    "jumping_jacks": ("jumping_jacks", "cmu1_pfp"),
-    "dab": ("dab", "fair1_ppf"),
-    "zombie": ("zombie", "fair1_spf"),
+_META_MOTIONS = ANIMATED_DRAWINGS_DIR / "examples/config/motion"
+
+# 팔을 몸에 붙여 그린 그림은 팔이 몸 쪽으로 내려오거나 팔꿈치가 접힐 때 뭉개진다.
+# *_gentle 은 팔 회전을 줄이고 팔꿈치를 거의 편 채로 둔 판이다.
+# runtime/tools/make_gentle_motions.py 가 Meta BVH 에서 만든다 (third_party 는 고치지 않는다).
+_GENTLE_MOTIONS = Path(__file__).parent / "motions"
+
+# 사용 가능한 동작. Backend가 이 이름으로 요청한다. 이름 -> (motion 설정 파일, retarget 이름)
+MOTIONS: dict[str, tuple[Path, str]] = {
+    "wave_hello": (_META_MOTIONS / "wave_hello.yaml", "fair1_ppf"),
+    "jumping": (_META_MOTIONS / "jumping.yaml", "fair1_ppf"),
+    "jumping_jacks": (_META_MOTIONS / "jumping_jacks.yaml", "cmu1_pfp"),
+    "dab": (_META_MOTIONS / "dab.yaml", "fair1_ppf"),
+    "zombie": (_META_MOTIONS / "zombie.yaml", "fair1_spf"),
+    "wave_hello_gentle": (_GENTLE_MOTIONS / "wave_hello_gentle.yaml", "fair1_ppf"),
+    "jumping_gentle": (_GENTLE_MOTIONS / "jumping_gentle.yaml", "fair1_ppf"),
 }
 DEFAULT_MOTION = "wave_hello"
 
@@ -213,6 +222,23 @@ def _gif_to_mp4(gif_path: Path, mp4_path: Path) -> None:
         raise RenderError(f"ENCODING_FAILED: ffmpeg failed: {detail}")
 
 
+def _motion_cfg(cfg_path: Path, work_dir: Path) -> Path:
+    """motion 설정을 렌더에 넘길 경로로 돌려준다.
+
+    Meta 설정의 BVH 경로는 Meta 저장소 기준이라 그대로 쓴다. 우리 설정(*_gentle)은
+    설정 파일 옆의 BVH 를 가리키므로 절대 경로로 바꾼 사본을 작업 폴더에 둔다.
+    """
+
+    cfg = yaml.safe_load(cfg_path.read_text())
+    local_bvh = cfg_path.parent / cfg["filepath"]
+    if not local_bvh.exists():
+        return cfg_path
+    cfg["filepath"] = str(local_bvh)
+    out = work_dir / "motion_cfg.yaml"
+    out.write_text(yaml.safe_dump(cfg, sort_keys=False))
+    return out
+
+
 def render_animation(
     image_path: str,
     mask_path: str,
@@ -230,7 +256,7 @@ def render_animation(
             f"UNKNOWN_MOTION: {motion} (available: {', '.join(MOTIONS)})"
         )
 
-    motion_name, retarget_name = MOTIONS[motion]
+    motion_cfg_path, retarget_name = MOTIONS[motion]
 
     work_dir = Path(tempfile.mkdtemp(prefix="drawtale-render-"))
 
@@ -243,10 +269,7 @@ def render_animation(
                 "ANIMATED_CHARACTERS": [
                     {
                         "character_cfg": str(char_dir / "char_cfg.yaml"),
-                        "motion_cfg": str(
-                            ANIMATED_DRAWINGS_DIR
-                            / f"examples/config/motion/{motion_name}.yaml"
-                        ),
+                        "motion_cfg": str(_motion_cfg(motion_cfg_path, work_dir)),
                         "retarget_cfg": str(
                             ANIMATED_DRAWINGS_DIR
                             / f"examples/config/retarget/{retarget_name}.yaml"
