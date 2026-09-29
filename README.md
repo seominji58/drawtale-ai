@@ -5,6 +5,7 @@ Backend만 호출하며 외부(Frontend, 인터넷)에는 공개하지 않습니
 
 - API 계약서: `drawtale-backend/docs/api-contract.md` 3장 (Backend ↔ AI)
 - 담당: A1 (Runtime) · A2 (Pose 모델 학습)
+- 진행 상황 (항목별 상태): [docs/진행상황.md](docs/진행상황.md)
 
 ## 구조
 
