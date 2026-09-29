@@ -13,7 +13,10 @@ services:
       retries: 30
 
   ai:
-    build: ./runtime
+    # third_party/AnimatedDrawings 를 이미지에 넣어야 하므로 레포 루트를 빌드 컨텍스트로 쓴다
+    build:
+      context: .
+      dockerfile: runtime/Dockerfile
     environment:
       TORCHSERVE_URL: http://torchserve:8080
     ports:

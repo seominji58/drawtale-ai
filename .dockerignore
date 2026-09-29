@@ -1,0 +1,9 @@
+.git/
+.venv/
+**/__pycache__/
+*.pyc
+third_party/AnimatedDrawings/media/
+third_party/AnimatedDrawings/tests/
+third_party/AnimatedDrawings/.github/
+docs/
+training/

@@ -18,6 +18,7 @@ class Joint(BaseModel):
 class MaskInfo(BaseModel):
     width: int
     height: int
+    saved: bool = False
 
 
 class HealthResponse(BaseModel):
@@ -30,6 +31,9 @@ class HealthResponse(BaseModel):
 
 class AnalyzeResponse(BaseModel):
     success: bool
+
+    # render 호출 시 이 값을 넘기면 저장된 원본/마스크를 재사용한다
+    request_id: str | None = None
     bbox: BoundingBox | None = None
     joints: List[Joint] = Field(default_factory=list)
     mask: MaskInfo | None = None

@@ -406,7 +406,13 @@ def to_original_scale(bbox: dict, scale: float) -> dict:
     }
 
 
-def analyze_image(image_path: str) -> dict:
+def analyze_image(image_path: str, mask_path: str | None = None) -> dict:
+    """그림을 분석해 bbox, 관절 15개, 마스크 정보를 반환한다.
+
+    mask_path를 주면 캐릭터 영역 마스크를 원본 크기의 PNG로 저장한다.
+    렌더링(/internal/v1/render)에 필요하다.
+    """
+
     started_at = time.perf_counter()
 
     path = Path(image_path)
@@ -495,6 +501,22 @@ def analyze_image(image_path: str) -> dict:
 
     mask = create_mask(cropped)
 
+    # 마스크를 원본 이미지 크기로 되돌려 저장한다 (렌더링에서 사용)
+    mask_saved = False
+
+    if mask_path is not None:
+        mask_w = round(mask.shape[1] / scale)
+        mask_h = round(mask.shape[0] / scale)
+
+        mask_original = cv2.resize(
+            mask,
+            (mask_w, mask_h),
+            interpolation=cv2.INTER_NEAREST
+        )
+
+        Path(mask_path).parent.mkdir(parents=True, exist_ok=True)
+        mask_saved = bool(cv2.imwrite(mask_path, mask_original))
+
     # 4. 모든 좌표를 원본 이미지 기준으로 복원
     bbox = to_original_scale(bbox, scale)
 
@@ -515,6 +537,7 @@ def analyze_image(image_path: str) -> dict:
         "mask": {
             "width": round(mask.shape[1] / scale),
             "height": round(mask.shape[0] / scale),
+            "saved": mask_saved,
         },
         "message": "Analysis complete",
         "model_version": MODEL_VERSION,

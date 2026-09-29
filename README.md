@@ -79,7 +79,8 @@ Meta 사전학습 모델(`drawn_humanoid_detector.mar`, `drawn_humanoid_pose_est
 |---|---|
 | `GET /internal/v1/health` | ✅ 동작 — 실제 TorchServe 상태 반영 |
 | `POST /internal/v1/analyze` | ✅ 동작 — 파일 업로드(`file`) → bbox, 관절 15개, 마스크 크기, 메타데이터 |
-| `POST /internal/v1/render` | ⬜ **미구현 — A1 다음 작업** |
+| `POST /internal/v1/render` | ✅ 동작 — 보정 관절 + motion → MP4 |
+| `DELETE /internal/v1/sessions/{id}` | ✅ 동작 — 임시 파일 정리 |
 
 Backend 연동 테스트 완료 (2026-09-28): 업로드 → 분석 → 관절 15개 반환, 에러 처리까지 확인.
 
@@ -87,7 +88,9 @@ Backend 연동 테스트 완료 (2026-09-28): 업로드 → 분석 → 관절 15
 
 | 항목 | 값 |
 |---|---|
-| 분석 시간 | 약 3초 (2000x2000 기준) |
+| 분석 시간 | 약 1.5초 (2000x2000 기준) |
+| 렌더링 시간 | 약 35~40초 (839프레임) |
+| 결과 MP4 크기 | 0.6~1.7MB |
 | TorchServe 메모리 | 약 1.4GB |
 | AI 서버 메모리 | 약 100MB |
 | TorchServe 이미지 | 5.84GB (CPU 전용) |
@@ -101,20 +104,39 @@ Backend 연동 테스트 완료 (2026-09-28): 업로드 → 분석 → 관절 15
 > 배포 대상 Azure VM에 GPU가 없으므로 CPU 전용 wheel로 교체해 5.84GB로 줄였다.
 > 분석 결과는 동일하며 오히려 더 빠르다 (3.2초 → 1.4초).
 
-## A1 다음 작업
+## 사용 흐름
 
-- [ ] **`POST /internal/v1/render`** — Backend가 보낸 **사용자 보정 관절**로 렌더링해서 MP4 생성 (가장 중요)
-- [ ] **마스크 이미지 저장** — 지금은 크기만 반환하고 버림 (render에 필요)
-- [ ] 렌더링 시간 · Peak RAM 측정 (`docker stats`)
+```text
+1. POST /internal/v1/analyze  (그림 파일)
+   → request_id, bbox, 관절 15개  … 원본과 마스크는 서버에 보관됨
 
-### 완료된 항목 (팀장 수정)
+2. (사용자가 Frontend에서 관절 보정)
 
-- [x] 관절 · bbox 좌표를 원본 이미지 기준으로 변환 (1000px 축소본 기준 → 원본 기준)
-- [x] 응답 메타데이터 추가: `model_version`, `pipeline_version`, `coordinate_space`, `processing_time_ms`
+3. POST /internal/v1/render  (request_id, 보정 관절, motion)
+   → MP4 파일
+
+4. DELETE /internal/v1/sessions/{request_id}  (정리)
+```
+
+**사용 가능한 motion**: `wave_hello`, `jumping`, `jumping_jacks`, `dab`, `zombie`
+
+## 완료된 작업
+
+- [x] 관절 · bbox 좌표를 원본 이미지 기준으로 변환
+- [x] 응답 메타데이터: `model_version`, `pipeline_version`, `coordinate_space`, `processing_time_ms`
 - [x] health의 `model_loaded`를 실제 TorchServe 상태로 표시
-- [x] `async def` → `def` (분석 중 서버 전체가 멈추지 않게)
+- [x] `async def` → `def` (처리 중 서버 전체가 멈추지 않게)
 - [x] TorchServe 작업자 수 제한 (17GB → 1.5GB)
 - [x] TorchServe 주소를 `TORCHSERVE_URL` 환경변수로 분리
+- [x] CPU 전용 PyTorch (32.8GB → 5.84GB)
+- [x] 마스크 이미지 저장 (렌더링에 사용)
+- [x] `POST /internal/v1/render` 구현
+
+## 남은 작업
+
+- [ ] Peak RAM 측정 (렌더링 중)
+- [ ] 임시 파일 자동 정리 (오래된 세션)
+- [ ] 동시 요청 처리 정책 (현재는 순차 처리)
 
 ## Git 규칙
 

@@ -1,11 +1,21 @@
 # AI Runtime server (Python 3.10)
-# Versions of numpy / scipy / scikit-image / opencv / requests match Meta AnimatedDrawings setup.py,
-# so installing third_party/AnimatedDrawings later (for /render) does not conflict.
+# Versions match Meta AnimatedDrawings setup.py so the rendering pipeline
+# (third_party/AnimatedDrawings, installed into the image) works unchanged.
 fastapi==0.141.1
 uvicorn[standard]==0.54.0
 python-multipart==0.0.32
 requests==2.31.0
+
+# analyze
 numpy==1.24.4
 scipy==1.10.0
 scikit-image==0.19.3
-opencv-python==4.6.0.66
+opencv-python-headless==4.10.0.84
+
+# render (Meta AnimatedDrawings)
+scikit-learn==1.1.2
+shapely==1.8.5.post1
+Pillow==10.1.0
+PyOpenGL==3.1.6
+PyYAML==6.0.1
+tqdm==4.66.3
