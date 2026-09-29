@@ -88,12 +88,18 @@ Backend 연동 테스트 완료 (2026-09-28): 업로드 → 분석 → 관절 15
 | 항목 | 값 |
 |---|---|
 | 분석 시간 | 약 3초 (2000x2000 기준) |
-| TorchServe 메모리 | 약 1.5GB |
-| AI 서버 메모리 | 약 80MB |
+| TorchServe 메모리 | 약 1.4GB |
+| AI 서버 메모리 | 약 100MB |
+| TorchServe 이미지 | 5.84GB (CPU 전용) |
+| AI 서버 이미지 | 1.15GB |
 
-> TorchServe는 기본적으로 **CPU 코어 수만큼 작업자를 만들어** 모델을 그만큼 복제한다.
+> **작업자 수 제한**: TorchServe는 기본적으로 CPU 코어 수만큼 작업자를 만들어 모델을 그만큼 복제한다.
 > 20코어에서 17GB를 써서 16GB VM에 올릴 수 없었기 때문에,
 > `torchserve/config.properties`에 `default_workers_per_model=1`을 설정했다.
+>
+> **CPU 전용 PyTorch**: Meta 원본 Dockerfile은 GPU(CUDA) 버전을 설치해 이미지가 32.8GB였다.
+> 배포 대상 Azure VM에 GPU가 없으므로 CPU 전용 wheel로 교체해 5.84GB로 줄였다.
+> 분석 결과는 동일하며 오히려 더 빠르다 (3.2초 → 1.4초).
 
 ## A1 다음 작업
 
