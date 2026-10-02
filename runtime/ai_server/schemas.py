@@ -14,6 +14,9 @@ class Joint(BaseModel):
     x: int
     y: int
 
+    # 모델이 이 관절을 얼마나 확신하는지 (0~1). 렌더 요청에는 없어도 된다
+    score: float | None = None
+
 
 class MaskInfo(BaseModel):
     width: int
@@ -36,6 +39,9 @@ class AnalyzeResponse(BaseModel):
     request_id: str | None = None
     bbox: BoundingBox | None = None
     joints: List[Joint] = Field(default_factory=list)
+
+    # 캐릭터 검출 점수 (0~1). 낮으면 백엔드·프론트가 어른 확인을 권한다
+    confidence: float | None = None
     mask: MaskInfo | None = None
     message: str | None = None
 

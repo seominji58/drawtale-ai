@@ -34,6 +34,40 @@ MASK_JOINT_HIT_RATIO = 0.6
 # 캐릭터가 bbox 경계에 닿으면 선이 잘려 배경이 새어 들어간다.
 MASK_CROP_MARGIN = 30
 
+# 점수 기준. 실제 그림으로 잰 값은 docs/진행상황.md 「점수 기준」.
+#
+# 검출 점수는 낙서·동그라미에도 0.97 이상이 나와 사람인지 가리지 못한다.
+# 사람 모양인지는 관절 점수 평균으로 본다 (낙서 0.10, 동그라미 0.23, 실제 그림 0.56 이상).
+LOW_CONFIDENCE_SCORE = 0.3
+LOW_CONFIDENCE_JOINT_MEAN = 0.35
+
+# 가장 높은 것 말고도 이 점수 이상인 검출이 따로 떨어져 있으면 사람이 여럿인 그림이다.
+# 두 사람을 나란히 그린 그림은 0.99, 한 사람 옆 라디오·조명은 0.54 였다.
+MULTIPLE_MIN_SCORE = 0.8
+
+# 두 번째 검출이 첫 번째 상자와 이만큼 이상 겹치면 같은 사람을 두 번 잡은 것으로 본다.
+# 작은 상자의 넓이 중 겹친 비율이다.
+SAME_CHARACTER_OVERLAP = 0.5
+
+# Meta 17개 keypoint 중 15개 관절의 근거. 두 개면 그 중간점이다.
+JOINT_SOURCES = {
+    "hip": (11, 12),
+    "torso": (5, 6),
+    "neck": (0,),
+    "right_shoulder": (6,),
+    "right_elbow": (8,),
+    "right_hand": (10,),
+    "left_shoulder": (5,),
+    "left_elbow": (7,),
+    "left_hand": (9,),
+    "right_hip": (12,),
+    "right_knee": (14,),
+    "right_foot": (16,),
+    "left_hip": (11,),
+    "left_knee": (13,),
+    "left_foot": (15,),
+}
+
 
 def check_torchserve() -> bool:
     try:
@@ -51,6 +85,9 @@ def detect_character(img: np.ndarray) -> dict:
     """
     Meta Animated Drawings detector를 호출해서
     가장 높은 score의 character bbox를 반환한다.
+
+    점수가 너무 낮으면 LOW_CONFIDENCE, 떨어진 자리에 다른 사람이 또 있으면
+    MULTIPLE_CHARACTERS 로 멈춘다. 둘 다 아이에게 다른 그림을 부탁하는 경우다.
 
     bbox 좌표는 현재 분석 이미지
     (최대 1000px로 resize된 이미지) 기준이다.
@@ -90,7 +127,22 @@ def detect_character(img: np.ndarray) -> dict:
         reverse=True
     )
 
-    bbox = detection_results[0]["bbox"]
+    best = detection_results[0]
+
+    if best["score"] < LOW_CONFIDENCE_SCORE:
+        raise RuntimeError(
+            f"LOW_CONFIDENCE: Best detection score {best['score']:.2f}"
+        )
+
+    for other in detection_results[1:]:
+        if other["score"] < MULTIPLE_MIN_SCORE:
+            break
+        if overlap_ratio(best["bbox"], other["bbox"]) < SAME_CHARACTER_OVERLAP:
+            raise RuntimeError(
+                f"MULTIPLE_CHARACTERS: Another character scored {other['score']:.2f}"
+            )
+
+    bbox = best["bbox"]
 
     left, top, right, bottom = [
         round(value) for value in bbox
@@ -101,8 +153,25 @@ def detect_character(img: np.ndarray) -> dict:
         "top": top,
         "right": right,
         "bottom": bottom,
-        "score": detection_results[0]["score"],
+        "score": float(best["score"]),
     }
+
+
+def overlap_ratio(a: list, b: list) -> float:
+    """두 상자 [left, top, right, bottom] 이 겹친 넓이 / 작은 상자 넓이."""
+
+    width = min(a[2], b[2]) - max(a[0], b[0])
+    height = min(a[3], b[3]) - max(a[1], b[1])
+
+    if width <= 0 or height <= 0:
+        return 0.0
+
+    smaller = min(
+        (a[2] - a[0]) * (a[3] - a[1]),
+        (b[2] - b[0]) * (b[3] - b[1]),
+    )
+
+    return width * height / smaller if smaller > 0 else 0.0
 
 def create_mask(img: np.ndarray, close_iterations: int = 2) -> np.ndarray:
     """
@@ -408,6 +477,17 @@ def estimate_pose(cropped: np.ndarray, bbox: dict) -> list:
         },
     ]
 
+    # 관절마다 모델이 얼마나 확신하는지 (0~1). 중간점은 두 점 중 낮은 쪽을 쓴다.
+    # 프론트가 낮은 관절을 어른에게 먼저 보여 준다 (S-05-05, S-06).
+    def score(index: int) -> float | None:
+        if len(kpts[index]) < 3:
+            return None
+        return min(1.0, max(0.0, float(kpts[index][2])))
+
+    for joint in joints:
+        scores = [score(i) for i in JOINT_SOURCES[joint["name"]]]
+        joint["score"] = None if None in scores else round(min(scores), 3)
+
     return joints
 
 
@@ -578,6 +658,7 @@ def analyze_image(image_path: str, mask_path: str | None = None) -> dict:
 
     # 1. 캐릭터 검출
     bbox = detect_character(img)
+    confidence = round(bbox["score"], 3)
 
     # 이미지 범위를 벗어나는 bbox 방지
     left = max(0, bbox["left"])
@@ -612,6 +693,18 @@ def analyze_image(image_path: str, mask_path: str | None = None) -> dict:
         bbox
     )
 
+    scores = [joint["score"] for joint in joints if joint["score"] is not None]
+
+    if scores and sum(scores) / len(scores) < LOW_CONFIDENCE_JOINT_MEAN:
+        return {
+            "success": False,
+            "bbox": None,
+            "joints": [],
+            "message": (
+                f"LOW_CONFIDENCE: Mean joint score {sum(scores) / len(scores):.2f}"
+            ),
+        }
+
     mask = build_mask(img, bbox, joints)
 
     # 마스크를 원본 이미지 크기로 되돌려 저장한다 (렌더링에서 사용)
@@ -637,6 +730,7 @@ def analyze_image(image_path: str, mask_path: str | None = None) -> dict:
             "name": joint["name"],
             "x": round(joint["x"] / scale),
             "y": round(joint["y"] / scale),
+            "score": joint["score"],
         }
         for joint in joints
     ]
@@ -646,6 +740,7 @@ def analyze_image(image_path: str, mask_path: str | None = None) -> dict:
         "success": True,
         "bbox": bbox,
         "joints": joints,
+        "confidence": confidence,
         "mask": {
             "width": round(mask.shape[1] / scale),
             "height": round(mask.shape[0] / scale),
