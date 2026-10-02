@@ -216,6 +216,7 @@ python output/render.py <이미지경로> <motion>
 - [ ] 임시 파일 자동 정리 (오래된 세션)
 - [ ] 동시 요청 처리 정책 (현재는 순차 처리)
 - [ ] 배경 밝기가 캐릭터와 비슷할 때 실패 처리 및 안내
+- [ ] 캐릭터가 이미지 가장자리까지 꽉 찬 그림 — 마스크가 이미지 전체(흰 비율 1.0)가 되어 render 가 `RENDER_FAILED`(numpy concatenate 차원 오류)로 끝난다. Meta 예제 char1 · char2 의 `texture.png` 처럼 여백 없이 잘라 낸 그림에서 재현. `feat/gentle-motions` 의 분석 코드로도 같다 (2026-10-02 확인). 사진으로 찍은 그림(char4 원본, char5)은 된다. analyze 단계에서 알아채 아이에게 「조금 떨어져서 찍어 주세요」로 돌려보내는 것이 좋겠다
 
 ## Git 규칙
 
