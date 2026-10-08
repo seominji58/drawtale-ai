@@ -8,6 +8,7 @@ from pathlib import Path
 
 from fastapi import FastAPI, File, Form, UploadFile
 from fastapi.responses import FileResponse
+from starlette.background import BackgroundTask
 
 from ai_server.analyzer import (
     MODEL_VERSION,
@@ -88,6 +89,9 @@ def render(
     request_id: str = Form(..., description="analyze 응답의 request_id"),
     joints: str = Form(..., description='관절 15개 JSON 배열 [{"name","x","y"}, ...]'),
     motion: str = Form("wave_hello", description=f"사용 가능: {', '.join(MOTIONS)}"),
+    max_frames: int | None = Form(
+        None, ge=1, description="프레임 상한. 동작 전체에서 일정 간격으로 고른다 (S-05 미리보기용)"
+    ),
 ):
     """Backend가 보낸 관절(사용자 보정 반영)로 애니메이션 MP4를 만든다.
 
@@ -109,7 +113,8 @@ def render(
         with open(session_dir / "analysis.json") as f:
             analysis = json.load(f)
 
-        output_path = session_dir / "animation.mp4"
+        # 미리보기와 이야기 렌더가 같은 세션에서 겹칠 수 있어 요청마다 다른 파일에 쓴다
+        output_path = session_dir / f"animation-{uuid.uuid4().hex}.mp4"
         result = render_animation(
             image_path=str(session_dir / analysis["source"]),
             mask_path=str(session_dir / "mask.png"),
@@ -117,6 +122,7 @@ def render(
             bbox=analysis["bbox"],
             motion=motion,
             output_path=str(output_path),
+            max_frames=max_frames,
         )
 
         log.info(
@@ -129,6 +135,8 @@ def render(
 
         return FileResponse(
             output_path,
+            # 보낸 뒤 지운다 — 렌더할 때마다 파일이 쌓이지 않게
+            background=BackgroundTask(output_path.unlink, missing_ok=True),
             media_type="video/mp4",
             filename="animation.mp4",
             headers={

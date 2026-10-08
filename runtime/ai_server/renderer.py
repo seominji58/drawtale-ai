@@ -43,6 +43,10 @@ JOINT_PARENTS: dict[str, str | None] = {
     "left_foot": "left_knee",
 }
 
+# 렌더할 최대 프레임 수. 0 이면 동작 전체 (기본).
+# CPU 가 느린 노트북에서 839프레임이 백엔드 대기 시간(300초)을 넘길 때 로컬에서만 줄인다.
+RENDER_MAX_FRAMES = int(os.getenv("RENDER_MAX_FRAMES", "0"))
+
 _META_MOTIONS = ANIMATED_DRAWINGS_DIR / "examples/config/motion"
 
 # 팔을 몸에 붙여 그린 그림은 팔이 몸 쪽으로 내려오거나 팔꿈치가 접힐 때 뭉개진다.
@@ -222,7 +226,25 @@ def _gif_to_mp4(gif_path: Path, mp4_path: Path) -> None:
         raise RenderError(f"ENCODING_FAILED: ffmpeg failed: {detail}")
 
 
-def _motion_cfg(cfg_path: Path, work_dir: Path) -> Path:
+def _thin_bvh(src: Path, dst: Path, start: int, end: int | None, max_frames: int) -> int:
+    """BVH 의 [start, end) 프레임을 max_frames 이하가 되게 일정 간격으로 골라 dst 에 쓴다.
+
+    Meta 렌더러는 프레임마다 Frame Time 만큼 시간을 보내므로, 고른 간격만큼 Frame Time 을 늘려
+    동작 속도는 그대로 둔다. 남은 프레임 수를 돌려준다.
+    """
+
+    lines = src.read_text().splitlines()
+    m = next(i for i, line in enumerate(lines) if line.strip() == "MOTION")
+    frame_time = float(lines[m + 2].split(":")[-1])
+    frames = [line for line in lines[m + 3 :] if line.strip()][start:end]
+    step = max(1, -(-len(frames) // max_frames))  # 올림
+    kept = frames[::step]
+    header = lines[: m + 1] + [f"Frames: {len(kept)}", f"Frame Time: {frame_time * step:.6f}"]
+    dst.write_text("\n".join(header + kept) + "\n")
+    return len(kept)
+
+
+def _motion_cfg(cfg_path: Path, work_dir: Path, max_frames: int = 0) -> Path:
     """motion 설정을 렌더에 넘길 경로로 돌려준다.
 
     Meta 설정의 BVH 경로는 Meta 저장소 기준이라 그대로 쓴다. 우리 설정(*_gentle)은
@@ -231,9 +253,24 @@ def _motion_cfg(cfg_path: Path, work_dir: Path) -> Path:
 
     cfg = yaml.safe_load(cfg_path.read_text())
     local_bvh = cfg_path.parent / cfg["filepath"]
-    if not local_bvh.exists():
+    if local_bvh.exists():
+        cfg["filepath"] = str(local_bvh)
+    elif not max_frames:
         return cfg_path
-    cfg["filepath"] = str(local_bvh)
+    if max_frames:
+        # 앞부분만 자르면 동작의 처음 1초 남짓(BVH 는 초당 120프레임)이라 거의 움직이지 않는다.
+        # 동작 전체에서 일정 간격으로 골라 프레임 수만 줄인다
+        src = Path(cfg["filepath"])
+        if not src.is_absolute():
+            src = ANIMATED_DRAWINGS_DIR / src
+        kept = _thin_bvh(
+            src,
+            work_dir / "motion.bvh",
+            cfg.get("start_frame_idx", 0),
+            cfg.get("end_frame_idx"),
+            max_frames,
+        )
+        cfg.update(filepath=str(work_dir / "motion.bvh"), start_frame_idx=0, end_frame_idx=kept)
     out = work_dir / "motion_cfg.yaml"
     out.write_text(yaml.safe_dump(cfg, sort_keys=False))
     return out
@@ -246,8 +283,15 @@ def render_animation(
     bbox: dict,
     motion: str,
     output_path: str,
+    max_frames: int | None = None,
 ) -> dict:
-    """관절 좌표로 애니메이션 MP4를 만든다."""
+    """관절 좌표로 애니메이션 MP4를 만든다.
+
+    max_frames 는 요청마다 주는 프레임 상한이다 (Backend 의 S-05 미리보기). RENDER_MAX_FRAMES 와
+    둘 다 있으면 작은 쪽을 쓴다. 0 · None 이면 상한 없음.
+    """
+
+    limit = min((n for n in (RENDER_MAX_FRAMES, max_frames or 0) if n > 0), default=0)
 
     started_at = time.perf_counter()
 
@@ -269,7 +313,7 @@ def render_animation(
                 "ANIMATED_CHARACTERS": [
                     {
                         "character_cfg": str(char_dir / "char_cfg.yaml"),
-                        "motion_cfg": str(_motion_cfg(motion_cfg_path, work_dir)),
+                        "motion_cfg": str(_motion_cfg(motion_cfg_path, work_dir, limit)),
                         "retarget_cfg": str(
                             ANIMATED_DRAWINGS_DIR
                             / f"examples/config/retarget/{retarget_name}.yaml"
