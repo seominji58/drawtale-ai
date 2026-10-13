@@ -1,0 +1,26 @@
+# AI Runtime = torchserve (Meta models) + ai (FastAPI, called only by Backend)
+#   docker compose up -d --build
+#   http://127.0.0.1:8001/docs
+services:
+  torchserve:
+    build: ./torchserve
+    ports:
+      - "127.0.0.1:8080:8080"   # for local debugging only; not exposed in production
+    healthcheck:
+      test: ["CMD-SHELL", "curl -fsS http://localhost:8080/ping || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 30
+
+  ai:
+    # third_party/AnimatedDrawings 를 이미지에 넣어야 하므로 레포 루트를 빌드 컨텍스트로 쓴다
+    build:
+      context: .
+      dockerfile: runtime/Dockerfile
+    environment:
+      TORCHSERVE_URL: http://torchserve:8080
+    ports:
+      - "127.0.0.1:8001:8001"
+    depends_on:
+      torchserve:
+        condition: service_healthy
