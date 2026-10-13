@@ -40,3 +40,8 @@ Thumbs.db
 output/*
 !output/README.md
 !output/*.py
+
+# Mixamo 동작 데이터 — 원본 파일은 공개 저장소에 올리지 않는다.
+# 서비스에서 쓰는 것은 허용되지만 재배포는 금지라, 팀 안에서만 나눈다.
+# 라이선스: 08 기술 스택 문서 참고
+third_party/AnimatedDrawings/examples/bvh/mixamo/
