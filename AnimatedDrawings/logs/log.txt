@@ -1,0 +1,1300 @@
+DEBUG:urllib3.connectionpool:Starting new HTTP connection (1): localhost:8080
+DEBUG:urllib3.connectionpool:http://localhost:8080 "POST /predictions/drawn_humanoid_detector HTTP/1.1" 200 193
+INFO:root:Detected 1 humanoids in image. Using detection with highest score 0.9958598017692566.
+DEBUG:urllib3.connectionpool:Starting new HTTP connection (1): localhost:8080
+DEBUG:urllib3.connectionpool:http://localhost:8080 "POST /predictions/drawn_humanoid_pose_estimator HTTP/1.1" 200 1630
+INFO:root:Using user-specified mvc config file located at D:\capston\AnimatedDrawings\test_annotations\mvc_cfg.yaml
+INFO:root:Using user-specified mvc config file located at D:\capston\AnimatedDrawings\test_annotations\mvc_cfg.yaml
+INFO:root:Using user-specified mvc config file located at D:\capston\AnimatedDrawings\test_annotations\mvc_cfg.yaml
+INFO:OpenGL.acceleratesupport:No OpenGL_accelerate module loaded: No module named 'OpenGL_accelerate'
+INFO:root:Using user-specified mvc config file located at D:\capston\AnimatedDrawings\test_annotations\mvc_cfg.yaml
+INFO:OpenGL.acceleratesupport:No OpenGL_accelerate module loaded: No module named 'OpenGL_accelerate'
+DEBUG:shapely.geos:Found GEOS DLL: <CDLL 'C:\Users\MJC\AppData\Local\Programs\Python\Python311\Lib\site-packages\Shapely.libs\geos_c-84d02d5b10aa37e3ab60a885dc5b531b.dll', handle 7ffad5430000 at 0x1bd064a8850>, using it.
+INFO:root:Using user-specified mvc config file located at D:\capston\AnimatedDrawings\test_annotations\mvc_cfg.yaml
+INFO:OpenGL.acceleratesupport:No OpenGL_accelerate module loaded: No module named 'OpenGL_accelerate'
+DEBUG:shapely.geos:Found GEOS DLL: <CDLL 'C:\Users\MJC\AppData\Local\Programs\Python\Python311\Lib\site-packages\Shapely.libs\geos_c-84d02d5b10aa37e3ab60a885dc5b531b.dll', handle 7ffad5430000 at 0x125d2449010>, using it.
+INFO:root:Using user-specified mvc config file located at D:\capston\AnimatedDrawings\test_annotations\mvc_cfg.yaml
+INFO:OpenGL.acceleratesupport:No OpenGL_accelerate module loaded: No module named 'OpenGL_accelerate'
+DEBUG:shapely.geos:Found GEOS DLL: <CDLL 'C:\Users\MJC\AppData\Local\Programs\Python\Python311\Lib\site-packages\Shapely.libs\geos_c-84d02d5b10aa37e3ab60a885dc5b531b.dll', handle 7ffad5420000 at 0x19eaef94450>, using it.
+INFO:root:Using user-specified mvc config file located at D:\capston\AnimatedDrawings\test_annotations\mvc_cfg.yaml
+INFO:OpenGL.acceleratesupport:No OpenGL_accelerate module loaded: No module named 'OpenGL_accelerate'
+DEBUG:shapely.geos:Found GEOS DLL: <CDLL 'C:\Users\MJC\AppData\Local\Programs\Python\Python311\Lib\site-packages\Shapely.libs\geos_c-84d02d5b10aa37e3ab60a885dc5b531b.dll', handle 7ffad5420000 at 0x1fbb6cc4490>, using it.
+INFO:root:OpenGL Version: 3.3.0 NVIDIA 591.86
+INFO:root:GLSL: 3.30 NVIDIA via Cg compiler
+INFO:root:Renderer: NVIDIA GeForce GTX 1660 Ti/PCIe/SSE2
+INFO:root:Encountered values close to zero in vector norm. Replacing with 1e-05
+INFO:root:char_runtime_check failed, removing neck from retargeter :('neck', 'above', 'right_shoulder', 'left_shoulder')
+INFO:root:Starting joint -> mask pixel BFS
+INFO:root:Finished joint -> mask pixel BFS in 2.9895853996276855 seconds
+INFO:root:Using BVH file located at D:\capston\AnimatedDrawings\examples\bvh\fair1\wave_hello.bvh
+INFO:root:Upper Limbs projection_method is pca. Running PCA on ['RightShoulder', 'RightArm', 'RightForeArm', 'RightHand', 'RightHandEnd', 'LeftShoulder', 'LeftArm', 'LeftForeArm', 'LeftHand', 'LeftHandEnd']
+INFO:root:PCA complete. Upper Limbs using [1. 0. 0.]
+INFO:root:Lower Limbs projection_method is pca. Running PCA on ['RightUpLeg', 'RightLeg', 'RightFoot', 'RightToeBase', 'LeftUpLeg', 'LeftLeg', 'LeftFoot', 'LeftToeBase']
+INFO:root:PCA complete. Lower Limbs using [1. 0. 0.]
+INFO:root:Trunk projection_method is frontal. Using [1. 0. 0.]
+INFO:root: error finding projection plane for joint_name: End Site
+INFO:root: error finding projection plane for joint_name: End Site
+INFO:root: error finding projection plane for joint_name: RightHandThumb1
+INFO:root: error finding projection plane for joint_name: End Site
+INFO:root: error finding projection plane for joint_name: End Site
+INFO:root: error finding projection plane for joint_name: LeftHandThumb1
+INFO:root: error finding projection plane for joint_name: End Site
+INFO:root: error finding projection plane for joint_name: End Site
+INFO:root: error finding projection plane for joint_name: End Site
+WARNING:root:point [[0.6756329  0.06962025]] not inside or on edge of any triangle in mesh. Skipping it
+INFO:root:tA1xA1 is singular. perturbing...
+INFO:root:tA2xA2 is singular. perturbing...
+INFO:root: Writing video to: D:\capston\AnimatedDrawings\test_annotations\video.gif
+WARNING:root:Specified duration of .gif is too low, replacing with 20: 8
+INFO:root:invalid frame_idx (839), replacing with last frame 838
+INFO:root:Rendered 839 frames in 32.93759751319885 seconds.
+INFO:root:VideoWriter will write to D:\capston\AnimatedDrawings\test_annotations\video.gif
+DEBUG:PIL.Image:Importing GifImagePlugin
+INFO:root:Wrote video to file in in 4.806270122528076 seconds.
+INFO:root:Using user-specified mvc config file located at D:\capston\render_results\current\mvc_cfg.yaml
+CRITICAL:root:Error in character skeleton: x val must be < image width
+INFO:root:Using user-specified mvc config file located at D:\capston\render_results\current\mvc_cfg.yaml
+INFO:OpenGL.acceleratesupport:No OpenGL_accelerate module loaded: No module named 'OpenGL_accelerate'
+DEBUG:shapely.geos:Found GEOS DLL: <CDLL 'C:\Users\MJC\AppData\Local\Programs\Python\Python311\Lib\site-packages\Shapely.libs\geos_c-84d02d5b10aa37e3ab60a885dc5b531b.dll', handle 7ffadb030000 at 0x1f12a804690>, using it.
+INFO:root:OpenGL Version: 3.3.0 NVIDIA 591.86
+INFO:root:GLSL: 3.30 NVIDIA via Cg compiler
+INFO:root:Renderer: NVIDIA GeForce GTX 1660 Ti/PCIe/SSE2
+INFO:root:Encountered values close to zero in vector norm. Replacing with 1e-05
+INFO:root:char_runtime_check failed, removing neck from retargeter :('neck', 'above', 'right_shoulder', 'left_shoulder')
+INFO:root:Starting joint -> mask pixel BFS
+INFO:root:Finished joint -> mask pixel BFS in 2.9255714416503906 seconds
+INFO:root:Using BVH file located at D:\capston\AnimatedDrawings\examples\bvh\fair1\wave_hello.bvh
+INFO:root:Upper Limbs projection_method is pca. Running PCA on ['RightShoulder', 'RightArm', 'RightForeArm', 'RightHand', 'RightHandEnd', 'LeftShoulder', 'LeftArm', 'LeftForeArm', 'LeftHand', 'LeftHandEnd']
+INFO:root:PCA complete. Upper Limbs using [1. 0. 0.]
+INFO:root:Lower Limbs projection_method is pca. Running PCA on ['RightUpLeg', 'RightLeg', 'RightFoot', 'RightToeBase', 'LeftUpLeg', 'LeftLeg', 'LeftFoot', 'LeftToeBase']
+INFO:root:PCA complete. Lower Limbs using [1. 0. 0.]
+INFO:root:Trunk projection_method is frontal. Using [1. 0. 0.]
+INFO:root: error finding projection plane for joint_name: End Site
+INFO:root: error finding projection plane for joint_name: End Site
+INFO:root: error finding projection plane for joint_name: RightHandThumb1
+INFO:root: error finding projection plane for joint_name: End Site
+INFO:root: error finding projection plane for joint_name: End Site
+INFO:root: error finding projection plane for joint_name: LeftHandThumb1
+INFO:root: error finding projection plane for joint_name: End Site
+INFO:root: error finding projection plane for joint_name: End Site
+INFO:root: error finding projection plane for joint_name: End Site
+WARNING:root:point [[0.6756329  0.06962025]] not inside or on edge of any triangle in mesh. Skipping it
+INFO:root:tA1xA1 is singular. perturbing...
+INFO:root:tA2xA2 is singular. perturbing...
+INFO:root: Writing video to: D:\capston\render_results\current\video.gif
+WARNING:root:Specified duration of .gif is too low, replacing with 20: 8
+INFO:root:invalid frame_idx (839), replacing with last frame 838
+INFO:root:Rendered 839 frames in 32.73102903366089 seconds.
+INFO:root:VideoWriter will write to D:\capston\render_results\current\video.gif
+DEBUG:PIL.Image:Importing GifImagePlugin
+INFO:root:Wrote video to file in in 4.745068311691284 seconds.
+INFO:root:Using user-specified mvc config file located at D:\capston\render_results\current\mvc_cfg.yaml
+INFO:OpenGL.acceleratesupport:No OpenGL_accelerate module loaded: No module named 'OpenGL_accelerate'
+DEBUG:shapely.geos:Found GEOS DLL: <CDLL 'C:\Users\MJC\AppData\Local\Programs\Python\Python311\Lib\site-packages\Shapely.libs\geos_c-84d02d5b10aa37e3ab60a885dc5b531b.dll', handle 7ffacb0e0000 at 0x25425db4450>, using it.
+INFO:root:OpenGL Version: 3.3.0 NVIDIA 591.86
+INFO:root:GLSL: 3.30 NVIDIA via Cg compiler
+INFO:root:Renderer: NVIDIA GeForce GTX 1660 Ti/PCIe/SSE2
+INFO:root:Encountered values close to zero in vector norm. Replacing with 1e-05
+INFO:root:char_runtime_check failed, removing neck from retargeter :('neck', 'above', 'right_shoulder', 'left_shoulder')
+INFO:root:Starting joint -> mask pixel BFS
+INFO:root:Finished joint -> mask pixel BFS in 2.946722984313965 seconds
+INFO:root:Using BVH file located at D:\capston\AnimatedDrawings\examples\bvh\fair1\wave_hello.bvh
+INFO:root:Upper Limbs projection_method is pca. Running PCA on ['RightShoulder', 'RightArm', 'RightForeArm', 'RightHand', 'RightHandEnd', 'LeftShoulder', 'LeftArm', 'LeftForeArm', 'LeftHand', 'LeftHandEnd']
+INFO:root:PCA complete. Upper Limbs using [1. 0. 0.]
+INFO:root:Lower Limbs projection_method is pca. Running PCA on ['RightUpLeg', 'RightLeg', 'RightFoot', 'RightToeBase', 'LeftUpLeg', 'LeftLeg', 'LeftFoot', 'LeftToeBase']
+INFO:root:PCA complete. Lower Limbs using [1. 0. 0.]
+INFO:root:Trunk projection_method is frontal. Using [1. 0. 0.]
+INFO:root: error finding projection plane for joint_name: End Site
+INFO:root: error finding projection plane for joint_name: End Site
+INFO:root: error finding projection plane for joint_name: RightHandThumb1
+INFO:root: error finding projection plane for joint_name: End Site
+INFO:root: error finding projection plane for joint_name: End Site
+INFO:root: error finding projection plane for joint_name: LeftHandThumb1
+INFO:root: error finding projection plane for joint_name: End Site
+INFO:root: error finding projection plane for joint_name: End Site
+INFO:root: error finding projection plane for joint_name: End Site
+WARNING:root:point [[0.6756329  0.06962025]] not inside or on edge of any triangle in mesh. Skipping it
+INFO:root:tA1xA1 is singular. perturbing...
+INFO:root:tA2xA2 is singular. perturbing...
+INFO:root: Writing video to: D:\capston\render_results\current\video.gif
+WARNING:root:Specified duration of .gif is too low, replacing with 20: 8
+INFO:root:invalid frame_idx (839), replacing with last frame 838
+INFO:root:Rendered 839 frames in 32.919429302215576 seconds.
+INFO:root:VideoWriter will write to D:\capston\render_results\current\video.gif
+DEBUG:PIL.Image:Importing GifImagePlugin
+INFO:root:Wrote video to file in in 4.729595422744751 seconds.
+INFO:root:Using user-specified mvc config file located at D:\capston\render_results\current\mvc_cfg.yaml
+INFO:OpenGL.acceleratesupport:No OpenGL_accelerate module loaded: No module named 'OpenGL_accelerate'
+DEBUG:shapely.geos:Found GEOS DLL: <CDLL 'C:\Users\MJC\AppData\Local\Programs\Python\Python311\Lib\site-packages\Shapely.libs\geos_c-84d02d5b10aa37e3ab60a885dc5b531b.dll', handle 7ffadf230000 at 0x23393e14450>, using it.
+INFO:root:OpenGL Version: 3.3.0 NVIDIA 591.86
+INFO:root:GLSL: 3.30 NVIDIA via Cg compiler
+INFO:root:Renderer: NVIDIA GeForce GTX 1660 Ti/PCIe/SSE2
+INFO:root:Encountered values close to zero in vector norm. Replacing with 1e-05
+INFO:root:char_runtime_check failed, removing neck from retargeter :('neck', 'above', 'right_shoulder', 'left_shoulder')
+INFO:root:Starting joint -> mask pixel BFS
+INFO:root:Finished joint -> mask pixel BFS in 3.060391426086426 seconds
+INFO:root:Using BVH file located at D:\capston\AnimatedDrawings\examples\bvh\fair1\wave_hello.bvh
+INFO:root:Upper Limbs projection_method is pca. Running PCA on ['RightShoulder', 'RightArm', 'RightForeArm', 'RightHand', 'RightHandEnd', 'LeftShoulder', 'LeftArm', 'LeftForeArm', 'LeftHand', 'LeftHandEnd']
+INFO:root:PCA complete. Upper Limbs using [1. 0. 0.]
+INFO:root:Lower Limbs projection_method is pca. Running PCA on ['RightUpLeg', 'RightLeg', 'RightFoot', 'RightToeBase', 'LeftUpLeg', 'LeftLeg', 'LeftFoot', 'LeftToeBase']
+INFO:root:PCA complete. Lower Limbs using [1. 0. 0.]
+INFO:root:Trunk projection_method is frontal. Using [1. 0. 0.]
+INFO:root: error finding projection plane for joint_name: End Site
+INFO:root: error finding projection plane for joint_name: End Site
+INFO:root: error finding projection plane for joint_name: RightHandThumb1
+INFO:root: error finding projection plane for joint_name: End Site
+INFO:root: error finding projection plane for joint_name: End Site
+INFO:root: error finding projection plane for joint_name: LeftHandThumb1
+INFO:root: error finding projection plane for joint_name: End Site
+INFO:root: error finding projection plane for joint_name: End Site
+INFO:root: error finding projection plane for joint_name: End Site
+WARNING:root:point [[0.6756329  0.06962025]] not inside or on edge of any triangle in mesh. Skipping it
+INFO:root:tA1xA1 is singular. perturbing...
+INFO:root:tA2xA2 is singular. perturbing...
+INFO:root: Writing video to: D:\capston\render_results\current\video.gif
+WARNING:root:Specified duration of .gif is too low, replacing with 20: 8
+INFO:root:Using user-specified mvc config file located at D:\capston\render_results\agent\step_001\mvc_cfg.yaml
+INFO:OpenGL.acceleratesupport:No OpenGL_accelerate module loaded: No module named 'OpenGL_accelerate'
+DEBUG:shapely.geos:Found GEOS DLL: <CDLL 'C:\Users\MJC\AppData\Local\Programs\Python\Python311\Lib\site-packages\Shapely.libs\geos_c-84d02d5b10aa37e3ab60a885dc5b531b.dll', handle 7ff919330000 at 0x1f17f7b4c10>, using it.
+INFO:root:OpenGL Version: 3.3.0 NVIDIA 591.86
+INFO:root:GLSL: 3.30 NVIDIA via Cg compiler
+INFO:root:Renderer: NVIDIA GeForce GTX 1660 Ti/PCIe/SSE2
+INFO:root:Encountered values close to zero in vector norm. Replacing with 1e-05
+INFO:root:char_runtime_check failed, removing neck from retargeter :('neck', 'above', 'right_shoulder', 'left_shoulder')
+INFO:root:Starting joint -> mask pixel BFS
+INFO:root:Finished joint -> mask pixel BFS in 2.911208152770996 seconds
+INFO:root:Using BVH file located at D:\capston\AnimatedDrawings\examples\bvh\fair1\wave_hello.bvh
+INFO:root:Upper Limbs projection_method is pca. Running PCA on ['RightShoulder', 'RightArm', 'RightForeArm', 'RightHand', 'RightHandEnd', 'LeftShoulder', 'LeftArm', 'LeftForeArm', 'LeftHand', 'LeftHandEnd']
+INFO:root:PCA complete. Upper Limbs using [1. 0. 0.]
+INFO:root:Lower Limbs projection_method is pca. Running PCA on ['RightUpLeg', 'RightLeg', 'RightFoot', 'RightToeBase', 'LeftUpLeg', 'LeftLeg', 'LeftFoot', 'LeftToeBase']
+INFO:root:PCA complete. Lower Limbs using [1. 0. 0.]
+INFO:root:Trunk projection_method is frontal. Using [1. 0. 0.]
+INFO:root: error finding projection plane for joint_name: End Site
+INFO:root: error finding projection plane for joint_name: End Site
+INFO:root: error finding projection plane for joint_name: RightHandThumb1
+INFO:root: error finding projection plane for joint_name: End Site
+INFO:root: error finding projection plane for joint_name: End Site
+INFO:root: error finding projection plane for joint_name: LeftHandThumb1
+INFO:root: error finding projection plane for joint_name: End Site
+INFO:root: error finding projection plane for joint_name: End Site
+INFO:root: error finding projection plane for joint_name: End Site
+WARNING:root:point [[0.6756329  0.06962025]] not inside or on edge of any triangle in mesh. Skipping it
+INFO:root:tA1xA1 is singular. perturbing...
+INFO:root:tA2xA2 is singular. perturbing...
+INFO:root: Writing video to: D:\capston\render_results\agent\step_001\video.gif
+WARNING:root:Specified duration of .gif is too low, replacing with 20: 8
+INFO:root:invalid frame_idx (839), replacing with last frame 838
+INFO:root:Rendered 839 frames in 32.042816162109375 seconds.
+INFO:root:VideoWriter will write to D:\capston\render_results\agent\step_001\video.gif
+DEBUG:PIL.Image:Importing GifImagePlugin
+INFO:root:Wrote video to file in in 4.781264543533325 seconds.
+INFO:root:Using user-specified mvc config file located at D:\capston\render_results\agent\step_002\mvc_cfg.yaml
+INFO:OpenGL.acceleratesupport:No OpenGL_accelerate module loaded: No module named 'OpenGL_accelerate'
+DEBUG:shapely.geos:Found GEOS DLL: <CDLL 'C:\Users\MJC\AppData\Local\Programs\Python\Python311\Lib\site-packages\Shapely.libs\geos_c-84d02d5b10aa37e3ab60a885dc5b531b.dll', handle 7ff919330000 at 0x11cbf4f2a10>, using it.
+INFO:root:OpenGL Version: 3.3.0 NVIDIA 591.86
+INFO:root:GLSL: 3.30 NVIDIA via Cg compiler
+INFO:root:Renderer: NVIDIA GeForce GTX 1660 Ti/PCIe/SSE2
+INFO:root:Encountered values close to zero in vector norm. Replacing with 1e-05
+INFO:root:char_runtime_check failed, removing neck from retargeter :('neck', 'above', 'right_shoulder', 'left_shoulder')
+INFO:root:Starting joint -> mask pixel BFS
+INFO:root:Finished joint -> mask pixel BFS in 2.8948864936828613 seconds
+INFO:root:Using BVH file located at D:\capston\AnimatedDrawings\examples\bvh\fair1\jumping.bvh
+INFO:root:Upper Limbs projection_method is pca. Running PCA on ['RightShoulder', 'RightArm', 'RightForeArm', 'RightHand', 'RightHandEnd', 'LeftShoulder', 'LeftArm', 'LeftForeArm', 'LeftHand', 'LeftHandEnd']
+INFO:root:PCA complete. Upper Limbs using [1. 0. 0.]
+INFO:root:Lower Limbs projection_method is pca. Running PCA on ['RightUpLeg', 'RightLeg', 'RightFoot', 'RightToeBase', 'LeftUpLeg', 'LeftLeg', 'LeftFoot', 'LeftToeBase']
+INFO:root:PCA complete. Lower Limbs using [0. 0. 1.]
+INFO:root:Trunk projection_method is frontal. Using [1. 0. 0.]
+INFO:root: error finding projection plane for joint_name: End Site
+INFO:root: error finding projection plane for joint_name: End Site
+INFO:root: error finding projection plane for joint_name: RightHandThumb1
+INFO:root: error finding projection plane for joint_name: End Site
+INFO:root: error finding projection plane for joint_name: End Site
+INFO:root: error finding projection plane for joint_name: LeftHandThumb1
+INFO:root: error finding projection plane for joint_name: End Site
+INFO:root: error finding projection plane for joint_name: End Site
+INFO:root: error finding projection plane for joint_name: End Site
+WARNING:root:point [[0.6756329  0.06962025]] not inside or on edge of any triangle in mesh. Skipping it
+INFO:root:tA1xA1 is singular. perturbing...
+INFO:root:tA2xA2 is singular. perturbing...
+INFO:root: Writing video to: D:\capston\render_results\agent\step_002\video.gif
+WARNING:root:Specified duration of .gif is too low, replacing with 20: 8
+INFO:root:invalid frame_idx (504), replacing with last frame 503
+INFO:root:Rendered 504 frames in 19.23591113090515 seconds.
+INFO:root:VideoWriter will write to D:\capston\render_results\agent\step_002\video.gif
+DEBUG:PIL.Image:Importing GifImagePlugin
+INFO:root:Wrote video to file in in 2.8896265029907227 seconds.
+INFO:root:Using user-specified mvc config file located at D:\capston\render_results\agent\step_003\mvc_cfg.yaml
+INFO:OpenGL.acceleratesupport:No OpenGL_accelerate module loaded: No module named 'OpenGL_accelerate'
+DEBUG:shapely.geos:Found GEOS DLL: <CDLL 'C:\Users\MJC\AppData\Local\Programs\Python\Python311\Lib\site-packages\Shapely.libs\geos_c-84d02d5b10aa37e3ab60a885dc5b531b.dll', handle 7ff919330000 at 0x24c31224d10>, using it.
+INFO:root:OpenGL Version: 3.3.0 NVIDIA 591.86
+INFO:root:GLSL: 3.30 NVIDIA via Cg compiler
+INFO:root:Renderer: NVIDIA GeForce GTX 1660 Ti/PCIe/SSE2
+INFO:root:Encountered values close to zero in vector norm. Replacing with 1e-05
+INFO:root:char_runtime_check failed, removing neck from retargeter :('neck', 'above', 'right_shoulder', 'left_shoulder')
+INFO:root:Starting joint -> mask pixel BFS
+INFO:root:Finished joint -> mask pixel BFS in 2.9536802768707275 seconds
+INFO:root:Using BVH file located at D:\capston\AnimatedDrawings\examples\bvh\rokoko\jesse_dance.bvh
+INFO:root:Upper Limbs projection_method is pca. Running PCA on ['RightShoulder', 'RightArm', 'RightForeArm', 'RightHand', 'RightHandEnd', 'LeftShoulder', 'LeftArm', 'LeftForeArm', 'LeftHand', 'LeftHandEnd']
+INFO:root:Using user-specified mvc config file located at D:\capston\render_results\agent\step_001\mvc_cfg.yaml
+INFO:OpenGL.acceleratesupport:No OpenGL_accelerate module loaded: No module named 'OpenGL_accelerate'
+DEBUG:shapely.geos:Found GEOS DLL: <CDLL 'C:\Users\MJC\AppData\Local\Programs\Python\Python311\Lib\site-packages\Shapely.libs\geos_c-84d02d5b10aa37e3ab60a885dc5b531b.dll', handle 7ff919330000 at 0x20821b24d10>, using it.
+INFO:root:OpenGL Version: 3.3.0 NVIDIA 591.86
+INFO:root:GLSL: 3.30 NVIDIA via Cg compiler
+INFO:root:Renderer: NVIDIA GeForce GTX 1660 Ti/PCIe/SSE2
+INFO:root:Encountered values close to zero in vector norm. Replacing with 1e-05
+INFO:root:char_runtime_check failed, removing neck from retargeter :('neck', 'above', 'right_shoulder', 'left_shoulder')
+INFO:root:Starting joint -> mask pixel BFS
+INFO:root:Finished joint -> mask pixel BFS in 2.9261281490325928 seconds
+INFO:root:Using BVH file located at D:\capston\AnimatedDrawings\examples\bvh\fair1\wave_hello.bvh
+INFO:root:Upper Limbs projection_method is pca. Running PCA on ['RightShoulder', 'RightArm', 'RightForeArm', 'RightHand', 'RightHandEnd', 'LeftShoulder', 'LeftArm', 'LeftForeArm', 'LeftHand', 'LeftHandEnd']
+INFO:root:PCA complete. Upper Limbs using [1. 0. 0.]
+INFO:root:Lower Limbs projection_method is pca. Running PCA on ['RightUpLeg', 'RightLeg', 'RightFoot', 'RightToeBase', 'LeftUpLeg', 'LeftLeg', 'LeftFoot', 'LeftToeBase']
+INFO:root:PCA complete. Lower Limbs using [1. 0. 0.]
+INFO:root:Trunk projection_method is frontal. Using [1. 0. 0.]
+INFO:root: error finding projection plane for joint_name: End Site
+INFO:root: error finding projection plane for joint_name: End Site
+INFO:root: error finding projection plane for joint_name: RightHandThumb1
+INFO:root: error finding projection plane for joint_name: End Site
+INFO:root: error finding projection plane for joint_name: End Site
+INFO:root: error finding projection plane for joint_name: LeftHandThumb1
+INFO:root: error finding projection plane for joint_name: End Site
+INFO:root: error finding projection plane for joint_name: End Site
+INFO:root: error finding projection plane for joint_name: End Site
+WARNING:root:point [[0.6756329  0.06962025]] not inside or on edge of any triangle in mesh. Skipping it
+INFO:root:tA1xA1 is singular. perturbing...
+INFO:root:tA2xA2 is singular. perturbing...
+INFO:root: Writing video to: D:\capston\render_results\agent\step_001\video.gif
+WARNING:root:Specified duration of .gif is too low, replacing with 20: 8
+INFO:root:invalid frame_idx (839), replacing with last frame 838
+INFO:root:Rendered 839 frames in 31.860015392303467 seconds.
+INFO:root:VideoWriter will write to D:\capston\render_results\agent\step_001\video.gif
+DEBUG:PIL.Image:Importing GifImagePlugin
+INFO:root:Wrote video to file in in 4.805203914642334 seconds.
+INFO:root:Using user-specified mvc config file located at D:\capston\render_results\agent\step_002\mvc_cfg.yaml
+INFO:OpenGL.acceleratesupport:No OpenGL_accelerate module loaded: No module named 'OpenGL_accelerate'
+DEBUG:shapely.geos:Found GEOS DLL: <CDLL 'C:\Users\MJC\AppData\Local\Programs\Python\Python311\Lib\site-packages\Shapely.libs\geos_c-84d02d5b10aa37e3ab60a885dc5b531b.dll', handle 7ff919490000 at 0x17aaa7d5050>, using it.
+INFO:root:OpenGL Version: 3.3.0 NVIDIA 591.86
+INFO:root:GLSL: 3.30 NVIDIA via Cg compiler
+INFO:root:Renderer: NVIDIA GeForce GTX 1660 Ti/PCIe/SSE2
+INFO:root:Encountered values close to zero in vector norm. Replacing with 1e-05
+INFO:root:char_runtime_check failed, removing neck from retargeter :('neck', 'above', 'right_shoulder', 'left_shoulder')
+INFO:root:Starting joint -> mask pixel BFS
+INFO:root:Finished joint -> mask pixel BFS in 3.0101749897003174 seconds
+INFO:root:Using BVH file located at D:\capston\AnimatedDrawings\examples\bvh\fair1\jumping.bvh
+INFO:root:Upper Limbs projection_method is pca. Running PCA on ['RightShoulder', 'RightArm', 'RightForeArm', 'RightHand', 'RightHandEnd', 'LeftShoulder', 'LeftArm', 'LeftForeArm', 'LeftHand', 'LeftHandEnd']
+INFO:root:PCA complete. Upper Limbs using [1. 0. 0.]
+INFO:root:Lower Limbs projection_method is pca. Running PCA on ['RightUpLeg', 'RightLeg', 'RightFoot', 'RightToeBase', 'LeftUpLeg', 'LeftLeg', 'LeftFoot', 'LeftToeBase']
+INFO:root:PCA complete. Lower Limbs using [0. 0. 1.]
+INFO:root:Trunk projection_method is frontal. Using [1. 0. 0.]
+INFO:root: error finding projection plane for joint_name: End Site
+INFO:root: error finding projection plane for joint_name: End Site
+INFO:root: error finding projection plane for joint_name: RightHandThumb1
+INFO:root: error finding projection plane for joint_name: End Site
+INFO:root: error finding projection plane for joint_name: End Site
+INFO:root: error finding projection plane for joint_name: LeftHandThumb1
+INFO:root: error finding projection plane for joint_name: End Site
+INFO:root: error finding projection plane for joint_name: End Site
+INFO:root: error finding projection plane for joint_name: End Site
+WARNING:root:point [[0.6756329  0.06962025]] not inside or on edge of any triangle in mesh. Skipping it
+INFO:root:tA1xA1 is singular. perturbing...
+INFO:root:tA2xA2 is singular. perturbing...
+INFO:root: Writing video to: D:\capston\render_results\agent\step_002\video.gif
+WARNING:root:Specified duration of .gif is too low, replacing with 20: 8
+INFO:root:invalid frame_idx (504), replacing with last frame 503
+INFO:root:Rendered 504 frames in 19.252888441085815 seconds.
+INFO:root:VideoWriter will write to D:\capston\render_results\agent\step_002\video.gif
+DEBUG:PIL.Image:Importing GifImagePlugin
+INFO:root:Wrote video to file in in 2.8932526111602783 seconds.
+INFO:root:Using user-specified mvc config file located at D:\capston\render_results\agent\step_003\mvc_cfg.yaml
+INFO:OpenGL.acceleratesupport:No OpenGL_accelerate module loaded: No module named 'OpenGL_accelerate'
+DEBUG:shapely.geos:Found GEOS DLL: <CDLL 'C:\Users\MJC\AppData\Local\Programs\Python\Python311\Lib\site-packages\Shapely.libs\geos_c-84d02d5b10aa37e3ab60a885dc5b531b.dll', handle 7ff919490000 at 0x1fbdf834e90>, using it.
+INFO:root:OpenGL Version: 3.3.0 NVIDIA 591.86
+INFO:root:GLSL: 3.30 NVIDIA via Cg compiler
+INFO:root:Renderer: NVIDIA GeForce GTX 1660 Ti/PCIe/SSE2
+INFO:root:Encountered values close to zero in vector norm. Replacing with 1e-05
+INFO:root:char_runtime_check failed, removing neck from retargeter :('neck', 'above', 'right_shoulder', 'left_shoulder')
+INFO:root:Starting joint -> mask pixel BFS
+INFO:root:Finished joint -> mask pixel BFS in 2.901188850402832 seconds
+INFO:root:Using BVH file located at D:\capston\AnimatedDrawings\examples\bvh\fair1\wave_hello.bvh
+INFO:root:Upper Limbs projection_method is pca. Running PCA on ['RightShoulder', 'RightArm', 'RightForeArm', 'RightHand', 'RightHandEnd', 'LeftShoulder', 'LeftArm', 'LeftForeArm', 'LeftHand', 'LeftHandEnd']
+INFO:root:PCA complete. Upper Limbs using [1. 0. 0.]
+INFO:root:Lower Limbs projection_method is pca. Running PCA on ['RightUpLeg', 'RightLeg', 'RightFoot', 'RightToeBase', 'LeftUpLeg', 'LeftLeg', 'LeftFoot', 'LeftToeBase']
+INFO:root:PCA complete. Lower Limbs using [1. 0. 0.]
+INFO:root:Trunk projection_method is frontal. Using [1. 0. 0.]
+INFO:root: error finding projection plane for joint_name: End Site
+INFO:root: error finding projection plane for joint_name: End Site
+INFO:root: error finding projection plane for joint_name: RightHandThumb1
+INFO:root: error finding projection plane for joint_name: End Site
+INFO:root: error finding projection plane for joint_name: End Site
+INFO:root: error finding projection plane for joint_name: LeftHandThumb1
+INFO:root: error finding projection plane for joint_name: End Site
+INFO:root: error finding projection plane for joint_name: End Site
+INFO:root: error finding projection plane for joint_name: End Site
+WARNING:root:point [[0.6756329  0.06962025]] not inside or on edge of any triangle in mesh. Skipping it
+INFO:root:tA1xA1 is singular. perturbing...
+INFO:root:tA2xA2 is singular. perturbing...
+INFO:root: Writing video to: D:\capston\render_results\agent\step_003\video.gif
+WARNING:root:Specified duration of .gif is too low, replacing with 20: 8
+INFO:root:invalid frame_idx (839), replacing with last frame 838
+INFO:root:Rendered 839 frames in 32.050108194351196 seconds.
+INFO:root:VideoWriter will write to D:\capston\render_results\agent\step_003\video.gif
+DEBUG:PIL.Image:Importing GifImagePlugin
+INFO:root:Wrote video to file in in 4.797549247741699 seconds.
+INFO:root:Using user-specified mvc config file located at D:\capston\AnimatedDrawings\test_annotations\mvc_cfg.yaml
+INFO:OpenGL.acceleratesupport:No OpenGL_accelerate module loaded: No module named 'OpenGL_accelerate'
+DEBUG:shapely.geos:Found GEOS DLL: <CDLL 'C:\Users\MJC\AppData\Local\Programs\Python\Python311\Lib\site-packages\Shapely.libs\geos_c-84d02d5b10aa37e3ab60a885dc5b531b.dll', handle 7ff919490000 at 0x1f2fe7a4bd0>, using it.
+INFO:root:OpenGL Version: 3.3.0 NVIDIA 591.86
+INFO:root:GLSL: 3.30 NVIDIA via Cg compiler
+INFO:root:Renderer: NVIDIA GeForce GTX 1660 Ti/PCIe/SSE2
+INFO:root:Encountered values close to zero in vector norm. Replacing with 1e-05
+INFO:root:char_runtime_check failed, removing neck from retargeter :('neck', 'above', 'right_shoulder', 'left_shoulder')
+INFO:root:Starting joint -> mask pixel BFS
+INFO:root:Finished joint -> mask pixel BFS in 2.9002320766448975 seconds
+INFO:root:Using BVH file located at D:\capston\AnimatedDrawings\examples\bvh\rokoko\jesse_dance.bvh
+INFO:root:Upper Limbs projection_method is pca. Running PCA on ['RightShoulder', 'RightArm', 'RightForeArm', 'RightHand', 'LeftShoulder', 'LeftArm', 'LeftForeArm', 'LeftHand']
+INFO:root:PCA complete. Upper Limbs using [1. 0. 0.]
+INFO:root:Lower Limbs projection_method is pca. Running PCA on ['RightUpLeg', 'RightLeg', 'RightFoot', 'RightToeBase', 'LeftUpLeg', 'LeftLeg', 'LeftFoot', 'LeftToeBase']
+INFO:root:PCA complete. Lower Limbs using [1. 0. 0.]
+INFO:root:Trunk projection_method is frontal. Using [1. 0. 0.]
+INFO:root: error finding projection plane for joint_name: LeftInHandIndex
+INFO:root: error finding projection plane for joint_name: LeftHandIndex1
+INFO:root: error finding projection plane for joint_name: LeftHandIndex2
+INFO:root: error finding projection plane for joint_name: LeftHandIndex3
+INFO:root: error finding projection plane for joint_name: End Site
+INFO:root: error finding projection plane for joint_name: LeftInHandMiddle
+INFO:root: error finding projection plane for joint_name: LeftHandMiddle1
+INFO:root: error finding projection plane for joint_name: LeftHandMiddle2
+INFO:root: error finding projection plane for joint_name: LeftHandMiddle3
+INFO:root: error finding projection plane for joint_name: End Site
+INFO:root: error finding projection plane for joint_name: LeftInHandPinky
+INFO:root: error finding projection plane for joint_name: LeftHandPinky1
+INFO:root: error finding projection plane for joint_name: LeftHandPinky2
+INFO:root: error finding projection plane for joint_name: LeftHandPinky3
+INFO:root: error finding projection plane for joint_name: End Site
+INFO:root: error finding projection plane for joint_name: LeftInHandRing
+INFO:root: error finding projection plane for joint_name: LeftHandRing1
+INFO:root: error finding projection plane for joint_name: LeftHandRing2
+INFO:root: error finding projection plane for joint_name: LeftHandRing3
+INFO:root: error finding projection plane for joint_name: End Site
+INFO:root: error finding projection plane for joint_name: LeftHandThumb1
+INFO:root: error finding projection plane for joint_name: LeftHandThumb2
+INFO:root: error finding projection plane for joint_name: LeftHandThumb3
+INFO:root: error finding projection plane for joint_name: End Site
+INFO:root: error finding projection plane for joint_name: End Site
+INFO:root: error finding projection plane for joint_name: RightInHandIndex
+INFO:root: error finding projection plane for joint_name: RightHandIndex1
+INFO:root: error finding projection plane for joint_name: RightHandIndex2
+INFO:root: error finding projection plane for joint_name: RightHandIndex3
+INFO:root: error finding projection plane for joint_name: End Site
+INFO:root: error finding projection plane for joint_name: RightInHandMiddle
+INFO:root: error finding projection plane for joint_name: RightHandMiddle1
+INFO:root: error finding projection plane for joint_name: RightHandMiddle2
+INFO:root: error finding projection plane for joint_name: RightHandMiddle3
+INFO:root: error finding projection plane for joint_name: End Site
+INFO:root: error finding projection plane for joint_name: RightInHandPinky
+INFO:root: error finding projection plane for joint_name: RightHandPinky1
+INFO:root: error finding projection plane for joint_name: RightHandPinky2
+INFO:root: error finding projection plane for joint_name: RightHandPinky3
+INFO:root: error finding projection plane for joint_name: End Site
+INFO:root: error finding projection plane for joint_name: RightInHandRing
+INFO:root: error finding projection plane for joint_name: RightHandRing1
+INFO:root: error finding projection plane for joint_name: RightHandRing2
+INFO:root: error finding projection plane for joint_name: RightHandRing3
+INFO:root: error finding projection plane for joint_name: End Site
+INFO:root: error finding projection plane for joint_name: RightHandThumb1
+INFO:root: error finding projection plane for joint_name: RightHandThumb2
+INFO:root: error finding projection plane for joint_name: RightHandThumb3
+INFO:root: error finding projection plane for joint_name: End Site
+INFO:root: error finding projection plane for joint_name: End Site
+INFO:root: error finding projection plane for joint_name: End Site
+CRITICAL:root:Error validating bvh_projection_bodypart_groups: bvh_joint_name not valid: Spine3
+INFO:root:Using user-specified mvc config file located at D:\capston\AnimatedDrawings\test_annotations\mvc_cfg.yaml
+CRITICAL:root:Error validating char_bvh_root_offset: val must be of len 2
+INFO:root:Using user-specified mvc config file located at D:\capston\AnimatedDrawings\test_annotations\mvc_cfg.yaml
+INFO:root:Using user-specified mvc config file located at D:\capston\AnimatedDrawings\test_annotations\mvc_cfg.yaml
+CRITICAL:root:Error validating char_bvh_root_offset: val must be of len 2
+INFO:root:Using user-specified mvc config file located at D:\capston\AnimatedDrawings\test_annotations\mvc_cfg.yaml
+INFO:root:Using user-specified mvc config file located at D:\capston\AnimatedDrawings\test_annotations\mvc_cfg.yaml
+INFO:OpenGL.acceleratesupport:No OpenGL_accelerate module loaded: No module named 'OpenGL_accelerate'
+DEBUG:shapely.geos:Found GEOS DLL: <CDLL 'C:\Users\MJC\AppData\Local\Programs\Python\Python311\Lib\site-packages\Shapely.libs\geos_c-84d02d5b10aa37e3ab60a885dc5b531b.dll', handle 7ff919490000 at 0x2dfe2475210>, using it.
+INFO:root:OpenGL Version: 3.3.0 NVIDIA 591.86
+INFO:root:GLSL: 3.30 NVIDIA via Cg compiler
+INFO:root:Renderer: NVIDIA GeForce GTX 1660 Ti/PCIe/SSE2
+INFO:root:Encountered values close to zero in vector norm. Replacing with 1e-05
+INFO:root:char_runtime_check failed, removing neck from retargeter :('neck', 'above', 'right_shoulder', 'left_shoulder')
+INFO:root:Starting joint -> mask pixel BFS
+INFO:root:Finished joint -> mask pixel BFS in 2.91797137260437 seconds
+INFO:root:Using BVH file located at D:\capston\AnimatedDrawings\examples\bvh\rokoko\jesse_dance.bvh
+INFO:root:Upper Limbs projection_method is pca. Running PCA on ['RightShoulder', 'RightArm', 'RightForeArm', 'RightHand', 'LeftShoulder', 'LeftArm', 'LeftForeArm', 'LeftHand']
+INFO:root:PCA complete. Upper Limbs using [1. 0. 0.]
+INFO:root:Lower Limbs projection_method is pca. Running PCA on ['RightUpLeg', 'RightLeg', 'RightFoot', 'RightToeBase', 'LeftUpLeg', 'LeftLeg', 'LeftFoot', 'LeftToeBase']
+INFO:root:PCA complete. Lower Limbs using [1. 0. 0.]
+INFO:root:Trunk projection_method is frontal. Using [1. 0. 0.]
+INFO:root: error finding projection plane for joint_name: Hips
+INFO:root: error finding projection plane for joint_name: LeftInHandIndex
+INFO:root: error finding projection plane for joint_name: LeftHandIndex1
+INFO:root: error finding projection plane for joint_name: LeftHandIndex2
+INFO:root: error finding projection plane for joint_name: LeftHandIndex3
+INFO:root: error finding projection plane for joint_name: End Site
+INFO:root: error finding projection plane for joint_name: LeftInHandMiddle
+INFO:root: error finding projection plane for joint_name: LeftHandMiddle1
+INFO:root: error finding projection plane for joint_name: LeftHandMiddle2
+INFO:root: error finding projection plane for joint_name: LeftHandMiddle3
+INFO:root: error finding projection plane for joint_name: End Site
+INFO:root: error finding projection plane for joint_name: LeftInHandPinky
+INFO:root: error finding projection plane for joint_name: LeftHandPinky1
+INFO:root: error finding projection plane for joint_name: LeftHandPinky2
+INFO:root: error finding projection plane for joint_name: LeftHandPinky3
+INFO:root: error finding projection plane for joint_name: End Site
+INFO:root: error finding projection plane for joint_name: LeftInHandRing
+INFO:root: error finding projection plane for joint_name: LeftHandRing1
+INFO:root: error finding projection plane for joint_name: LeftHandRing2
+INFO:root: error finding projection plane for joint_name: LeftHandRing3
+INFO:root: error finding projection plane for joint_name: End Site
+INFO:root: error finding projection plane for joint_name: LeftHandThumb1
+INFO:root: error finding projection plane for joint_name: LeftHandThumb2
+INFO:root: error finding projection plane for joint_name: LeftHandThumb3
+INFO:root: error finding projection plane for joint_name: End Site
+INFO:root: error finding projection plane for joint_name: End Site
+INFO:root: error finding projection plane for joint_name: RightInHandIndex
+INFO:root: error finding projection plane for joint_name: RightHandIndex1
+INFO:root: error finding projection plane for joint_name: RightHandIndex2
+INFO:root: error finding projection plane for joint_name: RightHandIndex3
+INFO:root: error finding projection plane for joint_name: End Site
+INFO:root: error finding projection plane for joint_name: RightInHandMiddle
+INFO:root: error finding projection plane for joint_name: RightHandMiddle1
+INFO:root: error finding projection plane for joint_name: RightHandMiddle2
+INFO:root: error finding projection plane for joint_name: RightHandMiddle3
+INFO:root: error finding projection plane for joint_name: End Site
+INFO:root: error finding projection plane for joint_name: RightInHandPinky
+INFO:root: error finding projection plane for joint_name: RightHandPinky1
+INFO:root: error finding projection plane for joint_name: RightHandPinky2
+INFO:root: error finding projection plane for joint_name: RightHandPinky3
+INFO:root: error finding projection plane for joint_name: End Site
+INFO:root: error finding projection plane for joint_name: RightInHandRing
+INFO:root: error finding projection plane for joint_name: RightHandRing1
+INFO:root: error finding projection plane for joint_name: RightHandRing2
+INFO:root: error finding projection plane for joint_name: RightHandRing3
+INFO:root: error finding projection plane for joint_name: End Site
+INFO:root: error finding projection plane for joint_name: RightHandThumb1
+INFO:root: error finding projection plane for joint_name: RightHandThumb2
+INFO:root: error finding projection plane for joint_name: RightHandThumb3
+INFO:root: error finding projection plane for joint_name: End Site
+INFO:root: error finding projection plane for joint_name: End Site
+INFO:root: error finding projection plane for joint_name: End Site
+WARNING:root:point [[0.6756329  0.06962025]] not inside or on edge of any triangle in mesh. Skipping it
+INFO:root:tA1xA1 is singular. perturbing...
+INFO:root:tA2xA2 is singular. perturbing...
+INFO:root: Writing video to: D:\capston\AnimatedDrawings\test_annotations\video.gif
+WARNING:root:Specified duration of .gif is too low, replacing with 20: 10
+INFO:root:Using user-specified mvc config file located at D:\capston\AnimatedDrawings\test_annotations\mvc_cfg.yaml
+INFO:OpenGL.acceleratesupport:No OpenGL_accelerate module loaded: No module named 'OpenGL_accelerate'
+DEBUG:shapely.geos:Found GEOS DLL: <CDLL 'C:\Users\MJC\AppData\Local\Programs\Python\Python311\Lib\site-packages\Shapely.libs\geos_c-84d02d5b10aa37e3ab60a885dc5b531b.dll', handle 7ff911ca0000 at 0x1f699415210>, using it.
+INFO:root:OpenGL Version: 3.3.0 NVIDIA 591.86
+INFO:root:GLSL: 3.30 NVIDIA via Cg compiler
+INFO:root:Renderer: NVIDIA GeForce GTX 1660 Ti/PCIe/SSE2
+INFO:root:Encountered values close to zero in vector norm. Replacing with 1e-05
+INFO:root:char_runtime_check failed, removing neck from retargeter :('neck', 'above', 'right_shoulder', 'left_shoulder')
+INFO:root:Starting joint -> mask pixel BFS
+INFO:root:Finished joint -> mask pixel BFS in 2.948801040649414 seconds
+INFO:root:Using BVH file located at D:\capston\AnimatedDrawings\examples\bvh\rokoko\jesse_dance.bvh
+INFO:root:Upper Limbs projection_method is pca. Running PCA on ['RightShoulder', 'RightArm', 'RightForeArm', 'RightHand', 'LeftShoulder', 'LeftArm', 'LeftForeArm', 'LeftHand']
+INFO:root:PCA complete. Upper Limbs using [1. 0. 0.]
+INFO:root:Lower Limbs projection_method is pca. Running PCA on ['RightUpLeg', 'RightLeg', 'RightFoot', 'RightToeBase', 'LeftUpLeg', 'LeftLeg', 'LeftFoot', 'LeftToeBase']
+INFO:root:PCA complete. Lower Limbs using [1. 0. 0.]
+INFO:root:Trunk projection_method is frontal. Using [1. 0. 0.]
+INFO:root: error finding projection plane for joint_name: Hips
+INFO:root: error finding projection plane for joint_name: LeftInHandIndex
+INFO:root: error finding projection plane for joint_name: LeftHandIndex1
+INFO:root: error finding projection plane for joint_name: LeftHandIndex2
+INFO:root: error finding projection plane for joint_name: LeftHandIndex3
+INFO:root: error finding projection plane for joint_name: End Site
+INFO:root: error finding projection plane for joint_name: LeftInHandMiddle
+INFO:root: error finding projection plane for joint_name: LeftHandMiddle1
+INFO:root: error finding projection plane for joint_name: LeftHandMiddle2
+INFO:root: error finding projection plane for joint_name: LeftHandMiddle3
+INFO:root: error finding projection plane for joint_name: End Site
+INFO:root: error finding projection plane for joint_name: LeftInHandPinky
+INFO:root: error finding projection plane for joint_name: LeftHandPinky1
+INFO:root: error finding projection plane for joint_name: LeftHandPinky2
+INFO:root: error finding projection plane for joint_name: LeftHandPinky3
+INFO:root: error finding projection plane for joint_name: End Site
+INFO:root: error finding projection plane for joint_name: LeftInHandRing
+INFO:root: error finding projection plane for joint_name: LeftHandRing1
+INFO:root: error finding projection plane for joint_name: LeftHandRing2
+INFO:root: error finding projection plane for joint_name: LeftHandRing3
+INFO:root: error finding projection plane for joint_name: End Site
+INFO:root: error finding projection plane for joint_name: LeftHandThumb1
+INFO:root: error finding projection plane for joint_name: LeftHandThumb2
+INFO:root: error finding projection plane for joint_name: LeftHandThumb3
+INFO:root: error finding projection plane for joint_name: End Site
+INFO:root: error finding projection plane for joint_name: End Site
+INFO:root: error finding projection plane for joint_name: RightInHandIndex
+INFO:root: error finding projection plane for joint_name: RightHandIndex1
+INFO:root: error finding projection plane for joint_name: RightHandIndex2
+INFO:root: error finding projection plane for joint_name: RightHandIndex3
+INFO:root: error finding projection plane for joint_name: End Site
+INFO:root: error finding projection plane for joint_name: RightInHandMiddle
+INFO:root: error finding projection plane for joint_name: RightHandMiddle1
+INFO:root: error finding projection plane for joint_name: RightHandMiddle2
+INFO:root: error finding projection plane for joint_name: RightHandMiddle3
+INFO:root: error finding projection plane for joint_name: End Site
+INFO:root: error finding projection plane for joint_name: RightInHandPinky
+INFO:root: error finding projection plane for joint_name: RightHandPinky1
+INFO:root: error finding projection plane for joint_name: RightHandPinky2
+INFO:root: error finding projection plane for joint_name: RightHandPinky3
+INFO:root: error finding projection plane for joint_name: End Site
+INFO:root: error finding projection plane for joint_name: RightInHandRing
+INFO:root: error finding projection plane for joint_name: RightHandRing1
+INFO:root: error finding projection plane for joint_name: RightHandRing2
+INFO:root: error finding projection plane for joint_name: RightHandRing3
+INFO:root: error finding projection plane for joint_name: End Site
+INFO:root: error finding projection plane for joint_name: RightHandThumb1
+INFO:root: error finding projection plane for joint_name: RightHandThumb2
+INFO:root: error finding projection plane for joint_name: RightHandThumb3
+INFO:root: error finding projection plane for joint_name: End Site
+INFO:root: error finding projection plane for joint_name: End Site
+INFO:root: error finding projection plane for joint_name: End Site
+WARNING:root:point [[0.6756329  0.06962025]] not inside or on edge of any triangle in mesh. Skipping it
+INFO:root:tA1xA1 is singular. perturbing...
+INFO:root:tA2xA2 is singular. perturbing...
+INFO:root: Writing video to: D:\capston\AnimatedDrawings\test_annotations\video.gif
+WARNING:root:Specified duration of .gif is too low, replacing with 20: 10
+INFO:root:invalid frame_idx (1007), replacing with last frame 1006
+INFO:root:Rendered 1007 frames in 38.74865913391113 seconds.
+INFO:root:VideoWriter will write to D:\capston\AnimatedDrawings\test_annotations\video.gif
+DEBUG:PIL.Image:Importing GifImagePlugin
+INFO:root:Wrote video to file in in 5.588728427886963 seconds.
+INFO:root:Using user-specified mvc config file located at D:\capston\render_results\agent\step_001\mvc_cfg.yaml
+INFO:OpenGL.acceleratesupport:No OpenGL_accelerate module loaded: No module named 'OpenGL_accelerate'
+DEBUG:shapely.geos:Found GEOS DLL: <CDLL 'C:\Users\MJC\AppData\Local\Programs\Python\Python311\Lib\site-packages\Shapely.libs\geos_c-84d02d5b10aa37e3ab60a885dc5b531b.dll', handle 7ff90e910000 at 0x2bc317e4d50>, using it.
+INFO:root:OpenGL Version: 3.3.0 NVIDIA 591.86
+INFO:root:GLSL: 3.30 NVIDIA via Cg compiler
+INFO:root:Renderer: NVIDIA GeForce GTX 1660 Ti/PCIe/SSE2
+INFO:root:Encountered values close to zero in vector norm. Replacing with 1e-05
+INFO:root:char_runtime_check failed, removing neck from retargeter :('neck', 'above', 'right_shoulder', 'left_shoulder')
+INFO:root:Starting joint -> mask pixel BFS
+INFO:root:Finished joint -> mask pixel BFS in 2.9869766235351562 seconds
+INFO:root:Using BVH file located at D:\capston\AnimatedDrawings\examples\bvh\fair1\wave_hello.bvh
+INFO:root:Upper Limbs projection_method is pca. Running PCA on ['RightShoulder', 'RightArm', 'RightForeArm', 'RightHand', 'RightHandEnd', 'LeftShoulder', 'LeftArm', 'LeftForeArm', 'LeftHand', 'LeftHandEnd']
+INFO:root:PCA complete. Upper Limbs using [1. 0. 0.]
+INFO:root:Lower Limbs projection_method is pca. Running PCA on ['RightUpLeg', 'RightLeg', 'RightFoot', 'RightToeBase', 'LeftUpLeg', 'LeftLeg', 'LeftFoot', 'LeftToeBase']
+INFO:root:PCA complete. Lower Limbs using [1. 0. 0.]
+INFO:root:Trunk projection_method is frontal. Using [1. 0. 0.]
+INFO:root: error finding projection plane for joint_name: End Site
+INFO:root: error finding projection plane for joint_name: End Site
+INFO:root: error finding projection plane for joint_name: RightHandThumb1
+INFO:root: error finding projection plane for joint_name: End Site
+INFO:root: error finding projection plane for joint_name: End Site
+INFO:root: error finding projection plane for joint_name: LeftHandThumb1
+INFO:root: error finding projection plane for joint_name: End Site
+INFO:root: error finding projection plane for joint_name: End Site
+INFO:root: error finding projection plane for joint_name: End Site
+WARNING:root:point [[0.6756329  0.06962025]] not inside or on edge of any triangle in mesh. Skipping it
+INFO:root:tA1xA1 is singular. perturbing...
+INFO:root:tA2xA2 is singular. perturbing...
+INFO:root: Writing video to: D:\capston\render_results\agent\step_001\video.gif
+WARNING:root:Specified duration of .gif is too low, replacing with 20: 8
+INFO:root:invalid frame_idx (839), replacing with last frame 838
+INFO:root:Rendered 839 frames in 32.32707691192627 seconds.
+INFO:root:VideoWriter will write to D:\capston\render_results\agent\step_001\video.gif
+DEBUG:PIL.Image:Importing GifImagePlugin
+INFO:root:Wrote video to file in in 4.751119613647461 seconds.
+INFO:root:Using user-specified mvc config file located at D:\capston\render_results\agent\step_002\mvc_cfg.yaml
+INFO:OpenGL.acceleratesupport:No OpenGL_accelerate module loaded: No module named 'OpenGL_accelerate'
+DEBUG:shapely.geos:Found GEOS DLL: <CDLL 'C:\Users\MJC\AppData\Local\Programs\Python\Python311\Lib\site-packages\Shapely.libs\geos_c-84d02d5b10aa37e3ab60a885dc5b531b.dll', handle 7ff90e910000 at 0x231ffae4c10>, using it.
+INFO:root:OpenGL Version: 3.3.0 NVIDIA 591.86
+INFO:root:GLSL: 3.30 NVIDIA via Cg compiler
+INFO:root:Renderer: NVIDIA GeForce GTX 1660 Ti/PCIe/SSE2
+INFO:root:Encountered values close to zero in vector norm. Replacing with 1e-05
+INFO:root:char_runtime_check failed, removing neck from retargeter :('neck', 'above', 'right_shoulder', 'left_shoulder')
+INFO:root:Starting joint -> mask pixel BFS
+INFO:root:Finished joint -> mask pixel BFS in 2.9174084663391113 seconds
+INFO:root:Using BVH file located at D:\capston\AnimatedDrawings\examples\bvh\rokoko\jesse_dance.bvh
+INFO:root:Upper Limbs projection_method is pca. Running PCA on ['RightShoulder', 'RightArm', 'RightForeArm', 'RightHand', 'RightHandEnd', 'LeftShoulder', 'LeftArm', 'LeftForeArm', 'LeftHand', 'LeftHandEnd']
+INFO:root:Using user-specified mvc config file located at D:\capston\render_results\agent\step_001\mvc_cfg.yaml
+INFO:OpenGL.acceleratesupport:No OpenGL_accelerate module loaded: No module named 'OpenGL_accelerate'
+DEBUG:shapely.geos:Found GEOS DLL: <CDLL 'C:\Users\MJC\AppData\Local\Programs\Python\Python311\Lib\site-packages\Shapely.libs\geos_c-84d02d5b10aa37e3ab60a885dc5b531b.dll', handle 7ff90e840000 at 0x1d9e29c4d10>, using it.
+INFO:root:OpenGL Version: 3.3.0 NVIDIA 591.86
+INFO:root:GLSL: 3.30 NVIDIA via Cg compiler
+INFO:root:Renderer: NVIDIA GeForce GTX 1660 Ti/PCIe/SSE2
+INFO:root:Encountered values close to zero in vector norm. Replacing with 1e-05
+INFO:root:char_runtime_check failed, removing neck from retargeter :('neck', 'above', 'right_shoulder', 'left_shoulder')
+INFO:root:Starting joint -> mask pixel BFS
+INFO:root:Finished joint -> mask pixel BFS in 2.8936002254486084 seconds
+INFO:root:Using BVH file located at D:\capston\AnimatedDrawings\examples\bvh\fair1\wave_hello.bvh
+INFO:root:Upper Limbs projection_method is pca. Running PCA on ['RightShoulder', 'RightArm', 'RightForeArm', 'RightHand', 'RightHandEnd', 'LeftShoulder', 'LeftArm', 'LeftForeArm', 'LeftHand', 'LeftHandEnd']
+INFO:root:PCA complete. Upper Limbs using [1. 0. 0.]
+INFO:root:Lower Limbs projection_method is pca. Running PCA on ['RightUpLeg', 'RightLeg', 'RightFoot', 'RightToeBase', 'LeftUpLeg', 'LeftLeg', 'LeftFoot', 'LeftToeBase']
+INFO:root:PCA complete. Lower Limbs using [1. 0. 0.]
+INFO:root:Trunk projection_method is frontal. Using [1. 0. 0.]
+INFO:root: error finding projection plane for joint_name: End Site
+INFO:root: error finding projection plane for joint_name: End Site
+INFO:root: error finding projection plane for joint_name: RightHandThumb1
+INFO:root: error finding projection plane for joint_name: End Site
+INFO:root: error finding projection plane for joint_name: End Site
+INFO:root: error finding projection plane for joint_name: LeftHandThumb1
+INFO:root: error finding projection plane for joint_name: End Site
+INFO:root: error finding projection plane for joint_name: End Site
+INFO:root: error finding projection plane for joint_name: End Site
+WARNING:root:point [[0.6756329  0.06962025]] not inside or on edge of any triangle in mesh. Skipping it
+INFO:root:tA1xA1 is singular. perturbing...
+INFO:root:tA2xA2 is singular. perturbing...
+INFO:root: Writing video to: D:\capston\render_results\agent\step_001\video.gif
+WARNING:root:Specified duration of .gif is too low, replacing with 20: 8
+INFO:root:invalid frame_idx (839), replacing with last frame 838
+INFO:root:Rendered 839 frames in 31.87545156478882 seconds.
+INFO:root:VideoWriter will write to D:\capston\render_results\agent\step_001\video.gif
+DEBUG:PIL.Image:Importing GifImagePlugin
+INFO:root:Wrote video to file in in 4.777770757675171 seconds.
+INFO:root:Using user-specified mvc config file located at D:\capston\render_results\agent\step_002\mvc_cfg.yaml
+INFO:OpenGL.acceleratesupport:No OpenGL_accelerate module loaded: No module named 'OpenGL_accelerate'
+DEBUG:shapely.geos:Found GEOS DLL: <CDLL 'C:\Users\MJC\AppData\Local\Programs\Python\Python311\Lib\site-packages\Shapely.libs\geos_c-84d02d5b10aa37e3ab60a885dc5b531b.dll', handle 7ff90e840000 at 0x1b17f7c4d10>, using it.
+INFO:root:OpenGL Version: 3.3.0 NVIDIA 591.86
+INFO:root:GLSL: 3.30 NVIDIA via Cg compiler
+INFO:root:Renderer: NVIDIA GeForce GTX 1660 Ti/PCIe/SSE2
+INFO:root:Encountered values close to zero in vector norm. Replacing with 1e-05
+INFO:root:char_runtime_check failed, removing neck from retargeter :('neck', 'above', 'right_shoulder', 'left_shoulder')
+INFO:root:Starting joint -> mask pixel BFS
+INFO:root:Finished joint -> mask pixel BFS in 2.896845579147339 seconds
+INFO:root:Using BVH file located at D:\capston\AnimatedDrawings\examples\bvh\rokoko\jesse_dance.bvh
+INFO:root:Upper Limbs projection_method is pca. Running PCA on ['RightShoulder', 'RightArm', 'RightForeArm', 'RightHand', 'LeftShoulder', 'LeftArm', 'LeftForeArm', 'LeftHand']
+INFO:root:PCA complete. Upper Limbs using [1. 0. 0.]
+INFO:root:Lower Limbs projection_method is pca. Running PCA on ['RightUpLeg', 'RightLeg', 'RightFoot', 'RightToeBase', 'LeftUpLeg', 'LeftLeg', 'LeftFoot', 'LeftToeBase']
+INFO:root:PCA complete. Lower Limbs using [1. 0. 0.]
+INFO:root:Trunk projection_method is frontal. Using [1. 0. 0.]
+INFO:root: error finding projection plane for joint_name: Hips
+INFO:root: error finding projection plane for joint_name: LeftInHandIndex
+INFO:root: error finding projection plane for joint_name: LeftHandIndex1
+INFO:root: error finding projection plane for joint_name: LeftHandIndex2
+INFO:root: error finding projection plane for joint_name: LeftHandIndex3
+INFO:root: error finding projection plane for joint_name: End Site
+INFO:root: error finding projection plane for joint_name: LeftInHandMiddle
+INFO:root: error finding projection plane for joint_name: LeftHandMiddle1
+INFO:root: error finding projection plane for joint_name: LeftHandMiddle2
+INFO:root: error finding projection plane for joint_name: LeftHandMiddle3
+INFO:root: error finding projection plane for joint_name: End Site
+INFO:root: error finding projection plane for joint_name: LeftInHandPinky
+INFO:root: error finding projection plane for joint_name: LeftHandPinky1
+INFO:root: error finding projection plane for joint_name: LeftHandPinky2
+INFO:root: error finding projection plane for joint_name: LeftHandPinky3
+INFO:root: error finding projection plane for joint_name: End Site
+INFO:root: error finding projection plane for joint_name: LeftInHandRing
+INFO:root: error finding projection plane for joint_name: LeftHandRing1
+INFO:root: error finding projection plane for joint_name: LeftHandRing2
+INFO:root: error finding projection plane for joint_name: LeftHandRing3
+INFO:root: error finding projection plane for joint_name: End Site
+INFO:root: error finding projection plane for joint_name: LeftHandThumb1
+INFO:root: error finding projection plane for joint_name: LeftHandThumb2
+INFO:root: error finding projection plane for joint_name: LeftHandThumb3
+INFO:root: error finding projection plane for joint_name: End Site
+INFO:root: error finding projection plane for joint_name: End Site
+INFO:root: error finding projection plane for joint_name: RightInHandIndex
+INFO:root: error finding projection plane for joint_name: RightHandIndex1
+INFO:root: error finding projection plane for joint_name: RightHandIndex2
+INFO:root: error finding projection plane for joint_name: RightHandIndex3
+INFO:root: error finding projection plane for joint_name: End Site
+INFO:root: error finding projection plane for joint_name: RightInHandMiddle
+INFO:root: error finding projection plane for joint_name: RightHandMiddle1
+INFO:root: error finding projection plane for joint_name: RightHandMiddle2
+INFO:root: error finding projection plane for joint_name: RightHandMiddle3
+INFO:root: error finding projection plane for joint_name: End Site
+INFO:root: error finding projection plane for joint_name: RightInHandPinky
+INFO:root: error finding projection plane for joint_name: RightHandPinky1
+INFO:root: error finding projection plane for joint_name: RightHandPinky2
+INFO:root: error finding projection plane for joint_name: RightHandPinky3
+INFO:root: error finding projection plane for joint_name: End Site
+INFO:root: error finding projection plane for joint_name: RightInHandRing
+INFO:root: error finding projection plane for joint_name: RightHandRing1
+INFO:root: error finding projection plane for joint_name: RightHandRing2
+INFO:root: error finding projection plane for joint_name: RightHandRing3
+INFO:root: error finding projection plane for joint_name: End Site
+INFO:root: error finding projection plane for joint_name: RightHandThumb1
+INFO:root: error finding projection plane for joint_name: RightHandThumb2
+INFO:root: error finding projection plane for joint_name: RightHandThumb3
+INFO:root: error finding projection plane for joint_name: End Site
+INFO:root: error finding projection plane for joint_name: End Site
+INFO:root: error finding projection plane for joint_name: End Site
+WARNING:root:point [[0.6756329  0.06962025]] not inside or on edge of any triangle in mesh. Skipping it
+INFO:root:tA1xA1 is singular. perturbing...
+INFO:root:tA2xA2 is singular. perturbing...
+INFO:root: Writing video to: D:\capston\render_results\agent\step_002\video.gif
+WARNING:root:Specified duration of .gif is too low, replacing with 20: 10
+INFO:root:invalid frame_idx (1007), replacing with last frame 1006
+INFO:root:Rendered 1007 frames in 38.55879878997803 seconds.
+INFO:root:VideoWriter will write to D:\capston\render_results\agent\step_002\video.gif
+DEBUG:PIL.Image:Importing GifImagePlugin
+INFO:root:Wrote video to file in in 5.561967849731445 seconds.
+INFO:root:Using user-specified mvc config file located at D:\capston\render_results\agent\step_003\mvc_cfg.yaml
+INFO:OpenGL.acceleratesupport:No OpenGL_accelerate module loaded: No module named 'OpenGL_accelerate'
+DEBUG:shapely.geos:Found GEOS DLL: <CDLL 'C:\Users\MJC\AppData\Local\Programs\Python\Python311\Lib\site-packages\Shapely.libs\geos_c-84d02d5b10aa37e3ab60a885dc5b531b.dll', handle 7ff90e910000 at 0x1a234d51890>, using it.
+INFO:root:OpenGL Version: 3.3.0 NVIDIA 591.86
+INFO:root:GLSL: 3.30 NVIDIA via Cg compiler
+INFO:root:Renderer: NVIDIA GeForce GTX 1660 Ti/PCIe/SSE2
+INFO:root:Encountered values close to zero in vector norm. Replacing with 1e-05
+INFO:root:char_runtime_check failed, removing neck from retargeter :('neck', 'above', 'right_shoulder', 'left_shoulder')
+INFO:root:Starting joint -> mask pixel BFS
+INFO:root:Finished joint -> mask pixel BFS in 2.9227683544158936 seconds
+INFO:root:Using BVH file located at D:\capston\AnimatedDrawings\examples\bvh\fair1\jumping.bvh
+INFO:root:Upper Limbs projection_method is pca. Running PCA on ['RightShoulder', 'RightArm', 'RightForeArm', 'RightHand', 'RightHandEnd', 'LeftShoulder', 'LeftArm', 'LeftForeArm', 'LeftHand', 'LeftHandEnd']
+INFO:root:PCA complete. Upper Limbs using [1. 0. 0.]
+INFO:root:Lower Limbs projection_method is pca. Running PCA on ['RightUpLeg', 'RightLeg', 'RightFoot', 'RightToeBase', 'LeftUpLeg', 'LeftLeg', 'LeftFoot', 'LeftToeBase']
+INFO:root:PCA complete. Lower Limbs using [0. 0. 1.]
+INFO:root:Trunk projection_method is frontal. Using [1. 0. 0.]
+INFO:root: error finding projection plane for joint_name: End Site
+INFO:root: error finding projection plane for joint_name: End Site
+INFO:root: error finding projection plane for joint_name: RightHandThumb1
+INFO:root: error finding projection plane for joint_name: End Site
+INFO:root: error finding projection plane for joint_name: End Site
+INFO:root: error finding projection plane for joint_name: LeftHandThumb1
+INFO:root: error finding projection plane for joint_name: End Site
+INFO:root: error finding projection plane for joint_name: End Site
+INFO:root: error finding projection plane for joint_name: End Site
+WARNING:root:point [[0.6756329  0.06962025]] not inside or on edge of any triangle in mesh. Skipping it
+INFO:root:tA1xA1 is singular. perturbing...
+INFO:root:tA2xA2 is singular. perturbing...
+INFO:root: Writing video to: D:\capston\render_results\agent\step_003\video.gif
+WARNING:root:Specified duration of .gif is too low, replacing with 20: 8
+INFO:root:invalid frame_idx (504), replacing with last frame 503
+INFO:root:Rendered 504 frames in 19.245434284210205 seconds.
+INFO:root:VideoWriter will write to D:\capston\render_results\agent\step_003\video.gif
+DEBUG:PIL.Image:Importing GifImagePlugin
+INFO:root:Wrote video to file in in 2.8764841556549072 seconds.
+INFO:root:Using user-specified mvc config file located at D:\capston\render_results\agent\step_001\mvc_cfg.yaml
+INFO:OpenGL.acceleratesupport:No OpenGL_accelerate module loaded: No module named 'OpenGL_accelerate'
+DEBUG:shapely.geos:Found GEOS DLL: <CDLL 'C:\Users\MJC\AppData\Local\Programs\Python\Python311\Lib\site-packages\Shapely.libs\geos_c-84d02d5b10aa37e3ab60a885dc5b531b.dll', handle 7ff8d9360000 at 0x1acea714f10>, using it.
+INFO:root:OpenGL Version: 3.3.0 NVIDIA 591.86
+INFO:root:GLSL: 3.30 NVIDIA via Cg compiler
+INFO:root:Renderer: NVIDIA GeForce GTX 1660 Ti/PCIe/SSE2
+INFO:root:Encountered values close to zero in vector norm. Replacing with 1e-05
+INFO:root:char_runtime_check failed, removing neck from retargeter :('neck', 'above', 'right_shoulder', 'left_shoulder')
+INFO:root:Starting joint -> mask pixel BFS
+INFO:root:Finished joint -> mask pixel BFS in 2.9728317260742188 seconds
+INFO:root:Using BVH file located at D:\capston\AnimatedDrawings\examples\bvh\fair1\wave_hello.bvh
+INFO:root:Upper Limbs projection_method is pca. Running PCA on ['RightShoulder', 'RightArm', 'RightForeArm', 'RightHand', 'RightHandEnd', 'LeftShoulder', 'LeftArm', 'LeftForeArm', 'LeftHand', 'LeftHandEnd']
+INFO:root:PCA complete. Upper Limbs using [1. 0. 0.]
+INFO:root:Lower Limbs projection_method is pca. Running PCA on ['RightUpLeg', 'RightLeg', 'RightFoot', 'RightToeBase', 'LeftUpLeg', 'LeftLeg', 'LeftFoot', 'LeftToeBase']
+INFO:root:PCA complete. Lower Limbs using [1. 0. 0.]
+INFO:root:Trunk projection_method is frontal. Using [1. 0. 0.]
+INFO:root: error finding projection plane for joint_name: End Site
+INFO:root: error finding projection plane for joint_name: End Site
+INFO:root: error finding projection plane for joint_name: RightHandThumb1
+INFO:root: error finding projection plane for joint_name: End Site
+INFO:root: error finding projection plane for joint_name: End Site
+INFO:root: error finding projection plane for joint_name: LeftHandThumb1
+INFO:root: error finding projection plane for joint_name: End Site
+INFO:root: error finding projection plane for joint_name: End Site
+INFO:root: error finding projection plane for joint_name: End Site
+WARNING:root:point [[0.6756329  0.06962025]] not inside or on edge of any triangle in mesh. Skipping it
+INFO:root:tA1xA1 is singular. perturbing...
+INFO:root:tA2xA2 is singular. perturbing...
+INFO:root: Writing video to: D:\capston\render_results\agent\step_001\video.gif
+WARNING:root:Specified duration of .gif is too low, replacing with 20: 8
+INFO:root:invalid frame_idx (839), replacing with last frame 838
+INFO:root:Rendered 839 frames in 32.9262535572052 seconds.
+INFO:root:VideoWriter will write to D:\capston\render_results\agent\step_001\video.gif
+DEBUG:PIL.Image:Importing GifImagePlugin
+INFO:root:Wrote video to file in in 4.837579727172852 seconds.
+INFO:root:Using user-specified mvc config file located at D:\capston\render_results\agent\step_002\mvc_cfg.yaml
+INFO:OpenGL.acceleratesupport:No OpenGL_accelerate module loaded: No module named 'OpenGL_accelerate'
+DEBUG:shapely.geos:Found GEOS DLL: <CDLL 'C:\Users\MJC\AppData\Local\Programs\Python\Python311\Lib\site-packages\Shapely.libs\geos_c-84d02d5b10aa37e3ab60a885dc5b531b.dll', handle 7ff8d6f50000 at 0x191e83c18d0>, using it.
+INFO:root:OpenGL Version: 3.3.0 NVIDIA 591.86
+INFO:root:GLSL: 3.30 NVIDIA via Cg compiler
+INFO:root:Renderer: NVIDIA GeForce GTX 1660 Ti/PCIe/SSE2
+INFO:root:Encountered values close to zero in vector norm. Replacing with 1e-05
+INFO:root:char_runtime_check failed, removing neck from retargeter :('neck', 'above', 'right_shoulder', 'left_shoulder')
+INFO:root:Starting joint -> mask pixel BFS
+INFO:root:Finished joint -> mask pixel BFS in 2.9318628311157227 seconds
+INFO:root:Using BVH file located at D:\capston\AnimatedDrawings\examples\bvh\rokoko\jesse_dance.bvh
+INFO:root:Upper Limbs projection_method is pca. Running PCA on ['RightShoulder', 'RightArm', 'RightForeArm', 'RightHand', 'LeftShoulder', 'LeftArm', 'LeftForeArm', 'LeftHand']
+INFO:root:PCA complete. Upper Limbs using [1. 0. 0.]
+INFO:root:Lower Limbs projection_method is pca. Running PCA on ['RightUpLeg', 'RightLeg', 'RightFoot', 'RightToeBase', 'LeftUpLeg', 'LeftLeg', 'LeftFoot', 'LeftToeBase']
+INFO:root:PCA complete. Lower Limbs using [1. 0. 0.]
+INFO:root:Trunk projection_method is frontal. Using [1. 0. 0.]
+INFO:root: error finding projection plane for joint_name: Hips
+INFO:root: error finding projection plane for joint_name: LeftInHandIndex
+INFO:root: error finding projection plane for joint_name: LeftHandIndex1
+INFO:root: error finding projection plane for joint_name: LeftHandIndex2
+INFO:root: error finding projection plane for joint_name: LeftHandIndex3
+INFO:root: error finding projection plane for joint_name: End Site
+INFO:root: error finding projection plane for joint_name: LeftInHandMiddle
+INFO:root: error finding projection plane for joint_name: LeftHandMiddle1
+INFO:root: error finding projection plane for joint_name: LeftHandMiddle2
+INFO:root: error finding projection plane for joint_name: LeftHandMiddle3
+INFO:root: error finding projection plane for joint_name: End Site
+INFO:root: error finding projection plane for joint_name: LeftInHandPinky
+INFO:root: error finding projection plane for joint_name: LeftHandPinky1
+INFO:root: error finding projection plane for joint_name: LeftHandPinky2
+INFO:root: error finding projection plane for joint_name: LeftHandPinky3
+INFO:root: error finding projection plane for joint_name: End Site
+INFO:root: error finding projection plane for joint_name: LeftInHandRing
+INFO:root: error finding projection plane for joint_name: LeftHandRing1
+INFO:root: error finding projection plane for joint_name: LeftHandRing2
+INFO:root: error finding projection plane for joint_name: LeftHandRing3
+INFO:root: error finding projection plane for joint_name: End Site
+INFO:root: error finding projection plane for joint_name: LeftHandThumb1
+INFO:root: error finding projection plane for joint_name: LeftHandThumb2
+INFO:root: error finding projection plane for joint_name: LeftHandThumb3
+INFO:root: error finding projection plane for joint_name: End Site
+INFO:root: error finding projection plane for joint_name: End Site
+INFO:root: error finding projection plane for joint_name: RightInHandIndex
+INFO:root: error finding projection plane for joint_name: RightHandIndex1
+INFO:root: error finding projection plane for joint_name: RightHandIndex2
+INFO:root: error finding projection plane for joint_name: RightHandIndex3
+INFO:root: error finding projection plane for joint_name: End Site
+INFO:root: error finding projection plane for joint_name: RightInHandMiddle
+INFO:root: error finding projection plane for joint_name: RightHandMiddle1
+INFO:root: error finding projection plane for joint_name: RightHandMiddle2
+INFO:root: error finding projection plane for joint_name: RightHandMiddle3
+INFO:root: error finding projection plane for joint_name: End Site
+INFO:root: error finding projection plane for joint_name: RightInHandPinky
+INFO:root: error finding projection plane for joint_name: RightHandPinky1
+INFO:root: error finding projection plane for joint_name: RightHandPinky2
+INFO:root: error finding projection plane for joint_name: RightHandPinky3
+INFO:root: error finding projection plane for joint_name: End Site
+INFO:root: error finding projection plane for joint_name: RightInHandRing
+INFO:root: error finding projection plane for joint_name: RightHandRing1
+INFO:root: error finding projection plane for joint_name: RightHandRing2
+INFO:root: error finding projection plane for joint_name: RightHandRing3
+INFO:root: error finding projection plane for joint_name: End Site
+INFO:root: error finding projection plane for joint_name: RightHandThumb1
+INFO:root: error finding projection plane for joint_name: RightHandThumb2
+INFO:root: error finding projection plane for joint_name: RightHandThumb3
+INFO:root: error finding projection plane for joint_name: End Site
+INFO:root: error finding projection plane for joint_name: End Site
+INFO:root: error finding projection plane for joint_name: End Site
+WARNING:root:point [[0.6756329  0.06962025]] not inside or on edge of any triangle in mesh. Skipping it
+INFO:root:tA1xA1 is singular. perturbing...
+INFO:root:tA2xA2 is singular. perturbing...
+INFO:root: Writing video to: D:\capston\render_results\agent\step_002\video.gif
+WARNING:root:Specified duration of .gif is too low, replacing with 20: 10
+INFO:root:invalid frame_idx (1007), replacing with last frame 1006
+INFO:root:Rendered 1007 frames in 39.643749713897705 seconds.
+INFO:root:VideoWriter will write to D:\capston\render_results\agent\step_002\video.gif
+DEBUG:PIL.Image:Importing GifImagePlugin
+INFO:root:Wrote video to file in in 6.0390403270721436 seconds.
+INFO:root:Using user-specified mvc config file located at D:\capston\render_results\agent\step_003\mvc_cfg.yaml
+INFO:OpenGL.acceleratesupport:No OpenGL_accelerate module loaded: No module named 'OpenGL_accelerate'
+DEBUG:shapely.geos:Found GEOS DLL: <CDLL 'C:\Users\MJC\AppData\Local\Programs\Python\Python311\Lib\site-packages\Shapely.libs\geos_c-84d02d5b10aa37e3ab60a885dc5b531b.dll', handle 7ff8d9360000 at 0x138c5665c50>, using it.
+INFO:root:OpenGL Version: 3.3.0 NVIDIA 591.86
+INFO:root:GLSL: 3.30 NVIDIA via Cg compiler
+INFO:root:Renderer: NVIDIA GeForce GTX 1660 Ti/PCIe/SSE2
+INFO:root:Encountered values close to zero in vector norm. Replacing with 1e-05
+INFO:root:char_runtime_check failed, removing neck from retargeter :('neck', 'above', 'right_shoulder', 'left_shoulder')
+INFO:root:Starting joint -> mask pixel BFS
+INFO:root:Finished joint -> mask pixel BFS in 3.0261645317077637 seconds
+INFO:root:Using BVH file located at D:\capston\AnimatedDrawings\examples\bvh\fair1\jumping.bvh
+INFO:root:Upper Limbs projection_method is pca. Running PCA on ['RightShoulder', 'RightArm', 'RightForeArm', 'RightHand', 'RightHandEnd', 'LeftShoulder', 'LeftArm', 'LeftForeArm', 'LeftHand', 'LeftHandEnd']
+INFO:root:PCA complete. Upper Limbs using [1. 0. 0.]
+INFO:root:Lower Limbs projection_method is pca. Running PCA on ['RightUpLeg', 'RightLeg', 'RightFoot', 'RightToeBase', 'LeftUpLeg', 'LeftLeg', 'LeftFoot', 'LeftToeBase']
+INFO:root:PCA complete. Lower Limbs using [0. 0. 1.]
+INFO:root:Trunk projection_method is frontal. Using [1. 0. 0.]
+INFO:root: error finding projection plane for joint_name: End Site
+INFO:root: error finding projection plane for joint_name: End Site
+INFO:root: error finding projection plane for joint_name: RightHandThumb1
+INFO:root: error finding projection plane for joint_name: End Site
+INFO:root: error finding projection plane for joint_name: End Site
+INFO:root: error finding projection plane for joint_name: LeftHandThumb1
+INFO:root: error finding projection plane for joint_name: End Site
+INFO:root: error finding projection plane for joint_name: End Site
+INFO:root: error finding projection plane for joint_name: End Site
+WARNING:root:point [[0.6756329  0.06962025]] not inside or on edge of any triangle in mesh. Skipping it
+INFO:root:tA1xA1 is singular. perturbing...
+INFO:root:tA2xA2 is singular. perturbing...
+INFO:root: Writing video to: D:\capston\render_results\agent\step_003\video.gif
+WARNING:root:Specified duration of .gif is too low, replacing with 20: 8
+INFO:root:invalid frame_idx (504), replacing with last frame 503
+INFO:root:Rendered 504 frames in 20.036216497421265 seconds.
+INFO:root:VideoWriter will write to D:\capston\render_results\agent\step_003\video.gif
+DEBUG:PIL.Image:Importing GifImagePlugin
+INFO:root:Wrote video to file in in 2.963230848312378 seconds.
+INFO:root:Using user-specified mvc config file located at D:\capston\render_results\current\mvc_cfg.yaml
+INFO:OpenGL.acceleratesupport:No OpenGL_accelerate module loaded: No module named 'OpenGL_accelerate'
+DEBUG:shapely.geos:Found GEOS DLL: <CDLL 'C:\Users\MJC\AppData\Local\Programs\Python\Python311\Lib\site-packages\Shapely.libs\geos_c-84d02d5b10aa37e3ab60a885dc5b531b.dll', handle 7ff930410000 at 0x21f200125d0>, using it.
+INFO:root:OpenGL Version: 3.3.0 NVIDIA 591.86
+INFO:root:GLSL: 3.30 NVIDIA via Cg compiler
+INFO:root:Renderer: NVIDIA GeForce GTX 1660 Ti/PCIe/SSE2
+INFO:root:Encountered values close to zero in vector norm. Replacing with 1e-05
+INFO:root:char_runtime_check failed, removing neck from retargeter :('neck', 'above', 'right_shoulder', 'left_shoulder')
+INFO:root:Starting joint -> mask pixel BFS
+INFO:root:Finished joint -> mask pixel BFS in 2.947999954223633 seconds
+INFO:root:Using BVH file located at D:\capston\AnimatedDrawings\examples\bvh\fair1\wave_hello.bvh
+INFO:root:Upper Limbs projection_method is pca. Running PCA on ['RightShoulder', 'RightArm', 'RightForeArm', 'RightHand', 'RightHandEnd', 'LeftShoulder', 'LeftArm', 'LeftForeArm', 'LeftHand', 'LeftHandEnd']
+INFO:root:PCA complete. Upper Limbs using [1. 0. 0.]
+INFO:root:Lower Limbs projection_method is pca. Running PCA on ['RightUpLeg', 'RightLeg', 'RightFoot', 'RightToeBase', 'LeftUpLeg', 'LeftLeg', 'LeftFoot', 'LeftToeBase']
+INFO:root:PCA complete. Lower Limbs using [1. 0. 0.]
+INFO:root:Trunk projection_method is frontal. Using [1. 0. 0.]
+INFO:root: error finding projection plane for joint_name: End Site
+INFO:root: error finding projection plane for joint_name: End Site
+INFO:root: error finding projection plane for joint_name: RightHandThumb1
+INFO:root: error finding projection plane for joint_name: End Site
+INFO:root: error finding projection plane for joint_name: End Site
+INFO:root: error finding projection plane for joint_name: LeftHandThumb1
+INFO:root: error finding projection plane for joint_name: End Site
+INFO:root: error finding projection plane for joint_name: End Site
+INFO:root: error finding projection plane for joint_name: End Site
+WARNING:root:point [[0.6756329  0.06962025]] not inside or on edge of any triangle in mesh. Skipping it
+INFO:root:tA1xA1 is singular. perturbing...
+INFO:root:tA2xA2 is singular. perturbing...
+INFO:root: Writing video to: D:\capston\render_results\current\video.gif
+WARNING:root:Specified duration of .gif is too low, replacing with 20: 8
+INFO:root:invalid frame_idx (839), replacing with last frame 838
+INFO:root:Rendered 839 frames in 32.29984951019287 seconds.
+INFO:root:VideoWriter will write to D:\capston\render_results\current\video.gif
+DEBUG:PIL.Image:Importing GifImagePlugin
+INFO:root:Wrote video to file in in 4.7543580532073975 seconds.
+INFO:root:Using user-specified mvc config file located at D:\capston\render_results\current\mvc_cfg.yaml
+INFO:OpenGL.acceleratesupport:No OpenGL_accelerate module loaded: No module named 'OpenGL_accelerate'
+DEBUG:shapely.geos:Found GEOS DLL: <CDLL 'C:\Users\MJC\AppData\Local\Programs\Python\Python311\Lib\site-packages\Shapely.libs\geos_c-84d02d5b10aa37e3ab60a885dc5b531b.dll', handle 7ff930410000 at 0x190f7ad5410>, using it.
+INFO:root:OpenGL Version: 3.3.0 NVIDIA 591.86
+INFO:root:GLSL: 3.30 NVIDIA via Cg compiler
+INFO:root:Renderer: NVIDIA GeForce GTX 1660 Ti/PCIe/SSE2
+INFO:root:Encountered values close to zero in vector norm. Replacing with 1e-05
+INFO:root:char_runtime_check failed, removing neck from retargeter :('neck', 'above', 'right_shoulder', 'left_shoulder')
+INFO:root:Starting joint -> mask pixel BFS
+INFO:root:Finished joint -> mask pixel BFS in 2.9152302742004395 seconds
+INFO:root:Using BVH file located at D:\capston\AnimatedDrawings\examples\bvh\fair1\wave_hello.bvh
+INFO:root:Upper Limbs projection_method is pca. Running PCA on ['RightShoulder', 'RightArm', 'RightForeArm', 'RightHand', 'RightHandEnd', 'LeftShoulder', 'LeftArm', 'LeftForeArm', 'LeftHand', 'LeftHandEnd']
+INFO:root:PCA complete. Upper Limbs using [1. 0. 0.]
+INFO:root:Lower Limbs projection_method is pca. Running PCA on ['RightUpLeg', 'RightLeg', 'RightFoot', 'RightToeBase', 'LeftUpLeg', 'LeftLeg', 'LeftFoot', 'LeftToeBase']
+INFO:root:PCA complete. Lower Limbs using [1. 0. 0.]
+INFO:root:Trunk projection_method is frontal. Using [1. 0. 0.]
+INFO:root: error finding projection plane for joint_name: End Site
+INFO:root: error finding projection plane for joint_name: End Site
+INFO:root: error finding projection plane for joint_name: RightHandThumb1
+INFO:root: error finding projection plane for joint_name: End Site
+INFO:root: error finding projection plane for joint_name: End Site
+INFO:root: error finding projection plane for joint_name: LeftHandThumb1
+INFO:root: error finding projection plane for joint_name: End Site
+INFO:root: error finding projection plane for joint_name: End Site
+INFO:root: error finding projection plane for joint_name: End Site
+WARNING:root:point [[0.6756329  0.06962025]] not inside or on edge of any triangle in mesh. Skipping it
+INFO:root:tA1xA1 is singular. perturbing...
+INFO:root:tA2xA2 is singular. perturbing...
+INFO:root: Writing video to: D:\capston\render_results\current\video.gif
+WARNING:root:Specified duration of .gif is too low, replacing with 20: 8
+INFO:root:Using user-specified mvc config file located at D:\capston\render_results\current\mvc_cfg.yaml
+INFO:OpenGL.acceleratesupport:No OpenGL_accelerate module loaded: No module named 'OpenGL_accelerate'
+DEBUG:shapely.geos:Found GEOS DLL: <CDLL 'C:\Users\MJC\AppData\Local\Programs\Python\Python311\Lib\site-packages\Shapely.libs\geos_c-84d02d5b10aa37e3ab60a885dc5b531b.dll', handle 7ffbd6590000 at 0x23efff14e90>, using it.
+INFO:root:OpenGL Version: 3.3.0 NVIDIA 591.86
+INFO:root:GLSL: 3.30 NVIDIA via Cg compiler
+INFO:root:Renderer: NVIDIA GeForce GTX 1660 Ti/PCIe/SSE2
+INFO:root:Encountered values close to zero in vector norm. Replacing with 1e-05
+INFO:root:Starting joint -> mask pixel BFS
+INFO:root:Finished joint -> mask pixel BFS in 2.3146941661834717 seconds
+INFO:root:Using BVH file located at D:\capston\AnimatedDrawings\examples\bvh\fair1\wave_hello.bvh
+INFO:root:Upper Limbs projection_method is pca. Running PCA on ['RightShoulder', 'RightArm', 'RightForeArm', 'RightHand', 'RightHandEnd', 'LeftShoulder', 'LeftArm', 'LeftForeArm', 'LeftHand', 'LeftHandEnd']
+INFO:root:PCA complete. Upper Limbs using [1. 0. 0.]
+INFO:root:Lower Limbs projection_method is pca. Running PCA on ['RightUpLeg', 'RightLeg', 'RightFoot', 'RightToeBase', 'LeftUpLeg', 'LeftLeg', 'LeftFoot', 'LeftToeBase']
+INFO:root:PCA complete. Lower Limbs using [1. 0. 0.]
+INFO:root:Trunk projection_method is frontal. Using [1. 0. 0.]
+INFO:root: error finding projection plane for joint_name: End Site
+INFO:root: error finding projection plane for joint_name: End Site
+INFO:root: error finding projection plane for joint_name: RightHandThumb1
+INFO:root: error finding projection plane for joint_name: End Site
+INFO:root: error finding projection plane for joint_name: End Site
+INFO:root: error finding projection plane for joint_name: LeftHandThumb1
+INFO:root: error finding projection plane for joint_name: End Site
+INFO:root: error finding projection plane for joint_name: End Site
+INFO:root: error finding projection plane for joint_name: End Site
+INFO:root:tA1xA1 is singular. perturbing...
+INFO:root:tA2xA2 is singular. perturbing...
+INFO:root: Writing video to: D:\capston\render_results\current\video.gif
+WARNING:root:Specified duration of .gif is too low, replacing with 20: 8
+INFO:root:invalid frame_idx (839), replacing with last frame 838
+INFO:root:Rendered 839 frames in 31.017064094543457 seconds.
+INFO:root:VideoWriter will write to D:\capston\render_results\current\video.gif
+DEBUG:PIL.Image:Importing GifImagePlugin
+INFO:root:Wrote video to file in in 4.6535804271698 seconds.
+INFO:root:Using user-specified mvc config file located at D:\capston\render_results\current\mvc_cfg.yaml
+INFO:OpenGL.acceleratesupport:No OpenGL_accelerate module loaded: No module named 'OpenGL_accelerate'
+DEBUG:shapely.geos:Found GEOS DLL: <CDLL 'C:\Users\MJC\AppData\Local\Programs\Python\Python311\Lib\site-packages\Shapely.libs\geos_c-84d02d5b10aa37e3ab60a885dc5b531b.dll', handle 7ffbd6500000 at 0x25ff17c4f10>, using it.
+INFO:root:OpenGL Version: 3.3.0 NVIDIA 591.86
+INFO:root:GLSL: 3.30 NVIDIA via Cg compiler
+INFO:root:Renderer: NVIDIA GeForce GTX 1660 Ti/PCIe/SSE2
+INFO:root:Encountered values close to zero in vector norm. Replacing with 1e-05
+INFO:root:Starting joint -> mask pixel BFS
+INFO:root:Finished joint -> mask pixel BFS in 2.415647029876709 seconds
+INFO:root:Using BVH file located at D:\capston\AnimatedDrawings\examples\bvh\fair1\wave_hello.bvh
+INFO:root:Upper Limbs projection_method is pca. Running PCA on ['RightShoulder', 'RightArm', 'RightForeArm', 'RightHand', 'RightHandEnd', 'LeftShoulder', 'LeftArm', 'LeftForeArm', 'LeftHand', 'LeftHandEnd']
+INFO:root:PCA complete. Upper Limbs using [1. 0. 0.]
+INFO:root:Lower Limbs projection_method is pca. Running PCA on ['RightUpLeg', 'RightLeg', 'RightFoot', 'RightToeBase', 'LeftUpLeg', 'LeftLeg', 'LeftFoot', 'LeftToeBase']
+INFO:root:PCA complete. Lower Limbs using [1. 0. 0.]
+INFO:root:Trunk projection_method is frontal. Using [1. 0. 0.]
+INFO:root: error finding projection plane for joint_name: End Site
+INFO:root: error finding projection plane for joint_name: End Site
+INFO:root: error finding projection plane for joint_name: RightHandThumb1
+INFO:root: error finding projection plane for joint_name: End Site
+INFO:root: error finding projection plane for joint_name: End Site
+INFO:root: error finding projection plane for joint_name: LeftHandThumb1
+INFO:root: error finding projection plane for joint_name: End Site
+INFO:root: error finding projection plane for joint_name: End Site
+INFO:root: error finding projection plane for joint_name: End Site
+INFO:root:tA1xA1 is singular. perturbing...
+INFO:root:tA2xA2 is singular. perturbing...
+INFO:root: Writing video to: D:\capston\render_results\current\video.gif
+WARNING:root:Specified duration of .gif is too low, replacing with 20: 8
+INFO:root:invalid frame_idx (839), replacing with last frame 838
+INFO:root:Rendered 839 frames in 31.045173406600952 seconds.
+INFO:root:VideoWriter will write to D:\capston\render_results\current\video.gif
+DEBUG:PIL.Image:Importing GifImagePlugin
+INFO:root:Wrote video to file in in 4.64631724357605 seconds.
+INFO:root:Using user-specified mvc config file located at D:\capston\render_results\current\mvc_cfg.yaml
+INFO:OpenGL.acceleratesupport:No OpenGL_accelerate module loaded: No module named 'OpenGL_accelerate'
+DEBUG:shapely.geos:Found GEOS DLL: <CDLL 'C:\Users\MJC\AppData\Local\Programs\Python\Python311\Lib\site-packages\Shapely.libs\geos_c-84d02d5b10aa37e3ab60a885dc5b531b.dll', handle 7ffbdc0a0000 at 0x23da0554e90>, using it.
+INFO:root:OpenGL Version: 3.3.0 NVIDIA 591.86
+INFO:root:GLSL: 3.30 NVIDIA via Cg compiler
+INFO:root:Renderer: NVIDIA GeForce GTX 1660 Ti/PCIe/SSE2
+INFO:root:Encountered values close to zero in vector norm. Replacing with 1e-05
+INFO:root:Starting joint -> mask pixel BFS
+INFO:root:Finished joint -> mask pixel BFS in 2.3413712978363037 seconds
+INFO:root:Using BVH file located at D:\capston\AnimatedDrawings\examples\bvh\fair1\wave_hello.bvh
+INFO:root:Upper Limbs projection_method is pca. Running PCA on ['RightShoulder', 'RightArm', 'RightForeArm', 'RightHand', 'RightHandEnd', 'LeftShoulder', 'LeftArm', 'LeftForeArm', 'LeftHand', 'LeftHandEnd']
+INFO:root:PCA complete. Upper Limbs using [1. 0. 0.]
+INFO:root:Lower Limbs projection_method is pca. Running PCA on ['RightUpLeg', 'RightLeg', 'RightFoot', 'RightToeBase', 'LeftUpLeg', 'LeftLeg', 'LeftFoot', 'LeftToeBase']
+INFO:root:PCA complete. Lower Limbs using [1. 0. 0.]
+INFO:root:Trunk projection_method is frontal. Using [1. 0. 0.]
+INFO:root: error finding projection plane for joint_name: End Site
+INFO:root: error finding projection plane for joint_name: End Site
+INFO:root: error finding projection plane for joint_name: RightHandThumb1
+INFO:root: error finding projection plane for joint_name: End Site
+INFO:root: error finding projection plane for joint_name: End Site
+INFO:root: error finding projection plane for joint_name: LeftHandThumb1
+INFO:root: error finding projection plane for joint_name: End Site
+INFO:root: error finding projection plane for joint_name: End Site
+INFO:root: error finding projection plane for joint_name: End Site
+INFO:root:tA1xA1 is singular. perturbing...
+INFO:root:tA2xA2 is singular. perturbing...
+INFO:root: Writing video to: D:\capston\render_results\current\video.gif
+WARNING:root:Specified duration of .gif is too low, replacing with 20: 8
+INFO:root:invalid frame_idx (839), replacing with last frame 838
+INFO:root:Rendered 839 frames in 31.00869584083557 seconds.
+INFO:root:VideoWriter will write to D:\capston\render_results\current\video.gif
+DEBUG:PIL.Image:Importing GifImagePlugin
+INFO:root:Wrote video to file in in 4.643834829330444 seconds.
+INFO:root:Using user-specified mvc config file located at D:\capston\render_results\current\mvc_cfg.yaml
+INFO:OpenGL.acceleratesupport:No OpenGL_accelerate module loaded: No module named 'OpenGL_accelerate'
+DEBUG:shapely.geos:Found GEOS DLL: <CDLL 'C:\Users\MJC\AppData\Local\Programs\Python\Python311\Lib\site-packages\Shapely.libs\geos_c-84d02d5b10aa37e3ab60a885dc5b531b.dll', handle 7ffc63ea0000 at 0x1fd3f394e90>, using it.
+INFO:root:OpenGL Version: 3.3.0 NVIDIA 591.86
+INFO:root:GLSL: 3.30 NVIDIA via Cg compiler
+INFO:root:Renderer: NVIDIA GeForce GTX 1660 Ti/PCIe/SSE2
+INFO:root:Encountered values close to zero in vector norm. Replacing with 1e-05
+INFO:root:Starting joint -> mask pixel BFS
+INFO:root:Finished joint -> mask pixel BFS in 2.480645179748535 seconds
+INFO:root:Using BVH file located at D:\capston\AnimatedDrawings\examples\bvh\fair1\wave_hello.bvh
+INFO:root:Upper Limbs projection_method is pca. Running PCA on ['RightShoulder', 'RightArm', 'RightForeArm', 'RightHand', 'RightHandEnd', 'LeftShoulder', 'LeftArm', 'LeftForeArm', 'LeftHand', 'LeftHandEnd']
+INFO:root:PCA complete. Upper Limbs using [1. 0. 0.]
+INFO:root:Lower Limbs projection_method is pca. Running PCA on ['RightUpLeg', 'RightLeg', 'RightFoot', 'RightToeBase', 'LeftUpLeg', 'LeftLeg', 'LeftFoot', 'LeftToeBase']
+INFO:root:PCA complete. Lower Limbs using [1. 0. 0.]
+INFO:root:Trunk projection_method is frontal. Using [1. 0. 0.]
+INFO:root: error finding projection plane for joint_name: End Site
+INFO:root: error finding projection plane for joint_name: End Site
+INFO:root: error finding projection plane for joint_name: RightHandThumb1
+INFO:root: error finding projection plane for joint_name: End Site
+INFO:root: error finding projection plane for joint_name: End Site
+INFO:root: error finding projection plane for joint_name: LeftHandThumb1
+INFO:root: error finding projection plane for joint_name: End Site
+INFO:root: error finding projection plane for joint_name: End Site
+INFO:root: error finding projection plane for joint_name: End Site
+INFO:root:tA1xA1 is singular. perturbing...
+INFO:root:tA2xA2 is singular. perturbing...
+INFO:root: Writing video to: D:\capston\render_results\current\video.gif
+WARNING:root:Specified duration of .gif is too low, replacing with 20: 8
+INFO:root:Using user-specified mvc config file located at D:\capston\render_results\current\mvc_cfg.yaml
+INFO:OpenGL.acceleratesupport:No OpenGL_accelerate module loaded: No module named 'OpenGL_accelerate'
+DEBUG:shapely.geos:Found GEOS DLL: <CDLL 'C:\Users\MJC\AppData\Local\Programs\Python\Python311\Lib\site-packages\Shapely.libs\geos_c-84d02d5b10aa37e3ab60a885dc5b531b.dll', handle 7ffc63ea0000 at 0x25071114e50>, using it.
+INFO:root:OpenGL Version: 3.3.0 NVIDIA 591.86
+INFO:root:GLSL: 3.30 NVIDIA via Cg compiler
+INFO:root:Renderer: NVIDIA GeForce GTX 1660 Ti/PCIe/SSE2
+INFO:root:Encountered values close to zero in vector norm. Replacing with 1e-05
+INFO:root:Starting joint -> mask pixel BFS
+INFO:root:Finished joint -> mask pixel BFS in 2.3349788188934326 seconds
+INFO:root:Using BVH file located at D:\capston\AnimatedDrawings\examples\bvh\fair1\wave_hello.bvh
+INFO:root:Upper Limbs projection_method is pca. Running PCA on ['RightShoulder', 'RightArm', 'RightForeArm', 'RightHand', 'RightHandEnd', 'LeftShoulder', 'LeftArm', 'LeftForeArm', 'LeftHand', 'LeftHandEnd']
+INFO:root:PCA complete. Upper Limbs using [1. 0. 0.]
+INFO:root:Lower Limbs projection_method is pca. Running PCA on ['RightUpLeg', 'RightLeg', 'RightFoot', 'RightToeBase', 'LeftUpLeg', 'LeftLeg', 'LeftFoot', 'LeftToeBase']
+INFO:root:PCA complete. Lower Limbs using [1. 0. 0.]
+INFO:root:Trunk projection_method is frontal. Using [1. 0. 0.]
+INFO:root: error finding projection plane for joint_name: End Site
+INFO:root: error finding projection plane for joint_name: End Site
+INFO:root: error finding projection plane for joint_name: RightHandThumb1
+INFO:root: error finding projection plane for joint_name: End Site
+INFO:root: error finding projection plane for joint_name: End Site
+INFO:root: error finding projection plane for joint_name: LeftHandThumb1
+INFO:root: error finding projection plane for joint_name: End Site
+INFO:root: error finding projection plane for joint_name: End Site
+INFO:root: error finding projection plane for joint_name: End Site
+INFO:root:tA1xA1 is singular. perturbing...
+INFO:root:tA2xA2 is singular. perturbing...
+INFO:root: Writing video to: D:\capston\render_results\current\video.gif
+WARNING:root:Specified duration of .gif is too low, replacing with 20: 8
+INFO:root:invalid frame_idx (839), replacing with last frame 838
+INFO:root:Rendered 839 frames in 30.392723083496094 seconds.
+INFO:root:VideoWriter will write to D:\capston\render_results\current\video.gif
+DEBUG:PIL.Image:Importing GifImagePlugin
+INFO:root:Wrote video to file in in 4.658102512359619 seconds.
+INFO:root:Using user-specified mvc config file located at D:\capston\render_results\current\mvc_cfg.yaml
+INFO:OpenGL.acceleratesupport:No OpenGL_accelerate module loaded: No module named 'OpenGL_accelerate'
+DEBUG:shapely.geos:Found GEOS DLL: <CDLL 'C:\Users\MJC\AppData\Local\Programs\Python\Python311\Lib\site-packages\Shapely.libs\geos_c-84d02d5b10aa37e3ab60a885dc5b531b.dll', handle 7ffc63ee0000 at 0x1c0a8454dd0>, using it.
+INFO:root:OpenGL Version: 3.3.0 NVIDIA 591.86
+INFO:root:GLSL: 3.30 NVIDIA via Cg compiler
+INFO:root:Renderer: NVIDIA GeForce GTX 1660 Ti/PCIe/SSE2
+INFO:root:Encountered values close to zero in vector norm. Replacing with 1e-05
+INFO:root:Starting joint -> mask pixel BFS
+INFO:root:Finished joint -> mask pixel BFS in 2.2979729175567627 seconds
+INFO:root:Using BVH file located at D:\capston\AnimatedDrawings\examples\bvh\fair1\wave_hello.bvh
+INFO:root:Upper Limbs projection_method is pca. Running PCA on ['RightShoulder', 'RightArm', 'RightForeArm', 'RightHand', 'RightHandEnd', 'LeftShoulder', 'LeftArm', 'LeftForeArm', 'LeftHand', 'LeftHandEnd']
+INFO:root:PCA complete. Upper Limbs using [1. 0. 0.]
+INFO:root:Lower Limbs projection_method is pca. Running PCA on ['RightUpLeg', 'RightLeg', 'RightFoot', 'RightToeBase', 'LeftUpLeg', 'LeftLeg', 'LeftFoot', 'LeftToeBase']
+INFO:root:PCA complete. Lower Limbs using [1. 0. 0.]
+INFO:root:Trunk projection_method is frontal. Using [1. 0. 0.]
+INFO:root: error finding projection plane for joint_name: End Site
+INFO:root: error finding projection plane for joint_name: End Site
+INFO:root: error finding projection plane for joint_name: RightHandThumb1
+INFO:root: error finding projection plane for joint_name: End Site
+INFO:root: error finding projection plane for joint_name: End Site
+INFO:root: error finding projection plane for joint_name: LeftHandThumb1
+INFO:root: error finding projection plane for joint_name: End Site
+INFO:root: error finding projection plane for joint_name: End Site
+INFO:root: error finding projection plane for joint_name: End Site
+INFO:root:tA1xA1 is singular. perturbing...
+INFO:root:tA2xA2 is singular. perturbing...
+INFO:root: Writing video to: D:\capston\render_results\current\video.gif
+WARNING:root:Specified duration of .gif is too low, replacing with 20: 8
+INFO:root:invalid frame_idx (839), replacing with last frame 838
+INFO:root:Rendered 839 frames in 30.66891574859619 seconds.
+INFO:root:VideoWriter will write to D:\capston\render_results\current\video.gif
+DEBUG:PIL.Image:Importing GifImagePlugin
+INFO:root:Wrote video to file in in 4.627837657928467 seconds.
+INFO:root:Using user-specified mvc config file located at D:\capston\render_results\current\mvc_cfg.yaml
+INFO:OpenGL.acceleratesupport:No OpenGL_accelerate module loaded: No module named 'OpenGL_accelerate'
+DEBUG:shapely.geos:Found GEOS DLL: <CDLL 'C:\Users\MJC\AppData\Local\Programs\Python\Python311\Lib\site-packages\Shapely.libs\geos_c-84d02d5b10aa37e3ab60a885dc5b531b.dll', handle 7ffc63ee0000 at 0x1eea0a14e50>, using it.
+INFO:root:OpenGL Version: 3.3.0 NVIDIA 591.86
+INFO:root:GLSL: 3.30 NVIDIA via Cg compiler
+INFO:root:Renderer: NVIDIA GeForce GTX 1660 Ti/PCIe/SSE2
+INFO:root:Encountered values close to zero in vector norm. Replacing with 1e-05
+INFO:root:Starting joint -> mask pixel BFS
+INFO:root:Finished joint -> mask pixel BFS in 2.3049421310424805 seconds
+INFO:root:Using BVH file located at D:\capston\AnimatedDrawings\examples\bvh\fair1\wave_hello.bvh
+INFO:root:Upper Limbs projection_method is pca. Running PCA on ['RightShoulder', 'RightArm', 'RightForeArm', 'RightHand', 'RightHandEnd', 'LeftShoulder', 'LeftArm', 'LeftForeArm', 'LeftHand', 'LeftHandEnd']
+INFO:root:PCA complete. Upper Limbs using [1. 0. 0.]
+INFO:root:Lower Limbs projection_method is pca. Running PCA on ['RightUpLeg', 'RightLeg', 'RightFoot', 'RightToeBase', 'LeftUpLeg', 'LeftLeg', 'LeftFoot', 'LeftToeBase']
+INFO:root:PCA complete. Lower Limbs using [1. 0. 0.]
+INFO:root:Trunk projection_method is frontal. Using [1. 0. 0.]
+INFO:root: error finding projection plane for joint_name: End Site
+INFO:root: error finding projection plane for joint_name: End Site
+INFO:root: error finding projection plane for joint_name: RightHandThumb1
+INFO:root: error finding projection plane for joint_name: End Site
+INFO:root: error finding projection plane for joint_name: End Site
+INFO:root: error finding projection plane for joint_name: LeftHandThumb1
+INFO:root: error finding projection plane for joint_name: End Site
+INFO:root: error finding projection plane for joint_name: End Site
+INFO:root: error finding projection plane for joint_name: End Site
+INFO:root:tA1xA1 is singular. perturbing...
+INFO:root:tA2xA2 is singular. perturbing...
+INFO:root: Writing video to: D:\capston\render_results\current\video.gif
+WARNING:root:Specified duration of .gif is too low, replacing with 20: 8
+INFO:root:invalid frame_idx (839), replacing with last frame 838
+INFO:root:Rendered 839 frames in 30.49509286880493 seconds.
+INFO:root:VideoWriter will write to D:\capston\render_results\current\video.gif
+DEBUG:PIL.Image:Importing GifImagePlugin
+INFO:root:Wrote video to file in in 4.617264270782471 seconds.
+INFO:root:Using user-specified mvc config file located at D:\capston\render_results\current\mvc_cfg.yaml
+INFO:OpenGL.acceleratesupport:No OpenGL_accelerate module loaded: No module named 'OpenGL_accelerate'
+DEBUG:shapely.geos:Found GEOS DLL: <CDLL 'C:\Users\MJC\AppData\Local\Programs\Python\Python311\Lib\site-packages\Shapely.libs\geos_c-84d02d5b10aa37e3ab60a885dc5b531b.dll', handle 7ffc63ee0000 at 0x1909b614e50>, using it.
+INFO:root:OpenGL Version: 3.3.0 NVIDIA 591.86
+INFO:root:GLSL: 3.30 NVIDIA via Cg compiler
+INFO:root:Renderer: NVIDIA GeForce GTX 1660 Ti/PCIe/SSE2
+INFO:root:Encountered values close to zero in vector norm. Replacing with 1e-05
+INFO:root:Starting joint -> mask pixel BFS
+INFO:root:Finished joint -> mask pixel BFS in 2.3476672172546387 seconds
+INFO:root:Using BVH file located at D:\capston\AnimatedDrawings\examples\bvh\fair1\wave_hello.bvh
+INFO:root:Upper Limbs projection_method is pca. Running PCA on ['RightShoulder', 'RightArm', 'RightForeArm', 'RightHand', 'RightHandEnd', 'LeftShoulder', 'LeftArm', 'LeftForeArm', 'LeftHand', 'LeftHandEnd']
+INFO:root:PCA complete. Upper Limbs using [1. 0. 0.]
+INFO:root:Lower Limbs projection_method is pca. Running PCA on ['RightUpLeg', 'RightLeg', 'RightFoot', 'RightToeBase', 'LeftUpLeg', 'LeftLeg', 'LeftFoot', 'LeftToeBase']
+INFO:root:PCA complete. Lower Limbs using [1. 0. 0.]
+INFO:root:Trunk projection_method is frontal. Using [1. 0. 0.]
+INFO:root: error finding projection plane for joint_name: End Site
+INFO:root: error finding projection plane for joint_name: End Site
+INFO:root: error finding projection plane for joint_name: RightHandThumb1
+INFO:root: error finding projection plane for joint_name: End Site
+INFO:root: error finding projection plane for joint_name: End Site
+INFO:root: error finding projection plane for joint_name: LeftHandThumb1
+INFO:root: error finding projection plane for joint_name: End Site
+INFO:root: error finding projection plane for joint_name: End Site
+INFO:root: error finding projection plane for joint_name: End Site
+INFO:root:tA1xA1 is singular. perturbing...
+INFO:root:tA2xA2 is singular. perturbing...
+INFO:root: Writing video to: D:\capston\render_results\current\video.gif
+WARNING:root:Specified duration of .gif is too low, replacing with 20: 8
+INFO:root:invalid frame_idx (839), replacing with last frame 838
+INFO:root:Rendered 839 frames in 30.744436264038086 seconds.
+INFO:root:VideoWriter will write to D:\capston\render_results\current\video.gif
+DEBUG:PIL.Image:Importing GifImagePlugin
+INFO:root:Wrote video to file in in 4.626418352127075 seconds.
+INFO:root:Using user-specified mvc config file located at D:\capston\render_results\current\mvc_cfg.yaml
+INFO:OpenGL.acceleratesupport:No OpenGL_accelerate module loaded: No module named 'OpenGL_accelerate'
+DEBUG:shapely.geos:Found GEOS DLL: <CDLL 'C:\Users\MJC\AppData\Local\Programs\Python\Python311\Lib\site-packages\Shapely.libs\geos_c-84d02d5b10aa37e3ab60a885dc5b531b.dll', handle 7ffc1e8e0000 at 0x25e3fa64f10>, using it.
+INFO:root:OpenGL Version: 3.3.0 NVIDIA 591.86
+INFO:root:GLSL: 3.30 NVIDIA via Cg compiler
+INFO:root:Renderer: NVIDIA GeForce GTX 1660 Ti/PCIe/SSE2
+INFO:root:Encountered values close to zero in vector norm. Replacing with 1e-05
+INFO:root:Starting joint -> mask pixel BFS
+INFO:root:Finished joint -> mask pixel BFS in 2.339855909347534 seconds
+INFO:root:Using BVH file located at D:\capston\AnimatedDrawings\examples\bvh\fair1\wave_hello.bvh
+INFO:root:Upper Limbs projection_method is pca. Running PCA on ['RightShoulder', 'RightArm', 'RightForeArm', 'RightHand', 'RightHandEnd', 'LeftShoulder', 'LeftArm', 'LeftForeArm', 'LeftHand', 'LeftHandEnd']
+INFO:root:PCA complete. Upper Limbs using [1. 0. 0.]
+INFO:root:Lower Limbs projection_method is pca. Running PCA on ['RightUpLeg', 'RightLeg', 'RightFoot', 'RightToeBase', 'LeftUpLeg', 'LeftLeg', 'LeftFoot', 'LeftToeBase']
+INFO:root:PCA complete. Lower Limbs using [1. 0. 0.]
+INFO:root:Trunk projection_method is frontal. Using [1. 0. 0.]
+INFO:root: error finding projection plane for joint_name: End Site
+INFO:root: error finding projection plane for joint_name: End Site
+INFO:root: error finding projection plane for joint_name: RightHandThumb1
+INFO:root: error finding projection plane for joint_name: End Site
+INFO:root: error finding projection plane for joint_name: End Site
+INFO:root: error finding projection plane for joint_name: LeftHandThumb1
+INFO:root: error finding projection plane for joint_name: End Site
+INFO:root: error finding projection plane for joint_name: End Site
+INFO:root: error finding projection plane for joint_name: End Site
+INFO:root:tA1xA1 is singular. perturbing...
+INFO:root:tA2xA2 is singular. perturbing...
+INFO:root: Writing video to: D:\capston\render_results\current\video.gif
+WARNING:root:Specified duration of .gif is too low, replacing with 20: 8
+INFO:root:invalid frame_idx (839), replacing with last frame 838
+INFO:root:Rendered 839 frames in 30.627989292144775 seconds.
+INFO:root:VideoWriter will write to D:\capston\render_results\current\video.gif
+DEBUG:PIL.Image:Importing GifImagePlugin
+INFO:root:Wrote video to file in in 4.691713809967041 seconds.
+INFO:root:Using user-specified mvc config file located at D:\capston\render_results\current\mvc_cfg.yaml
+INFO:OpenGL.acceleratesupport:No OpenGL_accelerate module loaded: No module named 'OpenGL_accelerate'
+DEBUG:shapely.geos:Found GEOS DLL: <CDLL 'C:\Users\MJC\AppData\Local\Programs\Python\Python311\Lib\site-packages\Shapely.libs\geos_c-84d02d5b10aa37e3ab60a885dc5b531b.dll', handle 7ff822970000 at 0x2aec8124d90>, using it.
+INFO:root:OpenGL Version: 3.3.0 NVIDIA 591.86
+INFO:root:GLSL: 3.30 NVIDIA via Cg compiler
+INFO:root:Renderer: NVIDIA GeForce GTX 1660 Ti/PCIe/SSE2
+INFO:root:Encountered values close to zero in vector norm. Replacing with 1e-05
+INFO:root:Starting joint -> mask pixel BFS
+INFO:root:Finished joint -> mask pixel BFS in 2.3640189170837402 seconds
+INFO:root:Using BVH file located at D:\capston\AnimatedDrawings\examples\bvh\fair1\wave_hello.bvh
+INFO:root:Upper Limbs projection_method is pca. Running PCA on ['RightShoulder', 'RightArm', 'RightForeArm', 'RightHand', 'RightHandEnd', 'LeftShoulder', 'LeftArm', 'LeftForeArm', 'LeftHand', 'LeftHandEnd']
+INFO:root:PCA complete. Upper Limbs using [1. 0. 0.]
+INFO:root:Lower Limbs projection_method is pca. Running PCA on ['RightUpLeg', 'RightLeg', 'RightFoot', 'RightToeBase', 'LeftUpLeg', 'LeftLeg', 'LeftFoot', 'LeftToeBase']
+INFO:root:PCA complete. Lower Limbs using [1. 0. 0.]
+INFO:root:Trunk projection_method is frontal. Using [1. 0. 0.]
+INFO:root: error finding projection plane for joint_name: End Site
+INFO:root: error finding projection plane for joint_name: End Site
+INFO:root: error finding projection plane for joint_name: RightHandThumb1
+INFO:root: error finding projection plane for joint_name: End Site
+INFO:root: error finding projection plane for joint_name: End Site
+INFO:root: error finding projection plane for joint_name: LeftHandThumb1
+INFO:root: error finding projection plane for joint_name: End Site
+INFO:root: error finding projection plane for joint_name: End Site
+INFO:root: error finding projection plane for joint_name: End Site
+INFO:root:tA1xA1 is singular. perturbing...
+INFO:root:tA2xA2 is singular. perturbing...
+INFO:root: Writing video to: D:\capston\render_results\current\video.gif
+WARNING:root:Specified duration of .gif is too low, replacing with 20: 8
+INFO:root:invalid frame_idx (839), replacing with last frame 838
+INFO:root:Rendered 839 frames in 30.551724433898926 seconds.
+INFO:root:VideoWriter will write to D:\capston\render_results\current\video.gif
+DEBUG:PIL.Image:Importing GifImagePlugin
+INFO:root:Wrote video to file in in 4.631658315658569 seconds.
