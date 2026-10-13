@@ -5,6 +5,7 @@ Backend만 호출하며 외부(Frontend, 인터넷)에는 공개하지 않습니
 
 - API 계약서: `drawtale-backend/docs/api-contract.md` 3장 (Backend ↔ AI)
 - 담당: A1 (Runtime) · A2 (Pose 모델 학습)
+- 진행 상황 (항목별 상태): [docs/진행상황.md](docs/진행상황.md)
 
 ## 구조
 
@@ -78,7 +79,7 @@ Meta 사전학습 모델(`drawn_humanoid_detector.mar`, `drawn_humanoid_pose_est
 | 엔드포인트 | 상태 |
 |---|---|
 | `GET /internal/v1/health` | ✅ 동작 — 실제 TorchServe 상태 반영 |
-| `POST /internal/v1/analyze` | ✅ 동작 — 파일 업로드(`file`) → bbox, 관절 15개, 마스크 크기, 메타데이터 |
+| `POST /internal/v1/analyze` | ✅ 동작 — 파일 업로드(`file`) → bbox, 관절 15개(관절마다 `score`), 검출 `confidence`, 마스크 크기, 메타데이터 |
 | `POST /internal/v1/render` | ✅ 동작 — 보정 관절 + motion → MP4 |
 | `DELETE /internal/v1/sessions/{id}` | ✅ 동작 — 임시 파일 정리 |
 
@@ -118,7 +119,23 @@ Backend 연동 테스트 완료 (2026-09-28): 업로드 → 분석 → 관절 15
 4. DELETE /internal/v1/sessions/{request_id}  (정리)
 ```
 
-**사용 가능한 motion**: `wave_hello`, `jumping`, `jumping_jacks`, `dab`, `zombie`
+**사용 가능한 motion**: `wave_hello`, `jumping`, `jumping_jacks`, `dab`, `zombie`,
+**`wave_hello_gentle`, `jumping_gentle`** (순화 동작, 아래)
+
+### 순화 동작 (`*_gentle`)
+
+아이 그림은 팔을 몸통에 붙여 그리는 경우가 많다. 그런 그림은 **팔이 몸 쪽으로 내려오거나 팔꿈치가
+접힐 때** 겨드랑이 메시가 몸통 위로 눌려 팔이 덩어리처럼 뭉개진다 (팔이 벌어져 있을 때는 멀쩡하다).
+
+`*_gentle` 은 Meta BVH 에서 만든 판이다.
+
+- 팔(쇄골·위팔) 회전을 50% 로 줄인다 — fair1 기본 자세가 T자라서 팔이 벌어진 쪽에 머문다
+- 팔꿈치(아래팔) 회전은 20% 만 남긴다 — 거의 편 채로
+- 몸 전체의 수평 이동을 고정한다 — 제자리에서 움직여 벌린 손이 화면 밖으로 잘리지 않는다
+
+`runtime/tools/make_gentle_motions.py` 가 만들고 결과(`runtime/ai_server/motions/`)를 커밋해 둔다.
+`third_party/` 는 고치지 않는다. cmu1 뼈대(`jumping_jacks`)는 기본 자세가 팔 내림이라 같은 방법이
+맞지 않아 만들지 않았다. 원본 동작은 그대로 남아 있다.
 
 ## 완료된 작업
 
@@ -131,6 +148,7 @@ Backend 연동 테스트 완료 (2026-09-28): 업로드 → 분석 → 관절 15
 - [x] CPU 전용 PyTorch (32.8GB → 5.84GB)
 - [x] 마스크 이미지 저장 (렌더링에 사용)
 - [x] `POST /internal/v1/render` 구현
+- [x] 관절 `score` · 검출 `confidence` 응답, 여러 명(`MULTIPLE_CHARACTERS`) · 사람이 아닌 그림(`LOW_CONFIDENCE`) 걸러내기 — 아래 「점수와 걸러내기」
 
 ## 처리 가능한 그림
 
@@ -151,6 +169,38 @@ Backend 연동 테스트 완료 (2026-09-28): 업로드 → 분석 → 관절 15
 > 개선 실험 결과는 [docs/관절인식-실험-기록.md](docs/관절인식-실험-기록.md) 참고.
 > 근본 해결은 A2의 손그림 전용 Pose 모델 교체로 기대한다.
 
+## 점수와 걸러내기
+
+analyze 응답의 `joints[].score`(0~1)는 Pose 모델이 그 관절을 얼마나 확신하는지다.
+`hip` · `torso` 처럼 두 점의 중간점은 낮은 쪽 점수를 쓴다. `confidence`는 캐릭터 검출 점수다.
+백엔드가 그대로 프론트에 넘기고, 프론트는 낮은 관절이 있으면 어른 확인(S-05 「어른에게 도움 받기」, S-06 표시)을 권한다.
+
+| 실패 code | 언제 | 기준 |
+|---|---|---|
+| `LOW_CONFIDENCE` | 사람 모양으로 보기 어려운 그림 (낙서, 도형) | 검출 점수 < 0.3, 또는 관절 점수 평균 < 0.35 |
+| `MULTIPLE_CHARACTERS` | 따로 떨어진 사람이 둘 이상 | 두 번째 검출 점수 ≥ 0.8 이고 첫 번째 상자와 50% 미만 겹침 |
+| `NO_CHARACTER_DETECTED` | 너무 흐리거나 아무것도 못 찾음 | 검출 결과 없음 (기존) |
+
+기준은 2026-10-02 실제 그림으로 잰 값에서 정했다 (CPU, Meta 예제 그림).
+
+| 그림 | 검출 | 관절 평균 | 관절 최저 | 결과 |
+|---|---|---|---|---|
+| Meta 예제 char1·2·3·5 | 0.99 이상 | 0.81~0.91 | 0.65~0.88 | 통과 |
+| char4 (잘라낸 그림) | 0.99 | 0.80 | 0.51 | 통과 |
+| char4 원본 사진 (막대 사람, 옆에 라디오·조명) | 0.71 | 0.44 | 0.15 | 통과, 낮은 관절 8개 → 어른 확인 |
+| char6 | 0.95 | 0.56 | 0.32 | 통과, 낮은 관절 4개 |
+| 마늘 캐릭터 | 0.99 | 0.66 | 0.30 | 통과, 팔 2개 낮음 |
+| char1 살짝 흐림 (blur 12) | 0.81 | 0.81 | 0.71 | 통과 |
+| char1 · char5 많이 흐림 (blur 20~25) | 없음 | - | - | `NO_CHARACTER_DETECTED` |
+| 동그라미 하나 | 0.997 | 0.23 | 0.10 | `LOW_CONFIDENCE` |
+| 낙서 | 0.97 | 0.10 | 0.07 | `LOW_CONFIDENCE` |
+| char1 · char2 나란히 | 0.998 / 0.99 | - | - | `MULTIPLE_CHARACTERS` |
+| char5 · char6 나란히 | 0.99 (하나만 검출) | 0.81 | 0.66 | 통과 (두 번째를 못 찾음) |
+
+- **검출 점수로는 사람인지 가리지 못한다.** 낙서와 동그라미도 0.97 이상이다. 그래서 관절 점수 평균을 쓴다.
+- 처음에 두 번째 검출 기준을 0.5로 두었더니 char4 원본(한 명)이 라디오·조명(0.54) 때문에 여러 명으로 걸렸다. 0.8로 올렸다.
+- 두 사람을 나란히 그려도 검출기가 하나만 찾으면 걸러지지 않는다. 그 경우 점수가 높은 한 명만 쓴다.
+
 ## 테스트 도구
 
 `output/` 폴더에 애니메이션 생성·관절 확인 스크립트가 있다.
@@ -166,6 +216,7 @@ python output/render.py <이미지경로> <motion>
 - [ ] 임시 파일 자동 정리 (오래된 세션)
 - [ ] 동시 요청 처리 정책 (현재는 순차 처리)
 - [ ] 배경 밝기가 캐릭터와 비슷할 때 실패 처리 및 안내
+- [ ] 캐릭터가 이미지 가장자리까지 꽉 찬 그림 — 마스크가 이미지 전체(흰 비율 1.0)가 되어 render 가 `RENDER_FAILED`(numpy concatenate 차원 오류)로 끝난다. Meta 예제 char1 · char2 의 `texture.png` 처럼 여백 없이 잘라 낸 그림에서 재현. `feat/gentle-motions` 의 분석 코드로도 같다 (2026-10-02 확인). 사진으로 찍은 그림(char4 원본, char5)은 된다. analyze 단계에서 알아채 아이에게 「조금 떨어져서 찍어 주세요」로 돌려보내는 것이 좋겠다
 
 ## Git 규칙
 
