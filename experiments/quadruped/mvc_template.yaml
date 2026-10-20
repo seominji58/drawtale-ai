@@ -1,0 +1,11 @@
+# sed "s/__NAME__/dog/g" mvc_template.yaml > mvc_dog.yaml
+scene:
+  ANIMATED_CHARACTERS:
+    - character_cfg: /w/__NAME__/char_cfg.yaml
+      motion_cfg: examples/config/motion/zombie.yaml
+      retarget_cfg: examples/config/retarget/four_legs.yaml
+controller:
+  MODE: video_render
+  OUTPUT_VIDEO_PATH: /w/out/__NAME___walk.gif
+view:
+  USE_MESA: true

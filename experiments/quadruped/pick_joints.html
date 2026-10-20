@@ -1,0 +1,118 @@
+<!doctype html>
+<html lang="ko">
+<meta charset="utf-8">
+<title>네 발 관절 찍기</title>
+<style>
+  body { font-family: system-ui, "Malgun Gothic", sans-serif; margin: 24px; color: #222; }
+  h1 { font-size: 20px; margin: 0 0 4px; }
+  p.sub { color: #666; margin: 0 0 16px; font-size: 14px; }
+  .now { font-size: 18px; font-weight: 600; margin: 12px 0; }
+  .now b { color: #c2410c; }
+  canvas { border: 1px solid #ddd; cursor: crosshair; max-width: 100%; }
+  textarea { width: 100%; height: 72px; font-family: ui-monospace, monospace; font-size: 13px; margin-top: 8px; }
+  button { font-size: 14px; padding: 6px 14px; margin-right: 8px; }
+  ol { color: #555; font-size: 14px; line-height: 1.7; }
+</style>
+
+<h1>네 발 관절 찍기</h1>
+<p class="sub">그림을 고르고 순서대로 16번 누르면 좌표가 나옵니다. 아무것도 설치하지 않습니다.</p>
+
+<input type="file" id="file" accept="image/*">
+<button id="undo">한 번 취소</button>
+<button id="reset">처음부터</button>
+
+<div class="now" id="now">그림을 먼저 고르세요</div>
+<canvas id="cv"></canvas>
+<textarea id="out" readonly placeholder="16개를 다 찍으면 여기에 나옵니다"></textarea>
+
+<ol>
+  <li><b>root · hip · torso · neck</b> — 몸통 중앙, 엉덩이(꼬리 쪽), 등 가운데, 목</li>
+  <li><b>뒷다리 둘</b> — 꼬리 쪽 다리. 다리마다 위 · 중간 · 발끝</li>
+  <li><b>앞다리 둘</b> — 머리 쪽 다리. 같은 순서</li>
+</ol>
+
+<script>
+// Meta 네 발 골격 (examples/characters/char6). b = 뒤(꼬리 쪽), f = 앞(머리 쪽)
+const JOINTS = [
+  ["root", "몸통 중앙 (다리들이 모이는 가운데)"],
+  ["hip", "엉덩이 — 꼬리 쪽 몸통"],
+  ["torso", "등 가운데"],
+  ["neck", "목 — 머리와 몸통이 만나는 곳"],
+  ["right_hip_b", "뒷다리 ①  위 (몸통에 붙는 곳)"],
+  ["right_knee_b", "뒷다리 ①  중간"],
+  ["right_foot_b", "뒷다리 ①  발끝"],
+  ["left_hip_b", "뒷다리 ②  위"],
+  ["left_knee_b", "뒷다리 ②  중간"],
+  ["left_foot_b", "뒷다리 ②  발끝"],
+  ["right_hip_f", "앞다리 ①  위"],
+  ["right_knee_f", "앞다리 ①  중간"],
+  ["right_foot_f", "앞다리 ①  발끝"],
+  ["left_hip_f", "앞다리 ②  위"],
+  ["left_knee_f", "앞다리 ②  중간"],
+  ["left_foot_f", "앞다리 ②  발끝"],
+];
+
+const cv = document.getElementById("cv");
+const ctx = cv.getContext("2d");
+const now = document.getElementById("now");
+const out = document.getElementById("out");
+let img = null, scale = 1, pts = [];
+
+document.getElementById("file").onchange = (e) => {
+  const f = e.target.files[0];
+  if (!f) return;
+  const i = new Image();
+  i.onload = () => {
+    img = i;
+    // 화면에 맞게 줄여 보여 주되, 좌표는 원본 크기로 돌려준다
+    scale = Math.min(900 / i.width, 640 / i.height, 1);
+    cv.width = Math.round(i.width * scale);
+    cv.height = Math.round(i.height * scale);
+    pts = [];
+    draw();
+  };
+  i.src = URL.createObjectURL(f);
+};
+
+cv.onclick = (e) => {
+  if (!img || pts.length >= 16) return;
+  const r = cv.getBoundingClientRect();
+  // 캔버스가 CSS 로 줄어 있을 수 있어 한 번 더 보정한다
+  const x = (e.clientX - r.left) * (cv.width / r.width) / scale;
+  const y = (e.clientY - r.top) * (cv.height / r.height) / scale;
+  pts.push([Math.round(x), Math.round(y)]);
+  draw();
+};
+
+document.getElementById("undo").onclick = () => { pts.pop(); draw(); };
+document.getElementById("reset").onclick = () => { pts = []; draw(); };
+
+function draw() {
+  if (!img) return;
+  ctx.clearRect(0, 0, cv.width, cv.height);
+  ctx.drawImage(img, 0, 0, cv.width, cv.height);
+  pts.forEach(([x, y], n) => {
+    const sx = x * scale, sy = y * scale;
+    ctx.beginPath();
+    ctx.arc(sx, sy, 6, 0, Math.PI * 2);
+    ctx.fillStyle = "#facc15";
+    ctx.fill();
+    ctx.lineWidth = 2;
+    ctx.strokeStyle = "#111";
+    ctx.stroke();
+    ctx.fillStyle = "#111";
+    ctx.font = "bold 12px sans-serif";
+    ctx.fillText(String(n + 1), sx + 9, sy - 7);
+  });
+  if (pts.length < 16) {
+    const [name, hint] = JOINTS[pts.length];
+    now.innerHTML = `${pts.length + 1} / 16 &nbsp; <b>${hint}</b> &nbsp; <code>${name}</code>`;
+    out.value = "";
+  } else {
+    now.innerHTML = "<b>다 찍었습니다.</b> 아래 줄을 복사해 make_char.py 에 넘기세요";
+    out.value = pts.map(([x, y]) => `${x},${y}`).join(" ");
+    out.select();
+  }
+}
+</script>
+</html>
