@@ -3,7 +3,7 @@
 AI 가 동물 관절을 찍어 주지 않으므로 좌표를 사람이 넣는다.
 이번 시험의 목적은 자동화가 아니라 **움직임 품질**이라 이렇게 한다.
 
-  python make_char.py <그림.png> <이름> "x1,y1 x2,y2 ... (16개)"
+  python make_char.py <그림.png> <이름> "x1,y1 x2,y2 ... (15개)"
 
 좌표는 pick_joints.html 로 찍으면 그대로 나옵니다.
 
@@ -20,6 +20,10 @@ from PIL import Image
 from scipy import ndimage
 
 # Meta 네 발 골격 (examples/characters/char6). b = 뒤, f = 앞
+#
+# root 는 받지 않는다. **엉덩이(hip)와 같은 자리**에 두는 것이 규칙이라 여기서 자동으로 넣는다.
+# 서비스 코드(runtime/ai_server/renderer.py)도 사람 관절 15개에 같은 방식으로 root 를 붙인다.
+# 떼어 놓으면 없던 뼈가 하나 생겨 걸을 때 몸통이 통째로 끌려다닌다 (2026-10-20 시험).
 JOINTS = [
     ("root", None),
     ("hip", "root"),
@@ -57,8 +61,9 @@ def build_mask(img: Image.Image) -> np.ndarray:
 def main() -> None:
     src, name, coords = sys.argv[1], sys.argv[2], sys.argv[3]
     pts = [tuple(int(v) for v in p.split(",")) for p in coords.split()]
-    if len(pts) != 16:
-        raise SystemExit(f"관절은 16개여야 합니다 (받은 개수: {len(pts)})")
+    if len(pts) != 15:
+        raise SystemExit(f"관절은 15개여야 합니다 (받은 개수: {len(pts)}). root 는 넣지 않습니다")
+    pts = [pts[0]] + pts  # root = hip (같은 자리)
 
     img = Image.open(src)
     if img.mode == "RGBA":

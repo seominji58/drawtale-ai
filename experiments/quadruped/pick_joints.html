@@ -15,7 +15,7 @@
 </style>
 
 <h1>네 발 관절 찍기</h1>
-<p class="sub">그림을 고르고 순서대로 16번 누르면 좌표가 나옵니다. 아무것도 설치하지 않습니다.</p>
+<p class="sub">그림을 고르고 순서대로 15번 누르면 좌표가 나옵니다. 아무것도 설치하지 않습니다.</p>
 
 <input type="file" id="file" accept="image/*">
 <button id="undo">한 번 취소</button>
@@ -23,21 +23,26 @@
 
 <div class="now" id="now">그림을 먼저 고르세요</div>
 <canvas id="cv"></canvas>
-<textarea id="out" readonly placeholder="16개를 다 찍으면 여기에 나옵니다"></textarea>
+<textarea id="out" readonly placeholder="15개를 다 찍으면 여기에 나옵니다"></textarea>
 
 <ol>
-  <li><b>root · hip · torso · neck</b> — 몸통 중앙, 엉덩이(꼬리 쪽), 등 가운데, 목</li>
+  <li><b>hip · torso · neck</b> — 엉덩이, <b>목 바로 밑</b>, 목</li>
   <li><b>뒷다리 둘</b> — 꼬리 쪽 다리. 다리마다 위 · 중간 · 발끝</li>
   <li><b>앞다리 둘</b> — 머리 쪽 다리. 같은 순서</li>
 </ol>
 
+<p class="sub"><b>torso 를 몸통 한가운데 찍지 마세요.</b> 목 바로 밑에 둡니다.
+가운데 찍으면 목 뼈가 길어져서 걸을 때 머리가 몸통 안으로 말려 들어갑니다
+(2026-10-20 시험에서 겪은 일입니다).</p>
+
 <script>
 // Meta 네 발 골격 (examples/characters/char6). b = 뒤(꼬리 쪽), f = 앞(머리 쪽)
+// root 는 묻지 않는다. 엉덩이(hip)와 같은 자리에 두는 것이 규칙이라 make_char.py 가 자동으로 넣는다.
+// 서비스 코드(runtime/ai_server/renderer.py)도 사람 관절에 같은 방식으로 root 를 붙인다.
 const JOINTS = [
-  ["root", "몸통 중앙 (다리들이 모이는 가운데)"],
-  ["hip", "엉덩이 — 꼬리 쪽 몸통"],
-  ["torso", "등 가운데"],
-  ["neck", "목 — 머리와 몸통이 만나는 곳"],
+  ["hip", "엉덩이 — 뒷다리가 몸통에 붙는 자리"],
+  ["torso", "목 바로 밑 — 몸통 한가운데가 아닙니다"],
+  ["neck", "목 — torso 바로 위, 짧게"],
   ["right_hip_b", "뒷다리 ①  위 (몸통에 붙는 곳)"],
   ["right_knee_b", "뒷다리 ①  중간"],
   ["right_foot_b", "뒷다리 ①  발끝"],
@@ -75,7 +80,7 @@ document.getElementById("file").onchange = (e) => {
 };
 
 cv.onclick = (e) => {
-  if (!img || pts.length >= 16) return;
+  if (!img || pts.length >= 15) return;
   const r = cv.getBoundingClientRect();
   // 캔버스가 CSS 로 줄어 있을 수 있어 한 번 더 보정한다
   const x = (e.clientX - r.left) * (cv.width / r.width) / scale;
@@ -104,9 +109,9 @@ function draw() {
     ctx.font = "bold 12px sans-serif";
     ctx.fillText(String(n + 1), sx + 9, sy - 7);
   });
-  if (pts.length < 16) {
+  if (pts.length < 15) {
     const [name, hint] = JOINTS[pts.length];
-    now.innerHTML = `${pts.length + 1} / 16 &nbsp; <b>${hint}</b> &nbsp; <code>${name}</code>`;
+    now.innerHTML = `${pts.length + 1} / 15 &nbsp; <b>${hint}</b> &nbsp; <code>${name}</code>`;
     out.value = "";
   } else {
     now.innerHTML = "<b>다 찍었습니다.</b> 아래 줄을 복사해 make_char.py 에 넘기세요";
