@@ -18,10 +18,13 @@ Meta 가 네 발 골격(16관절)과 동작 입히는 설정은 주지만, 관�
 Docker 와 이 저장소. **모델 서버(TorchServe)는 필요 없습니다** — 관절을 찍지 않으니까요.
 AI 런타임 이미지만 있으면 됩니다.
 
-```bash
+```powershell
 # 저장소 뿌리에서. 몇 분 걸립니다 (1.7GB)
 docker compose build ai
 ```
+
+이름이 `drawtale-ai-ai:latest` 인 이미지가 생깁니다. `docker images` 로 확인할 수 있습니다.
+다른 이름이면 아래 명령의 이미지 이름을 바꿔 주세요.
 
 ## 1. 그림 준비
 
@@ -54,10 +57,11 @@ docker run --rm -v "$PWD:/w" -w /w drawtale-ai-ai:latest \
 `dog/` 폴더에 `texture.png` · `mask.png` · `char_cfg.yaml` 이 생깁니다.
 **마스크가 제대로 나왔는지 먼저 보세요** — 여기가 틀리면 결과가 전부 깨집니다.
 
-```bash
-docker run --rm -v "$PWD:/w" -w /w drawtale-ai-ai:latest python check.py dog
-# check_dog.png — 마스크는 빨강, 관절은 노란 점, 뼈대는 파란 선
+```powershell
+docker run --rm -v "${PWD}:/w" -w /w drawtale-ai-ai:latest python check.py dog
 ```
+
+`out/check_dog.png` 가 나옵니다 — 마스크는 빨강, 관절은 노란 점, 뼈대는 파란 선입니다.
 
 ## 4. 걷게 하기
 
@@ -84,6 +88,14 @@ gong.png
 > `dog.png` 와 `gong.png` 는 원본을 좌우로 뒤집은 것입니다.
 > 뒤집을 필요는 없는데(위 1번 참고) 처음에 Meta 예제를 따라 하면서 그렇게 했고,
 > 위 좌표가 그 그림 기준이라 그대로 두었습니다.
+
+## 내 그림으로 해 보려면
+
+`samples/` 대신 자기 그림을 쓰면 됩니다. 그림을 이 폴더에 넣고 2번부터 다시 하세요.
+이름(`dog` 자리)만 바꾸면 폴더와 결과 파일이 그 이름으로 생깁니다.
+
+조건은 1번과 같습니다 — **정측면, 네 다리가 보이게, 흰 배경.**
+사람이나 두 발 캐릭터는 이 골격에 맞지 않습니다. 그건 서비스 쪽(사람 15관절)이 따로 합니다.
 
 ## 알아 둘 것
 
