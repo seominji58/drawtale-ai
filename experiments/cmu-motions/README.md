@@ -9,16 +9,20 @@ Mixamo 는 BVH 를 주지 않아서(FBX · Collada 뿐) **CMU Mocap** 을 받아
 > **아직 서비스에 들어가지 않았습니다.** `runtime/ai_server/renderer.py` 의 `MOTIONS` 에는
 > 여전히 Meta 동작만 등록돼 있습니다. 여기는 **받아서 다듬는 방법**을 남겨 둔 곳입니다.
 
-## 1. 어디서 받나
+## 1. 쓰는 동작은 이미 들어 있습니다
+
+`bvh/walk.bvh` · `bvh/run.bvh` 가 **다듬어 놓은 것**입니다 (합쳐 116KB).
+받을 것도 돌릴 것도 없이 바로 5번으로 가면 됩니다.
+출처와 손본 내용은 [`bvh/NOTICE.md`](bvh/NOTICE.md) 에 있습니다.
+
+**다른 동작을 더하고 싶을 때만** 아래를 따릅니다.
 
 [`una-dinosauria/cmu-mocap`](https://github.com/una-dinosauria/cmu-mocap) 에 BVH 가 그대로 있습니다.
 전체를 받을 필요 없이 파일 하나씩 받으면 됩니다.
 
 ```powershell
-# 달리기
-curl -L -o bvh/run.bvh https://raw.githubusercontent.com/una-dinosauria/cmu-mocap/master/data/009/09_01.bvh
-# 걷기
-curl -L -o bvh/walk.bvh https://raw.githubusercontent.com/una-dinosauria/cmu-mocap/master/data/007/07_01.bvh
+# PowerShell 의 curl 은 다른 명령이라 curl.exe 로 불러야 합니다
+curl.exe -L -o bvh/jump.bvh https://raw.githubusercontent.com/una-dinosauria/cmu-mocap/master/data/009/09_01.bvh
 ```
 
 어느 번호에 무엇이 있는지는 그 저장소의 색인 파일(`cmu-mocap-index-*`)에서 찾습니다.
