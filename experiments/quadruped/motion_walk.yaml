@@ -1,0 +1,10 @@
+# experiments/cmu-motions/bvh/walk.bvh 를 쓸 때의 동작 설정
+filepath: /cmu/bvh/walk.bvh
+start_frame_idx: 0
+end_frame_idx: 78
+groundplane_joint: LeftFoot
+forward_perp_joint_vectors:
+  - [LeftShoulder, RightShoulder]
+  - [LeftUpLeg, RightUpLeg]
+scale: 0.025
+up: +y

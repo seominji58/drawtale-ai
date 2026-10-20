@@ -78,24 +78,51 @@ Meta 가 주는 대응표는 **자기 BVH 이름 기준**이라 그대로 맞지
 
 ## 5. 돌려 보기
 
-동작 설정과 장면 설정을 쓰고 Meta 엔진을 부릅니다. 네 발 캐릭터를 만드는 방법은
-[`../quadruped/README.md`](../quadruped/README.md) 에 있습니다.
+### 네 발 그림
 
-```yaml
-# motion.yaml
-filepath: /w/bvh/run_gentle.bvh
-start_frame_idx: 0
-end_frame_idx: 36
-groundplane_joint: LeftFoot
-forward_perp_joint_vectors:
-  - [LeftShoulder, RightShoulder]
-  - [LeftUpLeg, RightUpLeg]
-scale: 0.025
-up: +y
+관절을 사람이 찍어야 합니다. 만드는 방법은 [`../quadruped/README.md`](../quadruped/README.md) 에 있고,
+캐릭터 폴더를 만든 뒤 **CMU 용 템플릿**을 쓰면 됩니다.
+
+```powershell
+cd ..\quadruped
+(Get-Content mvc_template_cmu.yaml) -replace '__NAME__','dog' -replace '__MOTION__','walk' | Set-Content mvc_dog.yaml
+docker run --rm -v "${PWD}:/w" -v "${PWD}\..\cmu-motions:/cmu" -w /opt/AnimatedDrawings drawtale-ai-ai:latest `
+  python -c "import animated_drawings.render as r; r.start('/w/mvc_dog.yaml')"
 ```
 
-사람 그림은 AI 가 관절을 찾아 주므로, `POST /internal/v1/analyze` 로 받은 관절과
-`ai_server.renderer.prepare_character()` 를 그대로 쓰면 됩니다.
+폴더 둘을 물립니다 — 캐릭터는 `/w`, 동작과 대응표는 `/cmu` 입니다.
+
+### 사람 그림
+
+**AI 가 관절을 찾아 주므로 손으로 찍지 않습니다.** 대신 **모델 서버가 떠 있어야** 합니다.
+
+```powershell
+# 저장소 뿌리에서. 처음 한 번은 오래 걸립니다 (모델 내려받기)
+docker compose up -d ai
+```
+
+그 다음 분석을 돌립니다. 작업 폴더가 **그 컨테이너 안에** 남으므로, 렌더도 같은 컨테이너에서 해야 합니다.
+
+```powershell
+# 1) 분석 — request_id 와 관절 15개가 돌아옵니다
+docker run --rm --network drawtale-ai_default -v "${PWD}:/d:ro" --entrypoint sh curlimages/curl:latest `
+  -c "cp /d/그림.png /tmp/x.png && curl -sS -X POST -F 'file=@/tmp/x.png' http://ai:8001/internal/v1/analyze" > analyze.json
+
+# 2) 이 폴더를 컨테이너에 넣고 렌더
+docker cp . drawtale-ai-ai-1:/w
+docker exec drawtale-ai-ai-1 python /w/render_human.py <request_id> walk /w/analyze.json
+docker cp drawtale-ai-ai-1:/w/out/human_walk.gif .
+```
+
+`render_human.py` 는 서비스 코드(`ai_server.renderer.prepare_character`)를 그대로 부릅니다.
+그래서 여기서 나온 결과가 **실제 서비스에서 나올 결과와 같습니다.**
+
+**AI 가 관절을 어디에 찍었는지** 보려면 네 발 폴더의 `overlay.py` 를 쓰면 됩니다.
+
+```powershell
+docker run --rm -v "${PWD}:/w" -w /w drawtale-ai-ai:latest `
+  python ../quadruped/overlay.py 그림.png analyze.json out/joints.png
+```
 
 ## 서비스에 넣을 때
 

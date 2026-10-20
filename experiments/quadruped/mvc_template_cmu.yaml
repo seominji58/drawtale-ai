@@ -1,0 +1,15 @@
+# CMU 동작(걷기 · 달리기)으로 네 발을 움직일 때 쓴다.
+# Meta 동작을 쓸 때는 mvc_template.yaml 을 쓴다.
+#
+#   (Get-Content mvc_template_cmu.yaml) -replace '__NAME__','dog' -replace '__MOTION__','walk' | Set-Content mvc_dog.yaml
+scene:
+  ANIMATED_CHARACTERS:
+    - character_cfg: /w/__NAME__/char_cfg.yaml
+      motion_cfg: /w/motion___MOTION__.yaml
+      # 받은 CMU 변환본에 없는 뼈 네 줄을 뺀 판
+      retarget_cfg: /cmu/retarget/four_legs_cmu.yaml
+controller:
+  MODE: video_render
+  OUTPUT_VIDEO_PATH: /w/out/__NAME_____MOTION__.gif
+view:
+  USE_MESA: true
