@@ -26,6 +26,9 @@ docker compose build ai
 이름이 `drawtale-ai-ai:latest` 인 이미지가 생깁니다. `docker images` 로 확인할 수 있습니다.
 다른 이름이면 아래 명령의 이미지 이름을 바꿔 주세요.
 
+> **동작 데이터를 더 쓰고 싶으면** 옆 폴더 [`../cmu-motions/`](../cmu-motions/README.md) 를 보세요.
+> CMU 에서 걷기 · 뛰기를 받아 다듬는 방법이 있습니다 (2026-10-20 에 확인).
+
 ## 1. 그림 준비
 
 - **정측면.** 네 다리가 다 보이게
