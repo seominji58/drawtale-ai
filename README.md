@@ -145,7 +145,7 @@ A2 가 Colab 에서 한 **손그림 15-joint 포즈 모델 파인튜닝 1차** �
 <img width="1703" height="445" alt="image" src="https://github.com/user-attachments/assets/5969e4b2-c861-43f2-875b-004bcf4484b6" />
 
 
-## 5-3. Validation Loss를 사용하지 않은 이유
+## 6-1. Validation Loss를 사용하지 않은 이유
 1. 직접적인 성능 지표를 사용했다. 모델 선택은 에폭별 Validation AP를 기준으로 했으며, 최종 비교는 동일한 Test 데이터의 COCO AP와 PCK로 수행했다.
 2. Loss는 실제 관절 검출 정확도를 직접 나타내지 않는다. Loss는 예측 분포와 정답 분포의 차이를 측정하므로, 관절 위치 검출 성능을 평가하는 AP와 PCK를 직접 비교 지표로 사용했다.
 3. 과적합 여부는 Validation AP 추이로 확인했다. v2b의 AP는 1에폭 0.9237에서 12에폭 0.9286으로 상승했으며, 학습 후반에도 성능이 유지되었다. 다만 AP 추이만으로 과적합이 없다고 단정할 수는 없다.
