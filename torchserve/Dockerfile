@@ -6,7 +6,7 @@
 #   2. PyTorch를 CPU 전용으로 설치 — 배포 대상 Azure VM에 GPU가 없다.
 #      기본 설치는 CUDA 라이브러리를 4.5GB 더 받아 이미지가 32GB까지 커진다.
 
-FROM continuumio/miniconda3:24.1.2-0
+FROM python:3.8.13-bullseye
 
 # install os dependencies
 RUN mkdir -p /usr/share/man/man1
@@ -22,7 +22,6 @@ RUN sed -i "s|^deb http://deb.debian.org/debian bullseye main|deb [check-valid-u
     build-essential \
     && rm -rf /var/lib/apt/lists/*
 
-RUN conda install python=3.8.13 -y
 
 # install python dependencies (CPU-only wheels: no CUDA, no triton)
 ENV PIP_NO_CACHE_DIR=1
@@ -50,4 +49,4 @@ RUN wget https://github.com/facebookresearch/AnimatedDrawings/releases/download/
 COPY config.properties /home/torchserve/config.properties
 
 # starting command
-CMD /opt/conda/bin/torchserve --start --disable-token-auth --ts-config /home/torchserve/config.properties && sleep infinity
+CMD torchserve --start --disable-token-auth --ts-config /home/torchserve/config.properties && sleep infinity
