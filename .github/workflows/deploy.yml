@@ -1,0 +1,30 @@
+# dev 에 푸시하면 VM 의 ai · torchserve 를 다시 만든다.
+# 받는 쪽은 drawtale-backend/deploy/remote-deploy.sh 다.
+name: Deploy
+
+on:
+  push:
+    branches: [dev]
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: 배포 키 준비
+        run: |
+          mkdir -p ~/.ssh
+          printf '%s\n' "${{ secrets.DEPLOY_SSH_KEY }}" > ~/.ssh/deploy_key
+          chmod 600 ~/.ssh/deploy_key
+          printf '%s\n' "${{ secrets.DEPLOY_KNOWN_HOSTS }}" > ~/.ssh/known_hosts
+      # torchserve 는 바뀐 것이 없으면 캐시로 금방 끝난다. 처음 한 번은 오래 걸린다
+      - name: VM 에 올리기
+        timeout-minutes: 60
+        run: |
+          git archive --format=tar.gz HEAD \
+            | ssh -i ~/.ssh/deploy_key -o ServerAliveInterval=30 azureuser@${{ vars.DEPLOY_HOST }} ai
