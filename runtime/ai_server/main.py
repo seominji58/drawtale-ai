@@ -3,6 +3,7 @@ import logging
 import os
 import shutil
 import tempfile
+import time
 import uuid
 from pathlib import Path
 
@@ -26,6 +27,25 @@ app = FastAPI(title="DrawTale AI Runtime", version=PIPELINE_VERSION)
 # 컨테이너 재시작 시 사라지므로 영구 보관용이 아니다.
 WORK_DIR = Path(os.getenv("AI_WORK_DIR", "/tmp/drawtale"))
 
+# 아이 그림 사본이 들어 있으므로 늦어도 하루 뒤 지운다 (02 시스템 아키텍처 7-3)
+SESSION_MAX_AGE_SECONDS = 24 * 60 * 60
+
+
+def purge_old_sessions() -> None:
+    """기한이 지난 분석 세션을 지운다. 분석 요청마다 도는 가벼운 조회다."""
+
+    if not WORK_DIR.is_dir():
+        return
+
+    cutoff = time.time() - SESSION_MAX_AGE_SECONDS
+
+    for session_dir in WORK_DIR.iterdir():
+        try:
+            if session_dir.is_dir() and session_dir.stat().st_mtime < cutoff:
+                shutil.rmtree(session_dir, ignore_errors=True)
+        except OSError:
+            log.warning("could not check session %s", session_dir.name)
+
 
 @app.get("/internal/v1/health", response_model=HealthResponse)
 def health():
@@ -46,6 +66,8 @@ def analyze(file: UploadFile = File(...)):
 
     렌더링에 필요한 원본 그림과 마스크는 request_id 폴더에 저장해 둔다.
     """
+
+    purge_old_sessions()
 
     request_id = str(uuid.uuid4())
     session_dir = WORK_DIR / request_id

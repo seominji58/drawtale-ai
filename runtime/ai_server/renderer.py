@@ -173,7 +173,11 @@ def prepare_character(
     height, width = cropped.shape[:2]
 
     # 마스크는 원본 전체 크기이므로 같은 범위로 자른다
-    mask = mask[top:bottom, left:right]
+    mask = mask[top:bottom, left:right].copy()
+
+    # 마스크가 가장자리까지 차면 Meta 메시가 윤곽선을 찾지 못해 렌더가 실패한다
+    mask[[0, -1], :] = 0
+    mask[:, [0, -1]] = 0
 
     # texture는 RGBA여야 한다. 마스크 밖은 투명 처리.
     texture = cv2.cvtColor(cropped, cv2.COLOR_BGR2BGRA)

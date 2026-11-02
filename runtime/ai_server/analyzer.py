@@ -530,7 +530,7 @@ def build_mask(img: np.ndarray, bbox: dict, joints: list) -> np.ndarray:
         max(0, left - margin):min(img.shape[1], right + margin),
     ]
 
-    # 잘라낸 영역이 원본 경계에 걸려 여백이 부족하면 흰색으로 채워 준다
+    # 잘라낸 영역이 원본 경계에 걸려 여백이 부족하면 가장자리 색으로 채워 준다
     pad_left = margin - (left - max(0, left - margin))
     pad_top = margin - (top - max(0, top - margin))
     pad_right = margin - (min(img.shape[1], right + margin) - right)
@@ -540,8 +540,8 @@ def build_mask(img: np.ndarray, bbox: dict, joints: list) -> np.ndarray:
     padded = cv2.copyMakeBorder(
         wide,
         pad + pad_top, pad + pad_bottom, pad + pad_left, pad + pad_right,
-        cv2.BORDER_CONSTANT,
-        value=(255, 255, 255)
+        # 흰색으로 채우면 회색 종이와의 경계가 선으로 읽혀 그림 전체가 캐릭터가 된다
+        cv2.BORDER_REPLICATE
     )
 
     def to_full_image(mask: np.ndarray) -> np.ndarray:
@@ -599,6 +599,26 @@ def to_original_scale(bbox: dict, scale: float) -> dict:
     }
 
 
+def flatten_transparency(path: Path) -> None:
+    """투명 배경 그림을 흰 종이 위에 놓은 그림으로 바꿔 같은 자리에 저장한다.
+
+    cv2.imread 는 투명 칸을 검정으로 읽는다.
+    렌더도 이 파일을 다시 읽으므로 분석 전에 파일 자체를 바꾼다.
+    """
+
+    img = cv2.imread(str(path), cv2.IMREAD_UNCHANGED)
+
+    if img is None or img.ndim != 3 or img.shape[2] != 4:
+        return
+
+    if img.dtype == np.uint16:
+        img = (img / 257).astype(np.uint8)
+
+    alpha = img[..., 3:] / 255.0
+    flat = (img[..., :3] * alpha + 255 * (1 - alpha)).astype(np.uint8)
+    path.write_bytes(cv2.imencode(".png", flat)[1].tobytes())
+
+
 def analyze_image(image_path: str, mask_path: str | None = None) -> dict:
     """그림을 분석해 bbox, 관절 15개, 마스크 정보를 반환한다.
 
@@ -622,6 +642,8 @@ def analyze_image(image_path: str, mask_path: str | None = None) -> dict:
             "joints": [],
             "message": "MODEL_UNAVAILABLE: TorchServe is not running"
         }
+
+    flatten_transparency(path)
 
     img = cv2.imread(str(path))
 
