@@ -3,6 +3,7 @@ import logging
 import os
 import shutil
 import tempfile
+import threading
 import time
 import uuid
 from pathlib import Path
@@ -30,6 +31,11 @@ WORK_DIR = Path(os.getenv("AI_WORK_DIR", "/tmp/drawtale"))
 
 # 아이 그림 사본이 들어 있으므로 늦어도 하루 뒤 지운다 (02 시스템 아키텍처 7-3)
 SESSION_MAX_AGE_SECONDS = 24 * 60 * 60
+
+# 렌더는 한 번에 하나만 (2026-11-03). 한 번에 메모리를 1GB 가까이 더 쓰는데 컨테이너 한도가 있어
+# 둘이 겹치면 서버가 죽는다. Meta 렌더는 작업 폴더(os.chdir)를 바꿔 가며 써서 겹치면 서로 꼬이기도 한다.
+# 렌더 하나가 1~8초라 뒤 요청은 그만큼 기다린다 (Backend 호출 제한 120초 안)
+RENDER_LOCK = threading.Lock()
 
 
 def purge_old_sessions() -> None:
@@ -136,21 +142,25 @@ def render(
             analysis = json.load(f)
 
         output_path = session_dir / "animation.mp4"
-        result = render_animation(
-            image_path=str(session_dir / analysis["source"]),
-            mask_path=str(session_dir / "mask.png"),
-            joints=joint_list,
-            bbox=analysis["bbox"],
-            motion=motion,
-            output_path=str(output_path),
-        )
+        waited = time.perf_counter()
+        with RENDER_LOCK:
+            waited_ms = round((time.perf_counter() - waited) * 1000)
+            result = render_animation(
+                image_path=str(session_dir / analysis["source"]),
+                mask_path=str(session_dir / "mask.png"),
+                joints=joint_list,
+                bbox=analysis["bbox"],
+                motion=motion,
+                output_path=str(output_path),
+            )
 
         log.info(
-            "render %s: %s, %s bytes, %s ms",
+            "render %s: %s, %s bytes, %s ms (waited %s ms)",
             request_id,
             result["motion"],
             result["size_bytes"],
             result["processing_time_ms"],
+            waited_ms,
         )
 
         return FileResponse(
