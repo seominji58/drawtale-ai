@@ -66,6 +66,9 @@ DEFAULT_MOTION = "wave_hello"
 # 캐릭터가 잘리지 않을 때까지 앞에서부터 차례로 시도한다.
 CROP_MARGINS = (0.12, 0.25, 0.40, 0.60)
 
+# 텍스처 마스크를 3x3 로 몇 번 깎나. 2 면 둘레 2px — 배경색 테두리는 지우고 굵은 선은 남는다
+MASK_ERODE_ITERATIONS = 2
+
 
 class RenderError(RuntimeError):
     """message는 "CODE: 설명" 형식으로 둬 Backend가 코드를 읽을 수 있게 한다."""
@@ -178,6 +181,10 @@ def prepare_character(
     # 마스크가 가장자리까지 차면 Meta 메시가 윤곽선을 찾지 못해 렌더가 실패한다
     mask[[0, -1], :] = 0
     mask[:, [0, -1]] = 0
+
+    # 마스크 경계가 바깥으로 1~2px 넓어 종이 · 배경색이 캐릭터 둘레에 얇게 남는다 (2026-11-03 사용자 확인,
+    # 빨간 · 노란 바탕). 굵은 테두리 선 안쪽으로 조금 깎아 낸다
+    mask = cv2.erode(mask, np.ones((3, 3), np.uint8), iterations=MASK_ERODE_ITERATIONS)
 
     # texture는 RGBA여야 한다. 마스크 밖은 투명 처리.
     texture = cv2.cvtColor(cropped, cv2.COLOR_BGR2BGRA)

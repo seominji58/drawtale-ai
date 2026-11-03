@@ -34,6 +34,13 @@ MASK_JOINT_HIT_RATIO = 0.6
 # 캐릭터가 bbox 경계에 닿으면 선이 잘려 배경이 새어 들어간다.
 MASK_CROP_MARGIN = 30
 
+# 바탕이 한 가지 색인지 볼 때 그림 둘레(px)와, 그 색들이 바탕색에서 떨어진 정도의 상한.
+# 색종이 · 단색 바탕은 둘레가 고르다. 그늘진 사진은 이 값을 넘어 기존 방식(create_mask)으로 간다
+BG_BORDER = 4
+BG_UNIFORM_MAX = 30
+# 바탕색에서 이만큼 떨어진 색만 캐릭터로 본다 (RGB 거리). 둘레가 고르지 않을수록 높인다
+BG_DISTANCE_MIN = 60
+
 # 점수 기준. 실제 그림으로 잰 값은 docs/진행상황.md 「점수 기준」.
 #
 # 검출 점수는 낙서·동그라미에도 0.97 이상이 나와 사람인지 가리지 못한다.
@@ -510,7 +517,47 @@ def joints_on_mask_ratio(mask: np.ndarray, joints: list, offset_x: int, offset_y
     return hits / len(joints) if joints else 0.0
 
 
+def uniform_background(img: np.ndarray) -> tuple[np.ndarray, float] | None:
+    """그림 둘레가 한 가지 색이면 (그 색, 둘레의 흩어진 정도). 아니면 None."""
+
+    b = BG_BORDER
+    border = np.concatenate([
+        img[:b].reshape(-1, 3), img[-b:].reshape(-1, 3),
+        img[:, :b].reshape(-1, 3), img[:, -b:].reshape(-1, 3),
+    ]).astype(np.float32)
+    color = np.median(border, axis=0)
+    spread = float(np.percentile(np.linalg.norm(border - color, axis=1), 90))
+    return (color, spread) if spread <= BG_UNIFORM_MAX else None
+
+
+def color_distance_mask(img: np.ndarray, color: np.ndarray, spread: float) -> np.ndarray | None:
+    """바탕색과 다른 곳을 캐릭터로 본다. 가장 큰 덩어리 하나와 그 안의 구멍까지.
+
+    create_mask 는 색의 가장 어두운 성분(np.min)으로 선을 찾아 흰 종이를 전제로 한다.
+    빨강 · 노랑 바탕은 그 기준에서 어두워 바탕이 캐릭터 둘레에 두껍게 붙어 나왔다 (2026-11-03)."""
+
+    dist = np.linalg.norm(img.astype(np.float32) - color, axis=2)
+    fg = (dist > max(BG_DISTANCE_MIN, 3 * spread)).astype(np.uint8)
+    fg = cv2.morphologyEx(fg, cv2.MORPH_OPEN, np.ones((3, 3), np.uint8))
+    count, labels, stats, _ = cv2.connectedComponentsWithStats(fg)
+    if count < 2:
+        return None
+    biggest = 1 + int(np.argmax(stats[1:, cv2.CC_STAT_AREA]))
+    mask = ndimage.binary_fill_holes(labels == biggest)
+    return (mask * 255).astype(np.uint8)
+
+
 def build_mask(img: np.ndarray, bbox: dict, joints: list) -> np.ndarray:
+    # 단색 바탕이면 바탕색으로 먼저 잘라 본다. 관절이 캐릭터 위에 놓이지 않으면 기존 방식으로 간다
+    background = uniform_background(img)
+    if background is not None:
+        mask = color_distance_mask(img, *background)
+        if mask is not None and joints_on_mask_ratio(mask, joints, 0, 0) >= MASK_JOINT_HIT_RATIO:
+            return mask
+    return _build_mask_by_lines(img, bbox, joints)
+
+
+def _build_mask_by_lines(img: np.ndarray, bbox: dict, joints: list) -> np.ndarray:
     """bbox 영역의 캐릭터 마스크를 만든다. 선이 끊기거나 잘린 그림도 처리한다.
 
     create_mask는 이미지 가장자리에서 배경을 채워 나가는 방식이라,
