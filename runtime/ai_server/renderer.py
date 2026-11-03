@@ -219,15 +219,22 @@ def prepare_character(
 
 
 def _gif_to_mp4(gif_path: Path, mp4_path: Path) -> None:
-    """OpenCV가 H.264를 지원하지 않으므로 ffmpeg으로 변환한다."""
+    """OpenCV가 H.264를 지원하지 않으므로 ffmpeg으로 변환한다.
+
+    GIF 는 바탕이 투명한데 MP4 는 투명을 담지 못한다. 투명 자리를 자홍(#FF00FF)으로 채워 두면
+    화면이 그 색만 지워 장소 배경 위에 캐릭터를 세운다 (frontend features/story/key.ts, 2026-11-03).
+    흰색으로 두면 색칠하지 않은 몸 · 눈의 흰색과 구별되지 않는다.
+    """
 
     result = subprocess.run(
         [
             "ffmpeg", "-y", "-i", str(gif_path),
             "-movflags", "faststart",
             "-pix_fmt", "yuv420p",
-            # H.264는 가로·세로가 짝수여야 한다
-            "-vf", "scale=trunc(iw/2)*2:trunc(ih/2)*2",
+            # 자홍 판 위에 GIF 를 얹는다. H.264는 가로·세로가 짝수여야 한다
+            "-filter_complex",
+            "[0:v]format=rgba,split[fg][b];[b]drawbox=c=0xFF00FF@1:t=fill[bg];"
+            "[bg][fg]overlay=format=auto,scale=trunc(iw/2)*2:trunc(ih/2)*2",
             str(mp4_path),
         ],
         capture_output=True,
