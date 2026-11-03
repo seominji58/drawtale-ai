@@ -63,9 +63,15 @@ MOTIONS: dict[str, tuple[Path, Path]] = {
     "dab": (_META_MOTIONS / "dab.yaml", _META_RETARGET / "fair1_ppf.yaml"),
     "zombie": (_META_MOTIONS / "zombie.yaml", _META_RETARGET / "fair1_spf.yaml"),
     "wave_hello_gentle": (_GENTLE_MOTIONS / "wave_hello_gentle.yaml", _META_RETARGET / "fair1_ppf.yaml"),
-    "jumping_gentle": (_GENTLE_MOTIONS / "jumping_gentle.yaml", _META_RETARGET / "fair1_ppf.yaml"),
-    "walk": (_GENTLE_MOTIONS / "walk.yaml", _GENTLE_MOTIONS / "cmu1_human.yaml"),
-    "run": (_GENTLE_MOTIONS / "run.yaml", _GENTLE_MOTIONS / "cmu1_human.yaml"),
+    # 같은 이름 그대로 고친 판을 가리킨다 (runtime/tools/make_soft_motions.py, 2026-11-03) —
+    # 점프는 웅크릴 때 몸 · 머리가 83% 로 눌려서, 걷기 · 뛰기는 다리 PCA 투영이 프레임마다 뒤집혀 다리가 꼬여서.
+    # 고치기 전 판은 *_orig 로 남겨 둔다 (비교용, 백엔드는 쓰지 않음)
+    "jumping_gentle": (_GENTLE_MOTIONS / "jumping_soft.yaml", _META_RETARGET / "fair1_ppf.yaml"),
+    "walk": (_GENTLE_MOTIONS / "walk_steps.yaml", _GENTLE_MOTIONS / "cmu1_front.yaml"),
+    "run": (_GENTLE_MOTIONS / "run_steps.yaml", _GENTLE_MOTIONS / "cmu1_front.yaml"),
+    "jumping_gentle_orig": (_GENTLE_MOTIONS / "jumping_gentle.yaml", _META_RETARGET / "fair1_ppf.yaml"),
+    "walk_orig": (_GENTLE_MOTIONS / "walk.yaml", _GENTLE_MOTIONS / "cmu1_human.yaml"),
+    "run_orig": (_GENTLE_MOTIONS / "run.yaml", _GENTLE_MOTIONS / "cmu1_human.yaml"),
     "dab_gentle": (_GENTLE_MOTIONS / "dab_gentle.yaml", _META_RETARGET / "fair1_ppf.yaml"),
 }
 DEFAULT_MOTION = "wave_hello"

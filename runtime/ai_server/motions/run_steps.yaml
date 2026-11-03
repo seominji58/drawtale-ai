@@ -1,0 +1,13 @@
+# run 무릎 굽힘 x1.4 (make_soft_motions.py) — cmu1_front.yaml 과 함께
+# CMU Mocap 동작 (experiments/cmu-motions 에서 다듬은 것, 출처는 CMU-NOTICE.md). 2026-11-03 서비스에 등록
+filepath: run_steps.bvh
+start_frame_idx: 0
+end_frame_idx: 36
+groundplane_joint: LeftFoot
+forward_perp_joint_vectors:
+- - LeftShoulder
+  - RightShoulder
+- - LeftUpLeg
+  - RightUpLeg
+scale: 0.025
+up: +y
