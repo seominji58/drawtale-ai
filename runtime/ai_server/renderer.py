@@ -50,15 +50,21 @@ _META_MOTIONS = ANIMATED_DRAWINGS_DIR / "examples/config/motion"
 # runtime/tools/make_gentle_motions.py 가 Meta BVH 에서 만든다 (third_party 는 고치지 않는다).
 _GENTLE_MOTIONS = Path(__file__).parent / "motions"
 
-# 사용 가능한 동작. Backend가 이 이름으로 요청한다. 이름 -> (motion 설정 파일, retarget 이름)
-MOTIONS: dict[str, tuple[Path, str]] = {
-    "wave_hello": (_META_MOTIONS / "wave_hello.yaml", "fair1_ppf"),
-    "jumping": (_META_MOTIONS / "jumping.yaml", "fair1_ppf"),
-    "jumping_jacks": (_META_MOTIONS / "jumping_jacks.yaml", "cmu1_pfp"),
-    "dab": (_META_MOTIONS / "dab.yaml", "fair1_ppf"),
-    "zombie": (_META_MOTIONS / "zombie.yaml", "fair1_spf"),
-    "wave_hello_gentle": (_GENTLE_MOTIONS / "wave_hello_gentle.yaml", "fair1_ppf"),
-    "jumping_gentle": (_GENTLE_MOTIONS / "jumping_gentle.yaml", "fair1_ppf"),
+_META_RETARGET = ANIMATED_DRAWINGS_DIR / "examples/config/retarget"
+
+# 사용 가능한 동작. Backend가 이 이름으로 요청한다. 이름 -> (motion 설정 파일, retarget 설정 파일)
+# walk · run 은 CMU Mocap 이라 뼈 이름이 달라 우리 retarget(cmu1_human)을 쓴다 (출처 motions/CMU-NOTICE.md)
+MOTIONS: dict[str, tuple[Path, Path]] = {
+    "wave_hello": (_META_MOTIONS / "wave_hello.yaml", _META_RETARGET / "fair1_ppf.yaml"),
+    "jumping": (_META_MOTIONS / "jumping.yaml", _META_RETARGET / "fair1_ppf.yaml"),
+    "jumping_jacks": (_META_MOTIONS / "jumping_jacks.yaml", _META_RETARGET / "cmu1_pfp.yaml"),
+    "dab": (_META_MOTIONS / "dab.yaml", _META_RETARGET / "fair1_ppf.yaml"),
+    "zombie": (_META_MOTIONS / "zombie.yaml", _META_RETARGET / "fair1_spf.yaml"),
+    "wave_hello_gentle": (_GENTLE_MOTIONS / "wave_hello_gentle.yaml", _META_RETARGET / "fair1_ppf.yaml"),
+    "jumping_gentle": (_GENTLE_MOTIONS / "jumping_gentle.yaml", _META_RETARGET / "fair1_ppf.yaml"),
+    "walk": (_GENTLE_MOTIONS / "walk.yaml", _GENTLE_MOTIONS / "cmu1_human.yaml"),
+    "run": (_GENTLE_MOTIONS / "run.yaml", _GENTLE_MOTIONS / "cmu1_human.yaml"),
+    "dab_gentle": (_GENTLE_MOTIONS / "dab_gentle.yaml", _META_RETARGET / "fair1_ppf.yaml"),
 }
 DEFAULT_MOTION = "wave_hello"
 
@@ -267,7 +273,7 @@ def render_animation(
             f"UNKNOWN_MOTION: {motion} (available: {', '.join(MOTIONS)})"
         )
 
-    motion_cfg_path, retarget_name = MOTIONS[motion]
+    motion_cfg_path, retarget_path = MOTIONS[motion]
 
     work_dir = Path(tempfile.mkdtemp(prefix="drawtale-render-"))
 
@@ -281,10 +287,7 @@ def render_animation(
                     {
                         "character_cfg": str(char_dir / "char_cfg.yaml"),
                         "motion_cfg": str(_motion_cfg(motion_cfg_path, work_dir)),
-                        "retarget_cfg": str(
-                            ANIMATED_DRAWINGS_DIR
-                            / f"examples/config/retarget/{retarget_name}.yaml"
-                        ),
+                        "retarget_cfg": str(retarget_path),
                     }
                 ]
             },

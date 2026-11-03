@@ -64,6 +64,9 @@ TARGET_FPS = 30
 CLIPS = {
     "wave_hello": (465, 524),
     "jumping": (218, 426),
+    # dab is already 30fps (no thinning). Used as the story's "dance" (2026-11-03): the arms swing
+    # wide, so without this pull they fold onto the torso like jesse_dance did.
+    "dab": (40, 160),
 }
 
 # Keep the character in place: freeze the root's horizontal travel. With the arms held out,
