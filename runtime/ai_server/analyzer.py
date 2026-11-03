@@ -621,6 +621,88 @@ def fill_body(mask: np.ndarray, joints: list, bbox: dict, scale: float = 1.0) ->
     return (out * 255).astype(np.uint8)
 
 
+# 팔다리에 갇힌 종이 빼기 (drop_pockets) — 캐릭터 대각선 대비 비율
+POCKET_MIN_AREA = 0.01     # 마스크 넓이 대비 이보다 작은 흰 곳(눈 반짝임 · 옷 무늬)은 그대로
+POCKET_TOUCH = 0.02        # 팔다리 뼈대가 이 거리 안에 닿으면 팔다리에 둘러싸인 곳
+POCKET_OUTSIDE = 0.015     # 이 거리 안에 캐릭터 바깥이 있으면 가는 선 하나 너머가 바깥
+POCKET_DEEP = 0.5          # 뼈대 · 머리 중심이 덩어리 가장 깊은 곳의 이 비율 이상 깊이 지나면 몸
+LIMB_BONES = (
+    ("right_shoulder", "right_elbow"), ("right_elbow", "right_hand"),
+    ("left_shoulder", "left_elbow"), ("left_elbow", "left_hand"),
+    ("right_hip", "right_knee"), ("right_knee", "right_foot"),
+    ("left_hip", "left_knee"), ("left_knee", "left_foot"),
+)
+
+
+def drop_pockets(img: np.ndarray, mask: np.ndarray, joints: list, bbox: dict, scale: float = 1.0) -> np.ndarray:
+    """팔 · 머리카락 · 다리 선에 둘러싸인 종이가 몸으로 잡힌 것을 뺀다 (2026-11-03 사용자 「팔로 감싸진 배경 부분이 신체로」).
+
+    긴 머리카락 곡선에 막대 팔이 닿으면 그 사이 종이가 선으로 닫혀, 구멍 채우기(create_mask · fill_body)가 몸으로 메웠다.
+    칠하지 않은 얼굴 · 몸통도 똑같이 선에 닫힌 종이라 색으로는 못 가른다. 그래서 뼈대가 지나는 자리로 가른다 —
+    몸통 · 팔다리 뼈대나 머리 중심(목에서 위로 늘인 곳)이 덩어리 한가운데를 지나면 몸이고,
+    팔다리 뼈대가 가장자리에만 닿고 가는 선 너머가 바로 바깥인 넓은 종이는 틈이다. scale 은 fill_body 와 같다."""
+
+    m = mask > 127
+    if not m.any() or not joints:
+        return mask
+    at = {j["name"]: (j["x"] * scale, j["y"] * scale) for j in joints}
+    diag = float(np.hypot((bbox["right"] - bbox["left"]) * scale, (bbox["bottom"] - bbox["top"]) * scale))
+    # 흰 종이만 — 색 바탕은 「종이색」이 바탕색이라 같은 색으로 칠한 손이 틈으로 빠졌다(빨강 바탕 시험).
+    # 그림 둘레 전체가 아니라 캐릭터 바로 바깥 띠로 잰다 — 책상이 함께 찍힌 사진도 흰 종이로 보게
+    k = max(5, round(diag * 0.03) | 1)
+    ring = (cv2.dilate(m.astype(np.uint8), cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (k, k))) > 0) & ~m
+    if not ring.any() or not is_white_paper(np.median(img[ring], axis=0)):
+        return mask
+    cand = (m & (paper_distance(img, mask) < PAPER_NEAR)).astype(np.uint8)
+    cand = cv2.morphologyEx(cand, cv2.MORPH_OPEN, np.ones((3, 3), np.uint8))
+    count, labels, stats, _ = cv2.connectedComponentsWithStats(cand, connectivity=4)
+    big = [i for i in range(1, count) if stats[i, cv2.CC_STAT_AREA] >= m.sum() * POCKET_MIN_AREA]
+    if not big:
+        return mask
+    depth = cv2.distanceTransform(cand, cv2.DIST_L2, 5)
+    h, w = m.shape
+
+    def samples(pairs, ts):
+        for a, b in pairs:
+            if a in at and b in at:
+                for t in ts:
+                    x = at[a][0] + (at[b][0] - at[a][0]) * t
+                    y = at[a][1] + (at[b][1] - at[a][1]) * t
+                    if 0 <= round(x) < w and 0 <= round(y) < h:
+                        yield round(x), round(y)
+
+    deep_pts = list(samples(BODY_BONES, np.linspace(0, 1, 24)))
+    deep_pts += list(samples([("torso", "neck")], np.linspace(1.3, 2.6, 14)))   # 머리 중심 쪽
+    # 손 · 발 관절은 손목 · 발목 쪽에 놓여 칠하지 않은 손바닥 · 발 안쪽을 못 지난다 — 끝 너머로 조금 늘린다
+    ends = [("right_elbow", "right_hand"), ("left_elbow", "left_hand"), ("right_knee", "right_foot"), ("left_knee", "left_foot")]
+    deep_pts += list(samples(ends, np.linspace(1.0, 1.6, 10)))
+    limb_pts = list(samples(LIMB_BONES, np.linspace(0, 1, 24)))
+    touch = max(3, round(diag * POCKET_TOUCH))
+    near_out = max(3, round(diag * POCKET_OUTSIDE))
+    outside = ~m
+    out = m.copy()
+    for i in big:
+        comp = labels == i
+        r = float(depth[comp].max())
+        if any(labels[y, x] == i and depth[y, x] >= r * POCKET_DEEP for x, y in deep_pts):
+            continue
+        x0, y0, bw, bh = stats[i, :4]
+        pad = touch + near_out + 2
+        sl = (slice(max(0, y0 - pad), min(h, y0 + bh + pad)), slice(max(0, x0 - pad), min(w, x0 + bw + pad)))
+        local = comp[sl].astype(np.uint8)
+        grown = cv2.dilate(local, cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (2 * touch + 1, 2 * touch + 1))) > 0
+        oy, ox = sl[0].start, sl[1].start
+        if not any(0 <= y - oy < grown.shape[0] and 0 <= x - ox < grown.shape[1] and grown[y - oy, x - ox] for x, y in limb_pts):
+            continue
+        ring = cv2.dilate(local, cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (2 * near_out + 1, 2 * near_out + 1))) > 0
+        if not (ring & outside[sl]).any():
+            continue
+        out[comp] = False
+    if out.sum() < m.sum() * PAPER_KEEP_MIN:
+        return mask
+    return (out * 255).astype(np.uint8)
+
+
 def build_mask(img: np.ndarray, bbox: dict, joints: list) -> np.ndarray:
     """흰 종이는 Meta 원본 방식(선 찾기, create_mask)이 먼저, 색 바탕은 바탕색 방식이 먼저.
 
@@ -735,6 +817,19 @@ def _build_mask_by_lines(img: np.ndarray, bbox: dict, joints: list) -> np.ndarra
     return best_mask
 
 
+def paper_distance(img: np.ndarray, mask: np.ndarray) -> np.ndarray:
+    """픽셀마다 종이색과의 거리(RGB). 종이색은 캐릭터 바깥에서만 재고 캐릭터 자리는 바깥 색으로 메운다."""
+
+    h, w = mask.shape
+    s = 400 / max(h, w)
+    small = cv2.resize(img, (max(1, round(w * s)), max(1, round(h * s))), interpolation=cv2.INTER_AREA)
+    hole = cv2.resize(mask, small.shape[1::-1], interpolation=cv2.INTER_NEAREST)
+    hole = cv2.dilate(hole, np.ones((5, 5), np.uint8))
+    paper = cv2.inpaint(cv2.medianBlur(small, 9), hole, 15, cv2.INPAINT_TELEA)
+    paper = cv2.resize(paper, (w, h), interpolation=cv2.INTER_LINEAR)
+    return np.linalg.norm(cv2.medianBlur(img, 3).astype(np.float32) - paper.astype(np.float32), axis=2)
+
+
 def refine_mask(img: np.ndarray, mask: np.ndarray) -> np.ndarray:
     """마스크 둘레에서 종이색인 곳을 깎는다. 원본 크기에서 한다 (2026-11-03).
 
@@ -746,16 +841,8 @@ def refine_mask(img: np.ndarray, mask: np.ndarray) -> np.ndarray:
     떨어져 나간 팔다리 선은 렌더가 뼈대로 다시 잇는다 (renderer.mesh_mask).
     """
 
-    h, w = mask.shape
     inside = mask > 127
-    s = 400 / max(h, w)
-    small = cv2.resize(img, (max(1, round(w * s)), max(1, round(h * s))), interpolation=cv2.INTER_AREA)
-    hole = cv2.resize(mask, small.shape[1::-1], interpolation=cv2.INTER_NEAREST)
-    hole = cv2.dilate(hole, np.ones((5, 5), np.uint8))
-    paper = cv2.inpaint(cv2.medianBlur(small, 9), hole, 15, cv2.INPAINT_TELEA)
-    paper = cv2.resize(paper, (w, h), interpolation=cv2.INTER_LINEAR)
-
-    dist = np.linalg.norm(cv2.medianBlur(img, 3).astype(np.float32) - paper.astype(np.float32), axis=2)
+    dist = paper_distance(img, mask)
     cand = (inside & (dist < PAPER_NEAR)).astype(np.uint8)
     _, labels = cv2.connectedComponents(cand, connectivity=8)
     edge = inside & ~cv2.erode(inside.astype(np.uint8), np.ones((3, 3), np.uint8)).astype(bool)
@@ -950,6 +1037,9 @@ def analyze_image(image_path: str, mask_path: str | None = None) -> dict:
             mask_original = refine_mask(original, mask_original)
         # 종이색 깎기 다음에 — 깎기가 틈으로 이어진 칠하지 않은 몸 안쪽을 또 지우므로 마지막에 메운다
         mask_original = fill_body(mask_original, joints, bbox, 1 / scale)
+        # 메운 다음에 — 팔 · 머리카락에 갇힌 종이는 위 구멍 채우기들이 몸으로 메운 것까지 함께 뺀다
+        if mask_original.shape[:2] == original.shape[:2]:
+            mask_original = drop_pockets(original, mask_original, joints, bbox, 1 / scale)
 
         Path(mask_path).parent.mkdir(parents=True, exist_ok=True)
         mask_saved = bool(cv2.imwrite(mask_path, mask_original))
