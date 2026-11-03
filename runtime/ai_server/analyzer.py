@@ -637,6 +637,26 @@ def _build_mask_by_lines(img: np.ndarray, bbox: dict, joints: list) -> np.ndarra
     return best_mask
 
 
+def make_cutout(image_path: str, mask_path: str, out_path: str) -> bool:
+    """배경을 투명하게 잘라 낸 캐릭터 PNG (2026-11-03).
+
+    화면이 동작 영상 대신 정지 그림을 보일 때(미리보기를 만드는 중 · 대기 쪽 · 표지) 원본을 쓰면
+    사진 배경까지 나왔다. 렌더와 같게 마스크를 2px 안쪽으로 깎는다.
+    **원본과 같은 크기로 둔다** — 관절 좌표(원본 기준)를 쓰는 화면이 원본 자리에 그대로 바꿔 끼운다.
+    """
+
+    img = cv2.imread(image_path)
+    mask = cv2.imread(mask_path, cv2.IMREAD_GRAYSCALE)
+    if img is None or mask is None or mask.shape[:2] != img.shape[:2]:
+        return False
+    mask = cv2.erode(mask, np.ones((3, 3), np.uint8), iterations=2)
+    if not (mask > 127).any():
+        return False
+    rgba = cv2.cvtColor(img, cv2.COLOR_BGR2BGRA)
+    rgba[:, :, 3] = mask
+    return bool(cv2.imwrite(out_path, rgba))
+
+
 def to_original_scale(bbox: dict, scale: float) -> dict:
     """분석용으로 줄인 이미지 기준 bbox를 원본 이미지 기준으로 되돌린다."""
 

@@ -14,6 +14,7 @@ from ai_server.analyzer import (
     MODEL_VERSION,
     PIPELINE_VERSION,
     analyze_image,
+    make_cutout,
     check_torchserve,
 )
 from ai_server.renderer import MOTIONS, RenderError, render_animation
@@ -86,6 +87,9 @@ def analyze(file: UploadFile = File(...)):
         if not result.get("success"):
             shutil.rmtree(session_dir, ignore_errors=True)
             return AnalyzeResponse(**result)
+
+        # 배경을 잘라 낸 정지 그림. 실패해도 분석은 성공이다 (화면이 원본으로 대신한다)
+        make_cutout(temp_path, str(session_dir / "mask.png"), str(session_dir / "cutout.png"))
 
         # 렌더링에서 재사용할 정보를 남긴다
         with open(session_dir / "analysis.json", "w") as f:
@@ -167,6 +171,17 @@ def render(
     except Exception as e:
         log.exception("render failed")
         return _error("RENDER_FAILED", str(e))
+
+
+@app.get("/internal/v1/sessions/{request_id}/cutout")
+def cutout(request_id: str):
+    """배경을 투명하게 잘라 낸 캐릭터 PNG. 분석할 때 만들어 둔 것이다."""
+
+    path = WORK_DIR / request_id / "cutout.png"
+    # request_id 로 폴더 밖을 가리키지 못하게 한다
+    if not path.resolve().is_relative_to(WORK_DIR.resolve()) or not path.is_file():
+        return _error("CUTOUT_NOT_FOUND", f"no cutout for {request_id}")
+    return FileResponse(path, media_type="image/png")
 
 
 @app.delete("/internal/v1/sessions/{request_id}")
