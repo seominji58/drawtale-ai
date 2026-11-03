@@ -278,8 +278,9 @@ def prepare_character(
 
 
 # 투명 프레임 묶음 (S-09 장면 층). 칸은 정사각 SPRITE_CELL, 가로는 늘 SPRITE_COLS 칸(남는 칸은 투명)으로 줄을 바꾼다.
-# 렌더 화면을 자르지 않고 줄이기만 해서 같은 캐릭터면 동작이 달라도 크기 · 발끝 자리가 같다
-SPRITE_WINDOW = 640
+# 렌더 화면을 자르지 않아 같은 캐릭터면 동작이 달라도 크기 · 발끝 자리가 같다.
+# 칸 크기 그대로 그린다(11/3 저녁 — 전에는 640 으로 그려 512 로 줄였다. 그리는 픽셀이 36% 적고 줄이는 단계가 없다)
+SPRITE_WINDOW = 512
 SPRITE_CELL = 512
 SPRITE_COLS = 8
 SPRITE_MAX_FRAMES = 48
@@ -302,17 +303,59 @@ class _capture_frames:
 
         self._cls = vrc.GIFWriter
         self._orig = vrc.GIFWriter.process_frame
+        self._orig_cleanup = vrc.GIFWriter.cleanup
         self.frames: list[np.ndarray] = []
-        frames, orig = self.frames, self._orig
+        self.duration_ms = 33
+        frames, orig, me = self.frames, self._orig, self
 
         def process_frame(writer, frame):  # noqa: ANN001 — Meta 쪽 서명 그대로
             orig(writer, frame)
             frames.append(writer.frames[-1])
+            me.duration_ms = writer.duration
+
+        # GIF 는 쓰지 않는다 — 받아 둔 프레임으로 MP4 를 바로 만든다(_frames_to_mp4). 장마다 256색으로 줄여
+        # 압축하고 다시 푸는 단계가 없어진다 (11/3 저녁 「렌더링 속도」)
+        def cleanup(writer):  # noqa: ANN001
+            return None
 
         self._cls.process_frame = process_frame
+        self._cls.cleanup = cleanup
 
     def release(self) -> None:
         self._cls.process_frame = self._orig
+        self._cls.cleanup = self._orig_cleanup
+
+
+class _thin_frames:
+    """묶음에 담을 장만 렌더한다 (11/3 저녁 「렌더링 속도」 — 걷기 78장 · 춤 120장 중 48장만 묶음에 들어가고 나머지는 버렸다).
+
+    Meta 가 동작 파일(BVH)을 읽은 직후 SPRITE_MAX_FRAMES 장을 고르게 골라 남기고, 장 사이 시간을 그만큼 늘린다 —
+    묶음에 들어가던 장과 같은 자세 · 같은 길이라 화면(장면 층, 12장/초) 움직임은 그대로다.
+    몸통 이동은 장 사이 차이를 더해 가므로 장을 건너뛰어도 같은 자리로 간다."""
+
+    def __init__(self) -> None:
+        from animated_drawings.model.bvh import BVH
+
+        self._cls = BVH
+        self._orig = BVH.__dict__["from_file"]
+        orig = self._orig.__func__
+
+        def from_file(cls, *a, **kw):  # noqa: ANN001
+            bvh = orig(cls, *a, **kw)
+            n = bvh.frame_max_num
+            if n > SPRITE_MAX_FRAMES:
+                idx = np.linspace(0, n - 1, SPRITE_MAX_FRAMES).round().astype(int)
+                bvh.pos_data, bvh.rot_data = bvh.pos_data[idx], bvh.rot_data[idx]
+                bvh.frame_time = bvh.frame_time * (n - 1) / (SPRITE_MAX_FRAMES - 1)
+                bvh.frame_max_num = SPRITE_MAX_FRAMES
+                bvh.cur_frame = 0
+                bvh.apply_frame(0)
+            return bvh
+
+        BVH.from_file = classmethod(from_file)
+
+    def release(self) -> None:
+        self._cls.from_file = self._orig
 
 
 class _in_place:
@@ -361,7 +404,9 @@ def _write_sprite(frames: list[np.ndarray], path: Path) -> dict:
     rows = (n + SPRITE_COLS - 1) // SPRITE_COLS
     sheet = Image.new("RGBA", (cols * SPRITE_CELL, rows * SPRITE_CELL), (0, 0, 0, 0))
     for i, f in enumerate(frames):
-        cell = Image.fromarray(f, "RGBA").resize((SPRITE_CELL, SPRITE_CELL), Image.LANCZOS)
+        cell = Image.fromarray(f, "RGBA")
+        if cell.size != (SPRITE_CELL, SPRITE_CELL):   # 칸 크기로 그렸으면 줄이지 않는다
+            cell = cell.resize((SPRITE_CELL, SPRITE_CELL), Image.LANCZOS)
         sheet.paste(cell, ((i % SPRITE_COLS) * SPRITE_CELL, (i // SPRITE_COLS) * SPRITE_CELL))
     path.parent.mkdir(parents=True, exist_ok=True)
     sheet.save(path, "WEBP", quality=86, method=4)
@@ -396,6 +441,27 @@ def _gif_to_mp4(gif_path: Path, mp4_path: Path) -> None:
         timeout=300,
     )
 
+    if result.returncode != 0 or not mp4_path.exists():
+        detail = result.stderr.decode("utf-8", "replace")[-500:]
+        raise RenderError(f"ENCODING_FAILED: ffmpeg failed: {detail}")
+
+
+def _frames_to_mp4(frames: list[np.ndarray], duration_ms: int, mp4_path: Path) -> None:
+    """받아 둔 RGBA 프레임 → 자홍(#FF00FF) 바탕 MP4 (_gif_to_mp4 와 같은 결과, GIF 를 거치지 않는다 — 11/3 저녁)."""
+
+    h, w = frames[0].shape[:2]
+    h2, w2 = h - h % 2, w - w % 2   # H.264 는 가로 · 세로가 짝수
+    bg = np.array([255, 0, 255], np.float32)
+    raw = bytearray()
+    for f in frames:
+        a = f[:h2, :w2, 3:4].astype(np.float32) / 255.0
+        raw += (f[:h2, :w2, :3].astype(np.float32) * a + bg * (1 - a)).round().astype(np.uint8).tobytes()
+    fps = max(1.0, 1000.0 / max(1, duration_ms))
+    result = subprocess.run(
+        ["ffmpeg", "-y", "-f", "rawvideo", "-pix_fmt", "rgb24", "-s", f"{w2}x{h2}", "-r", f"{fps:.4f}", "-i", "-",
+         "-movflags", "faststart", "-pix_fmt", "yuv420p", str(mp4_path)],
+        input=bytes(raw), capture_output=True, timeout=300,
+    )
     if result.returncode != 0 or not mp4_path.exists():
         detail = result.stderr.decode("utf-8", "replace")[-500:]
         raise RenderError(f"ENCODING_FAILED: ffmpeg failed: {detail}")
@@ -487,13 +553,13 @@ def render_animation(
 
             frames = _capture_frames() if sprite_path else None
             still = _in_place() if sprite_path else None
+            thin = _thin_frames() if sprite_path else None
             try:
                 animated_drawings.render.start(str(mvc_path))
             finally:
-                if frames is not None:
-                    frames.release()
-                if still is not None:
-                    still.release()
+                for patch in (frames, still, thin):
+                    if patch is not None:
+                        patch.release()
         except RenderError:
             raise
         except Exception as e:
@@ -501,12 +567,16 @@ def render_animation(
         finally:
             os.chdir(cwd)
 
-        if not gif_path.exists():
-            raise RenderError("RENDER_FAILED: no output produced")
-
         output = Path(output_path)
         output.parent.mkdir(parents=True, exist_ok=True)
-        _gif_to_mp4(gif_path, output)
+        if frames is not None:
+            if not frames.frames:
+                raise RenderError("RENDER_FAILED: no output produced")
+            _frames_to_mp4(frames.frames, frames.duration_ms, output)
+        else:
+            if not gif_path.exists():
+                raise RenderError("RENDER_FAILED: no output produced")
+            _gif_to_mp4(gif_path, output)
         sprite = _write_sprite(frames.frames, Path(sprite_path)) if frames is not None else None
 
         return {
