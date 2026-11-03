@@ -1,0 +1,26 @@
+{
+  "character_type": "quadruped",
+  "skeleton_type": "quadruped_16",
+  "joints": [
+    { "name": "head", "x": 600, "y": 180 },
+    { "name": "neck", "x": 530, "y": 210 },
+    { "name": "spine", "x": 380, "y": 240 },
+    { "name": "hip", "x": 250, "y": 250 },
+
+    { "name": "front_right_shoulder", "x": 500, "y": 250 },
+    { "name": "front_right_knee", "x": 500, "y": 340 },
+    { "name": "front_right_foot", "x": 510, "y": 430 },
+
+    { "name": "front_left_shoulder", "x": 550, "y": 250 },
+    { "name": "front_left_knee", "x": 560, "y": 340 },
+    { "name": "front_left_foot", "x": 570, "y": 430 },
+
+    { "name": "back_right_hip", "x": 230, "y": 260 },
+    { "name": "back_right_knee", "x": 210, "y": 350 },
+    { "name": "back_right_foot", "x": 200, "y": 440 },
+
+    { "name": "back_left_hip", "x": 280, "y": 260 },
+    { "name": "back_left_knee", "x": 290, "y": 350 },
+    { "name": "back_left_foot", "x": 300, "y": 440 }
+  ]
+}

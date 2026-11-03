@@ -1,0 +1,12 @@
+{
+  "skeleton_type": "nonhuman_starfish_6",
+  "joint_count": 6,
+  "joints": [
+    { "name": "center", "parent": null },
+    { "name": "arm_top", "parent": "center" },
+    { "name": "arm_right_top", "parent": "center" },
+    { "name": "arm_right_bottom", "parent": "center" },
+    { "name": "arm_left_bottom", "parent": "center" },
+    { "name": "arm_left_top", "parent": "center" }
+  ]
+}

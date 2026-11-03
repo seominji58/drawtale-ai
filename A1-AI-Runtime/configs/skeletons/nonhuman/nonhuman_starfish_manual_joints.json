@@ -1,0 +1,12 @@
+{
+  "character_type": "nonhuman",
+  "skeleton_type": "nonhuman_starfish_6",
+  "joints": [
+    { "name": "center", "x": 390, "y": 360 },
+    { "name": "arm_top", "x": 390, "y": 150 },
+    { "name": "arm_right_top", "x": 560, "y": 250 },
+    { "name": "arm_right_bottom", "x": 520, "y": 520 },
+    { "name": "arm_left_bottom", "x": 260, "y": 520 },
+    { "name": "arm_left_top", "x": 220, "y": 250 }
+  ]
+}

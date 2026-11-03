@@ -1,0 +1,26 @@
+{
+  "skeleton_type": "quadruped_16",
+  "joint_count": 16,
+  "joints": [
+    { "name": "head", "parent": "neck" },
+    { "name": "neck", "parent": "spine" },
+    { "name": "spine", "parent": "hip" },
+    { "name": "hip", "parent": null },
+
+    { "name": "front_right_shoulder", "parent": "neck" },
+    { "name": "front_right_knee", "parent": "front_right_shoulder" },
+    { "name": "front_right_foot", "parent": "front_right_knee" },
+
+    { "name": "front_left_shoulder", "parent": "neck" },
+    { "name": "front_left_knee", "parent": "front_left_shoulder" },
+    { "name": "front_left_foot", "parent": "front_left_knee" },
+
+    { "name": "back_right_hip", "parent": "hip" },
+    { "name": "back_right_knee", "parent": "back_right_hip" },
+    { "name": "back_right_foot", "parent": "back_right_knee" },
+
+    { "name": "back_left_hip", "parent": "hip" },
+    { "name": "back_left_knee", "parent": "back_left_hip" },
+    { "name": "back_left_foot", "parent": "back_left_knee" }
+  ]
+}
