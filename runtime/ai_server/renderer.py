@@ -76,6 +76,11 @@ CROP_MARGINS = (0.12, 0.25, 0.40, 0.60)
 # 2px 면 가는 팔다리 선이 사라진다
 MASK_ERODE_ITERATIONS = 1
 
+# 렌더에 넘기는 그림의 긴 변 상한 (px). 영상이 500px 라 이보다 크면 시간 · 메모리만 든다
+RENDER_MAX_SIDE = 800
+# 움직이는 틀 윤곽을 매끈하게 넘기는 흐림 정도 (px)
+MESH_SMOOTH = 2.0
+
 # 움직이는 틀(메시)을 이을 뼈대 띠 굵기 (자른 그림 대각선 대비)
 BONE_BAND = 0.012
 BONES = (
@@ -207,6 +212,19 @@ def prepare_character(
     if mask.shape[:2] != image.shape[:2]:
         raise RenderError("MASK_SIZE_MISMATCH: mask must cover the whole image")
 
+    # 큰 사진은 줄여서 렌더한다. 영상은 어차피 500px 인데, 1600px 사진은 렌더 한 번에 30초가 걸려
+    # (한 번에 하나씩 도니) 셋째 사람이 100초를 기다렸다 (2026-11-03 VM)
+    # 가장자리 깎기(아래 설명)는 줄이기 전 원본 크기에서 — 줄인 뒤 깎으면 가는 다리 선이 점으로 끊겼다
+    mask = cv2.erode(mask, np.ones((3, 3), np.uint8), iterations=MASK_ERODE_ITERATIONS)
+    scale = RENDER_MAX_SIDE / max(image.shape[:2])
+    if scale < 1:
+        size = (round(image.shape[1] * scale), round(image.shape[0] * scale))
+        image = cv2.resize(image, size, interpolation=cv2.INTER_AREA)
+        # 가는 팔다리 선이 끊기지 않게 평균으로 줄인 뒤 조금이라도 걸친 칸은 남긴다
+        mask = np.where(cv2.resize(mask, size, interpolation=cv2.INTER_AREA) >= 100, 255, 0).astype(np.uint8)
+        joints = [{**j, "x": j["x"] * scale, "y": j["y"] * scale} for j in joints]
+        bbox = {k: (v * scale if isinstance(v, (int, float)) else v) for k, v in bbox.items()}
+
     # bbox는 캐릭터에 딱 맞게(때로는 팔다리 끝을 빼고) 잡히므로, 그대로 자르면 끝이 잘린다.
     # 마스크가 가장자리에 닿지 않을 때까지 여유를 넓혀 가며 자른다.
     left, top, right, bottom = expand_crop(mask, bbox, image.shape[1], image.shape[0])
@@ -226,7 +244,7 @@ def prepare_character(
 
     # 마스크 경계가 바깥으로 1~2px 넓어 종이 · 배경색이 캐릭터 둘레에 얇게 남는다 (2026-11-03 사용자 확인,
     # 빨간 · 노란 바탕). 굵은 테두리 선 안쪽으로 조금 깎아 낸다
-    mask = cv2.erode(mask, np.ones((3, 3), np.uint8), iterations=MASK_ERODE_ITERATIONS)
+    # (깎기는 위에서 줄이기 전에 했다)
 
     # texture는 RGBA여야 한다. 마스크 밖은 투명 처리.
     texture = cv2.cvtColor(cropped, cv2.COLOR_BGR2BGRA)
@@ -246,8 +264,11 @@ def prepare_character(
         for j in joints
     ]
 
-    # 움직이는 틀은 팔다리 조각을 뼈대로 이어 붙인 마스크 (보이는 부분은 위 텍스처)
-    cv2.imwrite(str(char_dir / "mask.png"), mesh_mask(np.where(mask > 127, 255, 0).astype(np.uint8), crop_joints))
+    # 움직이는 틀은 팔다리 조각을 뼈대로 이어 붙인 마스크 (보이는 부분은 위 텍스처).
+    # 흑백 두 값 그대로면 Meta 가 찾는 윤곽(128 등고선)이 픽셀 계단을 따라가 점이 수천 개가 되고,
+    # 렌더 시간 · 메모리가 점 수에 비례해 는다. 살짝 흐려 등고선을 매끈한 선으로 넘긴다
+    mesh = mesh_mask(np.where(mask > 127, 255, 0).astype(np.uint8), crop_joints)
+    cv2.imwrite(str(char_dir / "mask.png"), cv2.GaussianBlur(mesh, (0, 0), MESH_SMOOTH))
 
     char_cfg = build_char_cfg(crop_joints, width=width, height=height)
     with open(char_dir / "char_cfg.yaml", "w") as f:
