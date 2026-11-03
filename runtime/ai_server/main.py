@@ -1,3 +1,4 @@
+import base64
 import json
 import logging
 import os
@@ -9,7 +10,7 @@ import uuid
 from pathlib import Path
 
 from fastapi import FastAPI, File, Form, UploadFile
-from fastapi.responses import FileResponse
+from fastapi.responses import FileResponse, JSONResponse
 
 from ai_server.analyzer import (
     MODEL_VERSION,
@@ -18,7 +19,7 @@ from ai_server.analyzer import (
     make_cutout,
     check_torchserve,
 )
-from ai_server.renderer import MOTIONS, RenderError, render_animation
+from ai_server.renderer import MOTIONS, SPRITE_CELL, SPRITE_COLS, RenderError, render_animation
 from ai_server.schemas import AnalyzeResponse, HealthResponse
 
 log = logging.getLogger(__name__)
@@ -120,11 +121,15 @@ def render(
     request_id: str = Form(..., description="analyze 응답의 request_id"),
     joints: str = Form(..., description='관절 15개 JSON 배열 [{"name","x","y"}, ...]'),
     motion: str = Form("wave_hello", description=f"사용 가능: {', '.join(MOTIONS)}"),
+    sprite: bool = Form(False, description="true 면 같은 렌더의 투명 프레임 묶음(WebP)도 함께 — JSON 으로 돌려준다"),
 ):
     """Backend가 보낸 관절(사용자 보정 반영)로 애니메이션 MP4를 만든다.
 
     analyze가 남긴 원본 그림과 마스크를 재사용하므로 request_id가 필요하다.
     성공하면 MP4 파일을 그대로 반환한다.
+    sprite=true 면 `{"video": MP4 base64, "sprite": WebP base64, "sprite_frames", "sprite_box", "sprite_cell", "sprite_cols"}`
+    JSON. sprite_box 는 첫 장에서 그림이 차지하는 자리 [left, top, right, bottom] (칸 대비 0~1).
+    프레임 묶음은 바탕이 투명하고, 정사각 칸을 가로 sprite_cols 칸씩 줄 바꿔 늘어놓은 것이다 (S-09 장면 층, 2026-11-03).
     """
 
     session_dir = WORK_DIR / request_id
@@ -142,6 +147,7 @@ def render(
             analysis = json.load(f)
 
         output_path = session_dir / "animation.mp4"
+        sprite_path = session_dir / f"sprite-{uuid.uuid4().hex}.webp" if sprite else None
         waited = time.perf_counter()
         with RENDER_LOCK:
             waited_ms = round((time.perf_counter() - waited) * 1000)
@@ -152,6 +158,7 @@ def render(
                 bbox=analysis["bbox"],
                 motion=motion,
                 output_path=str(output_path),
+                sprite_path=str(sprite_path) if sprite_path else None,
             )
 
         log.info(
@@ -162,6 +169,23 @@ def render(
             result["processing_time_ms"],
             waited_ms,
         )
+
+        headers = {
+            "X-Processing-Time-Ms": str(result["processing_time_ms"]),
+            "X-Model-Version": MODEL_VERSION,
+            "X-Pipeline-Version": PIPELINE_VERSION,
+        }
+        if sprite_path:
+            body = {
+                "video": base64.b64encode(output_path.read_bytes()).decode(),
+                "sprite": base64.b64encode(sprite_path.read_bytes()).decode(),
+                "sprite_frames": result["sprite"]["frames"],
+                "sprite_box": result["sprite"]["box"],
+                "sprite_cell": SPRITE_CELL,
+                "sprite_cols": SPRITE_COLS,
+            }
+            sprite_path.unlink(missing_ok=True)
+            return JSONResponse(body, headers=headers)
 
         return FileResponse(
             output_path,

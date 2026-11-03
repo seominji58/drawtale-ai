@@ -277,6 +277,74 @@ def prepare_character(
     return char_dir
 
 
+# 투명 프레임 묶음 (S-09 장면 층). 칸은 정사각 SPRITE_CELL, 가로는 늘 SPRITE_COLS 칸(남는 칸은 투명)으로 줄을 바꾼다.
+# 렌더 화면을 자르지 않고 줄이기만 해서 같은 캐릭터면 동작이 달라도 크기 · 발끝 자리가 같다
+SPRITE_WINDOW = 640
+SPRITE_CELL = 512
+SPRITE_COLS = 8
+SPRITE_MAX_FRAMES = 48
+# 기본(Meta mvc_base_cfg)은 [0, 0.7, 2.0] · [0, 0.5, 2.0]. 기울기는 그대로 두고 가까이 · 조금 아래로
+SPRITE_CAMERA_POS = (0.0, 0.6, 1.35)   # 11/3 실측: 캐릭터가 칸 높이의 4할(기본은 3할), 뛰기 · 점프도 안 잘림
+SPRITE_CAMERA_FWD = (0.0, 0.5, 2.0)
+
+
+class _capture_frames:
+    """Meta 렌더가 GIF 로 넘기는 RGBA 프레임을 그대로 받아 둔다.
+
+    GIF(256색 · 1비트 투명)로 저장된 뒤에는 색과 테두리가 뭉개지고, 초록 바탕 크로마키는 아이가 칠한
+    초록까지 지운다 — 그래서 저장 전 프레임을 가로챈다."""
+
+    def __init__(self) -> None:
+        # Meta 렌더 모듈을 먼저 불러오면 OpenGL 이 화면 없는 렌더(osmesa)로 설정되기 전에 올라온다
+        # ('GLXPlatform' object has no attribute 'OSMesa') — 설정을 먼저 둔다
+        os.environ.setdefault("PYOPENGL_PLATFORM", "osmesa")
+        import animated_drawings.controller.video_render_controller as vrc
+
+        self._cls = vrc.GIFWriter
+        self._orig = vrc.GIFWriter.process_frame
+        self.frames: list[np.ndarray] = []
+        frames, orig = self.frames, self._orig
+
+        def process_frame(writer, frame):  # noqa: ANN001 — Meta 쪽 서명 그대로
+            orig(writer, frame)
+            frames.append(writer.frames[-1])
+
+        self._cls.process_frame = process_frame
+
+    def release(self) -> None:
+        self._cls.process_frame = self._orig
+
+
+def _write_sprite(frames: list[np.ndarray], path: Path) -> dict:
+    """RGBA 프레임들 → 투명 WebP 한 장. 프레임이 많으면 고르게 골라 SPRITE_MAX_FRAMES 장까지.
+
+    {"frames": 장 수, "box": 첫 장에서 그림이 차지하는 자리 [left, top, right, bottom] (칸 대비 0~1)} —
+    화면이 장면에 세울 때 키 · 발끝 · 가운데를 맞춘다. 화면은 다른 주소의 그림 픽셀을 읽을 수 없어서(CORS) 여기서 잰다"""
+
+    from PIL import Image
+
+    if not frames:
+        raise RenderError("RENDER_FAILED: no frames for sprite")
+    if len(frames) > SPRITE_MAX_FRAMES:
+        idx = np.linspace(0, len(frames) - 1, SPRITE_MAX_FRAMES).round().astype(int)
+        frames = [frames[i] for i in idx]
+    n = len(frames)
+    cols = SPRITE_COLS   # 늘 8칸 — 장이 적어도 빈칸(투명)을 둔다. 화면이 「가로 ÷ 8」로 칸 크기를 안다
+    rows = (n + SPRITE_COLS - 1) // SPRITE_COLS
+    sheet = Image.new("RGBA", (cols * SPRITE_CELL, rows * SPRITE_CELL), (0, 0, 0, 0))
+    for i, f in enumerate(frames):
+        cell = Image.fromarray(f, "RGBA").resize((SPRITE_CELL, SPRITE_CELL), Image.LANCZOS)
+        sheet.paste(cell, ((i % SPRITE_COLS) * SPRITE_CELL, (i // SPRITE_COLS) * SPRITE_CELL))
+    path.parent.mkdir(parents=True, exist_ok=True)
+    sheet.save(path, "WEBP", quality=86, method=4)
+    alpha = frames[0][..., 3]
+    ys, xs = np.nonzero(alpha > 24)
+    h, w = alpha.shape
+    box = [0.0, 0.0, 1.0, 1.0] if not len(xs) else [
+        round(xs.min() / w, 4), round(ys.min() / h, 4), round((xs.max() + 1) / w, 4), round((ys.max() + 1) / h, 4)]
+    return {"frames": n, "box": box}
+
+
 def _gif_to_mp4(gif_path: Path, mp4_path: Path) -> None:
     """OpenCV가 H.264를 지원하지 않으므로 ffmpeg으로 변환한다.
 
@@ -329,8 +397,14 @@ def render_animation(
     bbox: dict,
     motion: str,
     output_path: str,
+    sprite_path: str | None = None,
 ) -> dict:
-    """관절 좌표로 애니메이션 MP4를 만든다."""
+    """관절 좌표로 애니메이션 MP4를 만든다.
+
+    sprite_path 가 있으면 같은 렌더의 프레임을 **바탕이 투명한** 프레임 묶음(WebP 한 장)으로도 저장한다 —
+    화면이 장면 배경 · 물건과 층으로 쌓아 움직이기 위해서다 (프론트 S-09, 2026-11-03).
+    MP4(흰 바탕)는 S-05 미리보기 · 예전 화면이 그대로 쓴다.
+    """
 
     started_at = time.perf_counter()
 
@@ -365,6 +439,14 @@ def render_animation(
             "view": {"USE_MESA": True},
         }
 
+        if sprite_path:
+            # 프레임 묶음이 장면에서 작아 보이지 않게 조금 크게 그린다 (MP4 도 같은 크기가 된다).
+            # 기본 카메라는 캐릭터가 화면 높이의 3할 남짓이라 장면에서 늘리면 흐려진다 — 가까이 당긴다.
+            # 모든 동작이 같은 카메라라 같은 캐릭터면 크기 · 발끝 자리가 같다 (팔 · 점프 여유는 남긴다)
+            mvc_cfg["view"]["WINDOW_DIMENSIONS"] = [SPRITE_WINDOW, SPRITE_WINDOW]
+            mvc_cfg["view"]["CAMERA_POS"] = list(SPRITE_CAMERA_POS)
+            mvc_cfg["view"]["CAMERA_FWD"] = list(SPRITE_CAMERA_FWD)
+
         mvc_path = work_dir / "mvc_cfg.yaml"
         with open(mvc_path, "w") as f:
             yaml.dump(mvc_cfg, f)
@@ -375,7 +457,12 @@ def render_animation(
             os.chdir(ANIMATED_DRAWINGS_DIR)
             import animated_drawings.render
 
-            animated_drawings.render.start(str(mvc_path))
+            frames = _capture_frames() if sprite_path else None
+            try:
+                animated_drawings.render.start(str(mvc_path))
+            finally:
+                if frames is not None:
+                    frames.release()
         except RenderError:
             raise
         except Exception as e:
@@ -389,11 +476,13 @@ def render_animation(
         output = Path(output_path)
         output.parent.mkdir(parents=True, exist_ok=True)
         _gif_to_mp4(gif_path, output)
+        sprite = _write_sprite(frames.frames, Path(sprite_path)) if frames is not None else None
 
         return {
             "format": "mp4",
             "motion": motion,
             "size_bytes": output.stat().st_size,
+            "sprite": sprite,
             "processing_time_ms": round((time.perf_counter() - started_at) * 1000),
         }
 
