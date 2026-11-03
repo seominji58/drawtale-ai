@@ -897,7 +897,8 @@ def analyze_image(image_path: str, mask_path: str | None = None) -> dict:
         # 캐릭터 영역(bbox)이 아니라 이미지 전체 크기다.
         mask_original = cv2.resize(
             mask,
-            (round(mask.shape[1] / scale), round(mask.shape[0] / scale)),
+            # 원본 크기 그대로 — 나눗셈 반올림이면 1px 어긋나(3,000px 사진) 렌더가 MASK_SIZE_MISMATCH 로 실패했다 (2026-11-03)
+            (original.shape[1], original.shape[0]),
             interpolation=cv2.INTER_NEAREST
         )
         if mask_original.shape[:2] == original.shape[:2]:
