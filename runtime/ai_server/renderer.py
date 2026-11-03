@@ -8,6 +8,8 @@ OpenCV에 H.264 인코더가 없어 MP4를 직접 만들 수 없으므로,
 GIF로 렌더링한 뒤 ffmpeg으로 MP4로 변환한다.
 """
 
+import hashlib
+from collections import OrderedDict
 import os
 import shutil
 import subprocess
@@ -284,6 +286,8 @@ SPRITE_WINDOW = 512
 SPRITE_CELL = 512
 SPRITE_COLS = 8
 SPRITE_MAX_FRAMES = 48
+# 같은 캐릭터의 준비 계산 다시 쓰기 (_reuse_setup). 끄면 늘 새로 계산 (검사 · 문제 생길 때)
+REUSE_SETUP = os.environ.get("DRAWTALE_REUSE_SETUP", "1") != "0"
 # 기본(Meta mvc_base_cfg)은 [0, 0.7, 2.0] · [0, 0.5, 2.0]. 기울기는 그대로 두고 가까이 · 조금 아래로
 SPRITE_CAMERA_POS = (0.0, 0.6, 1.35)   # 11/3 실측: 캐릭터가 칸 높이의 4할(기본은 3할), 뛰기 · 점프도 안 잘림
 SPRITE_CAMERA_FWD = (0.0, 0.5, 2.0)
@@ -324,6 +328,77 @@ class _capture_frames:
     def release(self) -> None:
         self._cls.process_frame = self._orig
         self._cls.cleanup = self._orig_cleanup
+
+
+# 같은 캐릭터의 다른 동작은 Meta 의 준비 계산(관절 → 삼각형 · 변형 계산기)이 똑같다 — 그림 · 틀 · 처음 관절 자리로만
+# 정해지고 동작과는 상관없다. 캐릭터 하나에 렌더가 5번(미리보기 + 동작 4)이라 매번 4초쯤 다시 계산했다 (11/3 저녁 실측:
+# 큰 사진 손 흔들기 6초 중 관절 → 삼각형 2.5초 · 변형 계산기 1.4초, 실제 그리기 0.4초). 입력이 같을 때만(해시) 다시 쓴다
+_SETUP_CACHE_SIZE = 2
+_jt_cache: "OrderedDict[str, dict]" = OrderedDict()
+_arap_cache: "OrderedDict[str, object]" = OrderedDict()
+
+
+def _digest(*parts) -> str:
+    h = hashlib.sha1()
+    for part in parts:
+        h.update(part.tobytes() if isinstance(part, np.ndarray) else repr(part).encode())
+    return h.hexdigest()
+
+
+def _remember(cache: "OrderedDict", key: str, value) -> None:
+    cache[key] = value
+    cache.move_to_end(key)
+    while len(cache) > _SETUP_CACHE_SIZE:
+        cache.popitem(last=False)
+
+
+class _reuse_setup:
+    """Meta AnimatedDrawing 의 준비 계산 두 가지를 입력이 같으면 다시 쓴다 (결과 · 부작용 모두 원래와 같게).
+
+    - _initialize_joint_to_triangles_dict: 결과(관절별 삼각형)를 기억하고, 원래 함수가 하는 부작용(관절 y 좌표 뒤집기)도 똑같이 한다
+    - ARAP(변형 계산기): 만든 뒤 바뀌지 않는다 — solve 는 임시 칸(b1)만 덮어쓴다. 같은 객체를 다시 넘긴다"""
+
+    def __init__(self) -> None:
+        import animated_drawings.model.animated_drawing as ad
+
+        self._mod, self._cls = ad, ad.AnimatedDrawing
+        self._orig_jt = ad.AnimatedDrawing._initialize_joint_to_triangles_dict
+        self._orig_arap = ad.ARAP
+        orig_jt, orig_arap = self._orig_jt, self._orig_arap
+
+        def jt(drawing):  # noqa: ANN001
+            skel = [(j["name"], j["parent"], tuple(j["loc"])) for j in drawing.char_cfg.skeleton]
+            tris = np.stack(drawing.mesh["triangles"]) if len(drawing.mesh["triangles"]) else np.zeros(0)
+            key = _digest(drawing.mask, drawing.img_dim, skel, np.asarray(drawing.mesh["vertices"]), tris)
+            hit = _jt_cache.get(key)
+            if hit is None:
+                orig_jt(drawing)
+                _remember(_jt_cache, key, {k: v.copy() for k, v in drawing.joint_to_tri_v_idx.items()})
+                return
+            for joint in drawing.char_cfg.skeleton:   # 원래 함수의 부작용 그대로
+                joint["loc"][1] = 1 - joint["loc"][1]
+            drawing.joint_to_tri_v_idx = {k: v.copy() for k, v in hit.items()}
+            _jt_cache.move_to_end(key)
+
+        def arap(pins_xy, triangles, vertices, w: int = 1000):  # noqa: ANN001
+            tris = np.stack(triangles) if len(triangles) else np.zeros(0)
+            key = _digest(np.asarray(pins_xy), tris, np.asarray(vertices), w)
+            hit = _arap_cache.get(key)
+            if hit is None:
+                hit = orig_arap(pins_xy, triangles, vertices, w)
+                # 준비할 때만 쓰는 큰 행렬(A1 · A2, 큰 사진이면 30MB) — 그릴 때(solve)는 희소 행렬만 쓴다. 메모리를 아낀다
+                hit.A1 = hit.A2 = None
+                _remember(_arap_cache, key, hit)
+            else:
+                _arap_cache.move_to_end(key)
+            return hit
+
+        ad.AnimatedDrawing._initialize_joint_to_triangles_dict = jt
+        ad.ARAP = arap
+
+    def release(self) -> None:
+        self._cls._initialize_joint_to_triangles_dict = self._orig_jt
+        self._mod.ARAP = self._orig_arap
 
 
 class _thin_frames:
@@ -554,10 +629,11 @@ def render_animation(
             frames = _capture_frames() if sprite_path else None
             still = _in_place() if sprite_path else None
             thin = _thin_frames() if sprite_path else None
+            reuse = _reuse_setup() if REUSE_SETUP else None
             try:
                 animated_drawings.render.start(str(mvc_path))
             finally:
-                for patch in (frames, still, thin):
+                for patch in (frames, still, thin, reuse):
                     if patch is not None:
                         patch.release()
         except RenderError:
