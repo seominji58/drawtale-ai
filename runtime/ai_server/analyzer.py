@@ -40,6 +40,12 @@ BG_BORDER = 4
 BG_UNIFORM_MAX = 30
 # 바탕색에서 이만큼 떨어진 색만 캐릭터로 본다 (RGB 거리). 둘레가 고르지 않을수록 높인다
 BG_DISTANCE_MIN = 60
+# 바탕색 방식에서 덩어리를 셀 때 메우는 틈 (그림 긴 변 대비) · 함께 남기는 덩어리 크기 (가장 큰 것 대비)
+BG_JOIN_GAP = 0.012
+BG_KEEP_PART = 0.03
+# 흰 종이로 보는 바탕: 가장 어두운 성분이 이 이상, 성분 차이가 이 이하 (그늘진 흰 종이 포함)
+WHITE_PAPER_MIN = 200
+WHITE_PAPER_TINT = 30
 
 # 마스크 둘레에서 종이색으로 볼 거리 (RGB). 연한 색연필 선이 남을 만큼 좁게 (2026-11-03 실제 사진으로 정함:
 # 24 는 연분홍 팔다리 선이 일부 깎였다)
@@ -536,31 +542,72 @@ def uniform_background(img: np.ndarray) -> tuple[np.ndarray, float] | None:
     return (color, spread) if spread <= BG_UNIFORM_MAX else None
 
 
-def color_distance_mask(img: np.ndarray, color: np.ndarray, spread: float) -> np.ndarray | None:
-    """바탕색과 다른 곳을 캐릭터로 본다. 가장 큰 덩어리 하나와 그 안의 구멍까지.
+def color_distance_mask(img: np.ndarray, color: np.ndarray, spread: float, joints: list | None = None) -> np.ndarray | None:
+    """바탕색과 다른 곳을 캐릭터로 본다. 가장 큰 덩어리와 관절이 놓인 덩어리, 그 안의 구멍까지.
 
     create_mask 는 색의 가장 어두운 성분(np.min)으로 선을 찾아 흰 종이를 전제로 한다.
-    빨강 · 노랑 바탕은 그 기준에서 어두워 바탕이 캐릭터 둘레에 두껍게 붙어 나왔다 (2026-11-03)."""
+    빨강 · 노랑 바탕은 그 기준에서 어두워 바탕이 캐릭터 둘레에 두껍게 붙어 나왔다 (2026-11-03).
+
+    연한 크레용으로 성글게 칠한 팔다리 · 얼굴은 바탕과 가까운 픽셀이 섞여 몸통과 끊어진 덩어리가 된다.
+    가장 큰 덩어리 하나만 남기면 그 팔이 통째로 빠졌다 (2026-11-03 저녁, 살구색 팔 · 얼굴).
+    그래서 덩어리를 셀 때만 틈을 메워 잇고, 관절이 놓인 덩어리 · 큰 덩어리는 함께 남긴다."""
 
     dist = np.linalg.norm(img.astype(np.float32) - color, axis=2)
     fg = (dist > max(BG_DISTANCE_MIN, 3 * spread)).astype(np.uint8)
     fg = cv2.morphologyEx(fg, cv2.MORPH_OPEN, np.ones((3, 3), np.uint8))
-    count, labels, stats, _ = cv2.connectedComponentsWithStats(fg)
+    k = max(5, round(max(img.shape[:2]) * BG_JOIN_GAP) | 1)
+    joined = cv2.morphologyEx(fg, cv2.MORPH_CLOSE, cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (k, k)))
+    count, labels, stats, _ = cv2.connectedComponentsWithStats(joined)
     if count < 2:
         return None
-    biggest = 1 + int(np.argmax(stats[1:, cv2.CC_STAT_AREA]))
-    mask = ndimage.binary_fill_holes(labels == biggest)
+    areas = stats[1:, cv2.CC_STAT_AREA]
+    keep = {1 + int(np.argmax(areas))} | {1 + i for i in np.flatnonzero(areas >= areas.max() * BG_KEEP_PART)}
+    h, w = labels.shape
+    for j in joints or []:
+        x, y = round(j["x"]), round(j["y"])
+        if 0 <= x < w and 0 <= y < h and labels[y, x] > 0:
+            keep.add(int(labels[y, x]))
+    mask = ndimage.binary_fill_holes(np.isin(labels, list(keep)))
     return (mask * 255).astype(np.uint8)
 
 
+def is_white_paper(color: np.ndarray) -> bool:
+    """바탕이 흰 종이 · 연한 회색인지 (밝고 색이 거의 없다)."""
+    return float(color.min()) >= WHITE_PAPER_MIN and float(color.max() - color.min()) <= WHITE_PAPER_TINT
+
+
 def build_mask(img: np.ndarray, bbox: dict, joints: list) -> np.ndarray:
-    # 단색 바탕이면 바탕색으로 먼저 잘라 본다. 관절이 캐릭터 위에 놓이지 않으면 기존 방식으로 간다
+    """흰 종이는 Meta 원본 방식(선 찾기, create_mask)이 먼저, 색 바탕은 바탕색 방식이 먼저.
+
+    바탕색 방식은 빨강 · 노랑 바탕이 선처럼 잡혀 둘레에 붙던 것 때문에 넣었다(1bd5d7a). 흰 종이에도 먼저 쓰니
+    연한 살구색으로 칠한 얼굴 · 팔이 바탕과 가까워 통째로 빠졌다 (2026-11-03 저녁 — 「이렇게 움직여요」에서
+    캐릭터가 반 잘림). 흰 종이 둘레에 붙는 종이색은 refine_mask 가 깎는다.
+    어느 쪽이든 관절이 캐릭터 위에 덜 놓이면 다른 방식과 견줘 더 많이 덮는 쪽을 쓴다."""
+
     background = uniform_background(img)
-    if background is not None:
-        mask = color_distance_mask(img, *background)
-        if mask is not None and joints_on_mask_ratio(mask, joints, 0, 0) >= MASK_JOINT_HIT_RATIO:
-            return mask
-    return _build_mask_by_lines(img, bbox, joints)
+    color_first = background is not None and not is_white_paper(background[0])
+
+    def by_color():
+        mask = color_distance_mask(img, *background, joints) if background is not None else None
+        return mask, (joints_on_mask_ratio(mask, joints, 0, 0) if mask is not None else 0.0)
+
+    def by_lines():
+        try:
+            mask = _build_mask_by_lines(img, bbox, joints)
+        except RuntimeError:
+            return None, 0.0
+        return mask, joints_on_mask_ratio(mask, joints, 0, 0)
+
+    first, second = (by_color, by_lines) if color_first else (by_lines, by_color)
+    mask, ratio = first()
+    if mask is not None and ratio >= 1.0:
+        return mask
+    other, other_ratio = second()
+    if other is not None and (mask is None or other_ratio > ratio):
+        return other
+    if mask is None:
+        raise RuntimeError("NO_CHARACTER_DETECTED: Mask contour not found")
+    return mask
 
 
 def _build_mask_by_lines(img: np.ndarray, bbox: dict, joints: list) -> np.ndarray:
