@@ -41,6 +41,12 @@ BG_UNIFORM_MAX = 30
 # 바탕색에서 이만큼 떨어진 색만 캐릭터로 본다 (RGB 거리). 둘레가 고르지 않을수록 높인다
 BG_DISTANCE_MIN = 60
 
+# 마스크 둘레에서 종이색으로 볼 거리 (RGB). 연한 색연필 선이 남을 만큼 좁게 (2026-11-03 실제 사진으로 정함:
+# 24 는 연분홍 팔다리 선이 일부 깎였다)
+PAPER_NEAR = 16
+# 종이색을 깎은 뒤 원래 마스크의 이만큼도 안 남으면 깎기가 잘못된 것으로 보고 원래 마스크를 쓴다
+PAPER_KEEP_MIN = 0.3
+
 # 점수 기준. 실제 그림으로 잰 값은 docs/진행상황.md 「점수 기준」.
 #
 # 검출 점수는 낙서·동그라미에도 0.97 이상이 나와 사람인지 가리지 못한다.
@@ -637,11 +643,49 @@ def _build_mask_by_lines(img: np.ndarray, bbox: dict, joints: list) -> np.ndarra
     return best_mask
 
 
+def refine_mask(img: np.ndarray, mask: np.ndarray) -> np.ndarray:
+    """마스크 둘레에서 종이색인 곳을 깎는다. 원본 크기에서 한다 (2026-11-03).
+
+    선 방식(create_mask)은 선으로 둘러싸인 곳을 통째로 캐릭터로 보고, 줄인 그림에서 만든 마스크를 늘려 쓴다.
+    사진으로 찍은 손그림은 팔다리 둘레 · 머리와 머리끈 사이의 종이가 네모 조각으로 붙어 나왔다.
+
+    종이색은 캐릭터 바깥에서만 재고(캐릭터 자리는 바깥 색으로 메움 — 그늘진 종이도 맞는다),
+    마스크 테두리에서 이어진 종이색만 지운다. 선에 막힌 안쪽(색칠하지 않은 몸)은 남는다.
+    떨어져 나간 팔다리 선은 렌더가 뼈대로 다시 잇는다 (renderer.mesh_mask).
+    """
+
+    h, w = mask.shape
+    inside = mask > 127
+    s = 400 / max(h, w)
+    small = cv2.resize(img, (max(1, round(w * s)), max(1, round(h * s))), interpolation=cv2.INTER_AREA)
+    hole = cv2.resize(mask, small.shape[1::-1], interpolation=cv2.INTER_NEAREST)
+    hole = cv2.dilate(hole, np.ones((5, 5), np.uint8))
+    paper = cv2.inpaint(cv2.medianBlur(small, 9), hole, 15, cv2.INPAINT_TELEA)
+    paper = cv2.resize(paper, (w, h), interpolation=cv2.INTER_LINEAR)
+
+    dist = np.linalg.norm(cv2.medianBlur(img, 3).astype(np.float32) - paper.astype(np.float32), axis=2)
+    cand = (inside & (dist < PAPER_NEAR)).astype(np.uint8)
+    _, labels = cv2.connectedComponents(cand, connectivity=8)
+    edge = inside & ~cv2.erode(inside.astype(np.uint8), np.ones((3, 3), np.uint8)).astype(bool)
+    touching = np.unique(labels[edge & (cand > 0)])
+    out = (inside & ~np.isin(labels, touching[touching > 0])).astype(np.uint8)
+
+    # 부스러기 정리: 가장 큰 덩어리의 0.2% 보다 작은 조각은 버린다 (팔다리 선 조각은 남는다)
+    count, lab, stats, _ = cv2.connectedComponentsWithStats(out, connectivity=8)
+    if count > 1:
+        areas = stats[1:, cv2.CC_STAT_AREA]
+        out = np.isin(lab, 1 + np.flatnonzero(areas >= areas.max() * 0.002)).astype(np.uint8)
+
+    if out.sum() < inside.sum() * PAPER_KEEP_MIN:
+        return mask
+    return out * 255
+
+
 def make_cutout(image_path: str, mask_path: str, out_path: str) -> bool:
     """배경을 투명하게 잘라 낸 캐릭터 PNG (2026-11-03).
 
     화면이 동작 영상 대신 정지 그림을 보일 때(미리보기를 만드는 중 · 대기 쪽 · 표지) 원본을 쓰면
-    사진 배경까지 나왔다. 렌더와 같게 마스크를 2px 안쪽으로 깎는다.
+    사진 배경까지 나왔다. 렌더와 같게 마스크를 1px 안쪽으로 깎는다.
     **원본과 같은 크기로 둔다** — 관절 좌표(원본 기준)를 쓰는 화면이 원본 자리에 그대로 바꿔 끼운다.
     """
 
@@ -649,7 +693,8 @@ def make_cutout(image_path: str, mask_path: str, out_path: str) -> bool:
     mask = cv2.imread(mask_path, cv2.IMREAD_GRAYSCALE)
     if img is None or mask is None or mask.shape[:2] != img.shape[:2]:
         return False
-    mask = cv2.erode(mask, np.ones((3, 3), np.uint8), iterations=2)
+    # 종이색을 이미 깎았으니(refine_mask) 1px 만 — 가는 팔다리 선이 사라지지 않게
+    mask = cv2.erode(mask, np.ones((3, 3), np.uint8), iterations=1)
     if not (mask > 127).any():
         return False
     rgba = cv2.cvtColor(img, cv2.COLOR_BGR2BGRA)
@@ -733,6 +778,7 @@ def analyze_image(image_path: str, mask_path: str | None = None) -> dict:
     # Meta 원본 코드와 동일하게 분석은 최대 1000px로 줄인 이미지로 한다.
     # 단, 응답 좌표는 scale로 다시 나눠 원본 이미지 기준으로 되돌린다.
     scale = 1.0
+    original = img
 
     if np.max(img.shape) > MAX_ANALYSIS_SIZE:
         scale = MAX_ANALYSIS_SIZE / np.max(img.shape)
@@ -807,6 +853,8 @@ def analyze_image(image_path: str, mask_path: str | None = None) -> dict:
             (round(mask.shape[1] / scale), round(mask.shape[0] / scale)),
             interpolation=cv2.INTER_NEAREST
         )
+        if mask_original.shape[:2] == original.shape[:2]:
+            mask_original = refine_mask(original, mask_original)
 
         Path(mask_path).parent.mkdir(parents=True, exist_ok=True)
         mask_saved = bool(cv2.imwrite(mask_path, mask_original))

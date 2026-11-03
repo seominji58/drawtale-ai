@@ -72,8 +72,44 @@ DEFAULT_MOTION = "wave_hello"
 # 캐릭터가 잘리지 않을 때까지 앞에서부터 차례로 시도한다.
 CROP_MARGINS = (0.12, 0.25, 0.40, 0.60)
 
-# 텍스처 마스크를 3x3 로 몇 번 깎나. 2 면 둘레 2px — 배경색 테두리는 지우고 굵은 선은 남는다
-MASK_ERODE_ITERATIONS = 2
+# 텍스처 마스크를 3x3 로 몇 번 깎나. 분석이 종이색을 이미 깎아(analyzer.refine_mask) 1px 만 —
+# 2px 면 가는 팔다리 선이 사라진다
+MASK_ERODE_ITERATIONS = 1
+
+# 움직이는 틀(메시)을 이을 뼈대 띠 굵기 (자른 그림 대각선 대비)
+BONE_BAND = 0.012
+BONES = (
+    ("hip", "torso"), ("torso", "neck"),
+    ("neck", "right_shoulder"), ("right_shoulder", "right_elbow"), ("right_elbow", "right_hand"),
+    ("neck", "left_shoulder"), ("left_shoulder", "left_elbow"), ("left_elbow", "left_hand"),
+    ("hip", "right_hip"), ("right_hip", "right_knee"), ("right_knee", "right_foot"),
+    ("hip", "left_hip"), ("left_hip", "left_knee"), ("left_knee", "left_foot"),
+)
+
+
+def mesh_mask(mask: np.ndarray, joints: list[dict]) -> np.ndarray:
+    """Meta 는 마스크에서 가장 큰 덩어리 하나만 움직인다 (나머지는 버림).
+    종이색을 깎으면 가는 팔다리 선이 몸통과 떨어진 조각이 되므로, 관절 사이 뼈대 띠로 이어 붙인다.
+    보이는 부분은 텍스처 투명도(깎은 마스크)가 정하니 띠 자리의 종이는 보이지 않는다 (2026-11-03)."""
+
+    out = mask.copy()
+    at = {j["name"]: (int(j["x"]), int(j["y"])) for j in joints}
+    width = max(3, round(BONE_BAND * float(np.hypot(*mask.shape[:2]))))
+    for a, b in BONES:
+        if a in at and b in at:
+            cv2.line(out, at[a], at[b], 255, width)
+    # 윤곽을 매끈하게 — Meta 는 윤곽 점마다 계산이 커져, 깎은 마스크의 들쭉날쭉한 윤곽 그대로면
+    # 렌더 한 번에 메모리가 1.6GB 를 넘어 컨테이너(2GB)가 죽었다. 틀이 조금 커져도 텍스처가 투명이라 안 보인다
+    k = max(3, round(BONE_BAND * float(np.hypot(*mask.shape[:2]))))
+    out = cv2.dilate(out, cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (k, k)))
+    out = np.where(cv2.GaussianBlur(out, (0, 0), k) > 127, 255, 0).astype(np.uint8)
+    count, labels, stats, _ = cv2.connectedComponentsWithStats((out > 127).astype(np.uint8), connectivity=8)
+    if count > 2:
+        biggest = 1 + int(np.argmax(stats[1:, cv2.CC_STAT_AREA]))
+        out = np.where(labels == biggest, 255, 0).astype(np.uint8)
+    out[[0, -1], :] = 0
+    out[:, [0, -1]] = 0
+    return out
 
 
 class RenderError(RuntimeError):
@@ -197,7 +233,6 @@ def prepare_character(
     texture[:, :, 3] = mask
 
     cv2.imwrite(str(char_dir / "texture.png"), texture)
-    cv2.imwrite(str(char_dir / "mask.png"), np.where(mask > 127, 255, 0).astype(np.uint8))
 
     # 관절 좌표를 원본 기준 -> crop 기준으로 옮긴다.
     # 사용자가 관절을 캐릭터 영역 밖으로 끌 수 있는데 Meta는 음수 좌표를 거부하므로,
@@ -210,6 +245,9 @@ def prepare_character(
         }
         for j in joints
     ]
+
+    # 움직이는 틀은 팔다리 조각을 뼈대로 이어 붙인 마스크 (보이는 부분은 위 텍스처)
+    cv2.imwrite(str(char_dir / "mask.png"), mesh_mask(np.where(mask > 127, 255, 0).astype(np.uint8), crop_joints))
 
     char_cfg = build_char_cfg(crop_joints, width=width, height=height)
     with open(char_dir / "char_cfg.yaml", "w") as f:
