@@ -315,6 +315,34 @@ class _capture_frames:
         self._cls.process_frame = self._orig
 
 
+class _in_place:
+    """걷기 · 뛰기에서 몸 전체가 옆으로 가는 것을 뺀다 (프레임 묶음일 때만, 11/3 사용자 「움직일 때 잘려나가」).
+
+    Meta 는 BVH 의 몸통 이동을 캐릭터에도 그대로 옮겨서 뛰기 · 걷기는 렌더 칸 안에서 오른쪽으로 흘러가
+    칸 끝(512px)을 넘는다 — 넘은 부분은 묶음에 없다. 장면 층은 화면이 주인공을 옮기므로(걸어 들어오기 ·
+    목표로 가기) 렌더는 제자리면 된다. 가로 이동의 직선 성분만 빼서 몸이 살짝 흔들리는 것과 위아래(점프)는 남긴다."""
+
+    def __init__(self) -> None:
+        from animated_drawings.model.retargeter import Retargeter
+
+        self._cls = Retargeter
+        self._orig = Retargeter.scale_root_positions_for_character
+        orig = self._orig
+
+        def scale(rt, *a, **kw):  # noqa: ANN001 — Meta 쪽 서명 그대로
+            orig(rt, *a, **kw)
+            x = rt.char_root_positions[:, 0]
+            if len(x) > 1:
+                t = np.arange(len(x), dtype=np.float32)
+                slope, icpt = np.polyfit(t, x, 1)
+                rt.char_root_positions[:, 0] = x - (slope * t + icpt) + x[0]
+
+        Retargeter.scale_root_positions_for_character = scale
+
+    def release(self) -> None:
+        self._cls.scale_root_positions_for_character = self._orig
+
+
 def _write_sprite(frames: list[np.ndarray], path: Path) -> dict:
     """RGBA 프레임들 → 투명 WebP 한 장. 프레임이 많으면 고르게 골라 SPRITE_MAX_FRAMES 장까지.
 
@@ -458,11 +486,14 @@ def render_animation(
             import animated_drawings.render
 
             frames = _capture_frames() if sprite_path else None
+            still = _in_place() if sprite_path else None
             try:
                 animated_drawings.render.start(str(mvc_path))
             finally:
                 if frames is not None:
                     frames.release()
+                if still is not None:
+                    still.release()
         except RenderError:
             raise
         except Exception as e:

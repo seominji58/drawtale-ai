@@ -127,7 +127,7 @@ def render(
 
     analyze가 남긴 원본 그림과 마스크를 재사용하므로 request_id가 필요하다.
     성공하면 MP4 파일을 그대로 반환한다.
-    sprite=true 면 `{"video": MP4 base64, "sprite": WebP base64, "sprite_frames", "sprite_box", "sprite_cell", "sprite_cols"}`
+    sprite=true 면 `{"video": MP4 base64, "sprite": WebP base64, "sprite_frames", "sprite_box", "sprite_cell", "sprite_cols", "sprite_in_place"}`
     JSON. sprite_box 는 첫 장에서 그림이 차지하는 자리 [left, top, right, bottom] (칸 대비 0~1).
     프레임 묶음은 바탕이 투명하고, 정사각 칸을 가로 sprite_cols 칸씩 줄 바꿔 늘어놓은 것이다 (S-09 장면 층, 2026-11-03).
     """
@@ -183,6 +183,8 @@ def render(
                 "sprite_box": result["sprite"]["box"],
                 "sprite_cell": SPRITE_CELL,
                 "sprite_cols": SPRITE_COLS,
+                # 걷기 · 뛰기도 제자리 (renderer._in_place) — 옮기는 것은 화면이 한다. 백엔드가 예전 묶음을 가려 다시 렌더한다
+                "sprite_in_place": True,
             }
             sprite_path.unlink(missing_ok=True)
             return JSONResponse(body, headers=headers)
