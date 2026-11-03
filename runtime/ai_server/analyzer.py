@@ -576,6 +576,51 @@ def is_white_paper(color: np.ndarray) -> bool:
     return float(color.min()) >= WHITE_PAPER_MIN and float(color.max() - color.min()) <= WHITE_PAPER_TINT
 
 
+# 덜 칠한 몸 메우기 (fill_body) — 틈을 이을 굵기(캐릭터 대각선 대비)와 뼈대
+BODY_GAP = 0.05
+BODY_BONES = (
+    ("hip", "torso"), ("torso", "neck"),
+    ("neck", "right_shoulder"), ("right_shoulder", "right_elbow"), ("right_elbow", "right_hand"),
+    ("neck", "left_shoulder"), ("left_shoulder", "left_elbow"), ("left_elbow", "left_hand"),
+    ("hip", "right_hip"), ("right_hip", "right_knee"), ("right_knee", "right_foot"),
+    ("hip", "left_hip"), ("left_hip", "left_knee"), ("left_knee", "left_foot"),
+)
+
+
+def fill_body(mask: np.ndarray, joints: list, bbox: dict, scale: float = 1.0) -> np.ndarray:
+    """칠하지 않았거나 덜 칠한 몸 안쪽이 배경으로 빠진 것을 메운다 (2026-11-03 사용자 「채색을 덜 한 부분이 배경처럼」).
+
+    몸을 칠하지 않은 그림은 윤곽선이 한 곳만 끊겨도 바깥 종이가 그 틈으로 이어져 몸통 안쪽이 통째로 배경이 됐다.
+    마스크를 크게 메워(틈 잇기 + 구멍 채우기) 새로 생긴 덩어리 가운데 **관절 뼈대가 지나가는 것만** 더한다 —
+    팔과 몸 사이 · 다리 사이처럼 뼈대가 지나지 않는 빈 곳은 그대로 배경이다. scale 은 joints · bbox 를 mask 크기로 맞추는 배율."""
+
+    m = mask > 127
+    if not m.any():
+        return mask
+    diag = float(np.hypot((bbox["right"] - bbox["left"]) * scale, (bbox["bottom"] - bbox["top"]) * scale))
+    k = max(5, round(diag * BODY_GAP) | 1)
+    closed = cv2.morphologyEx(m.astype(np.uint8), cv2.MORPH_CLOSE, cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (k, k))) > 0
+    added = ndimage.binary_fill_holes(closed) & ~m
+    if not added.any():
+        return mask
+    labels, n = ndimage.label(added)
+    at = {j["name"]: (j["x"] * scale, j["y"] * scale) for j in joints}
+    h, w = m.shape
+    keep = set()
+    for a, b in BODY_BONES:
+        if a not in at or b not in at:
+            continue
+        for t in np.linspace(0.0, 1.0, 24):
+            x = round(at[a][0] + (at[b][0] - at[a][0]) * t)
+            y = round(at[a][1] + (at[b][1] - at[a][1]) * t)
+            if 0 <= x < w and 0 <= y < h and labels[y, x]:
+                keep.add(int(labels[y, x]))
+    if not keep:
+        return mask
+    out = m | np.isin(labels, list(keep))
+    return (out * 255).astype(np.uint8)
+
+
 def build_mask(img: np.ndarray, bbox: dict, joints: list) -> np.ndarray:
     """흰 종이는 Meta 원본 방식(선 찾기, create_mask)이 먼저, 색 바탕은 바탕색 방식이 먼저.
 
@@ -903,6 +948,8 @@ def analyze_image(image_path: str, mask_path: str | None = None) -> dict:
         )
         if mask_original.shape[:2] == original.shape[:2]:
             mask_original = refine_mask(original, mask_original)
+        # 종이색 깎기 다음에 — 깎기가 틈으로 이어진 칠하지 않은 몸 안쪽을 또 지우므로 마지막에 메운다
+        mask_original = fill_body(mask_original, joints, bbox, 1 / scale)
 
         Path(mask_path).parent.mkdir(parents=True, exist_ok=True)
         mask_saved = bool(cv2.imwrite(mask_path, mask_original))
