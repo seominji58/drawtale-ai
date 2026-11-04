@@ -21,7 +21,7 @@ import cv2
 import numpy as np
 import yaml
 
-from ai_server import face_lock
+from ai_server import face_lock, forms
 
 ANIMATED_DRAWINGS_DIR = Path(
     os.getenv("ANIMATED_DRAWINGS_DIR", "/opt/AnimatedDrawings")
@@ -120,8 +120,10 @@ def mesh_mask(mask: np.ndarray, joints: list[dict]) -> np.ndarray:
 
     out = mask.copy()
     at = {j["name"]: (int(j["x"]), int(j["y"])) for j in joints}
+    form = forms.form_or_default(set(at))
+    bones = BONES if form == forms.DEFAULT else forms.bones(form)   # 사람은 목 → 어깨 (부모 관계와 다르다)
     width = max(3, round(BONE_BAND * float(np.hypot(*mask.shape[:2]))))
-    for a, b in BONES:
+    for a, b in bones:
         if a in at and b in at:
             cv2.line(out, at[a], at[b], 255, width)
     # 윤곽을 매끈하게 — Meta 는 윤곽 점마다 계산이 커져, 깎은 마스크의 들쭉날쭉한 윤곽 그대로면
@@ -143,11 +145,16 @@ class RenderError(RuntimeError):
 
 
 def build_char_cfg(joints: list[dict], width: int, height: int) -> dict:
-    """관절 15개로 Meta char_cfg.yaml 내용을 만든다. 좌표는 crop 이미지 기준."""
+    """관절로 Meta char_cfg.yaml 내용을 만든다. 좌표는 crop 이미지 기준.
+    뼈대(관절 이름 · 부모)는 관절 이름으로 알아본 형태의 정의에서 (forms/*.json, pt_docs 19)."""
 
     by_name = {j["name"]: j for j in joints}
+    try:
+        parents = forms.parents(forms.form_of(set(by_name)))
+    except KeyError:
+        parents = JOINT_PARENTS        # 이름이 모자라면 아래에서 사람 관절 기준으로 무엇이 빠졌는지 알린다
 
-    missing = [n for n in JOINT_PARENTS if n != "root" and n not in by_name]
+    missing = [n for n in parents if n != "root" and n not in by_name]
     if missing:
         raise RenderError(f"INVALID_JOINTS: missing joints {missing}")
 
@@ -156,7 +163,7 @@ def build_char_cfg(joints: list[dict], width: int, height: int) -> dict:
     by_name["root"] = {"name": "root", "x": hip["x"], "y": hip["y"]}
 
     skeleton = []
-    for name, parent in JOINT_PARENTS.items():
+    for name, parent in parents.items():
         joint = by_name[name]
         skeleton.append(
             {
@@ -319,6 +326,8 @@ SPRITE_COLS = 8
 SPRITE_MAX_FRAMES = 48
 # 같은 캐릭터의 준비 계산 다시 쓰기 (_reuse_setup). 끄면 늘 새로 계산 (검사 · 문제 생길 때)
 REUSE_SETUP = os.environ.get("DRAWTALE_REUSE_SETUP", "1") != "0"
+# 꼬리 흔들기 각 (4족형 꼬리 첫 마디 기준, 끝 마디는 1.5배 — _tail_wag)
+TAIL_WAG_DEG = 14.0
 # 기본(Meta mvc_base_cfg)은 [0, 0.7, 2.0] · [0, 0.5, 2.0]. 기울기는 그대로 두고 가까이 · 조금 아래로
 SPRITE_CAMERA_POS = (0.0, 0.6, 1.35)   # 11/3 실측: 캐릭터가 칸 높이의 4할(기본은 3할), 뛰기 · 점프도 안 잘림
 SPRITE_CAMERA_FWD = (0.0, 0.5, 2.0)
@@ -430,6 +439,52 @@ class _reuse_setup:
     def release(self) -> None:
         self._cls._initialize_joint_to_triangles_dict = self._orig_jt
         self._mod.ARAP = self._orig_arap
+
+
+class _tail_wag:
+    """옆모습 형태(4족형)의 동작 손질 — 머리 쪽으로 걷게 뒤집기 · 꼬리 흔들기.
+
+    뒤집기 (11/4 사용자 「얼굴 방향에 따라 < 인지 > 인지」): 동작 파일은 화면 오른쪽으로 걷는다. 머리가 왼쪽인 그림
+    (실제 그림 8장 모두)은 꼬리 쪽으로 걸음을 내디뎌 뒤로 걸었다 — 몸이 오른쪽으로 흘렀다(재 보니 +0.011 · +0.015).
+    목이 엉덩이보다 왼쪽이면 모든 뼈 방향을 세로축에 대해 뒤집고(각 → 360 − 각) 몸통 가로 이동도 뒤집는다.
+
+    꼬리 흔들기 (11/4 사용자 「꼬리도 적용시켜줘」).
+
+    동작 파일은 사람 것이라 꼬리 움직임이 없다. Meta 는 대응표에 있는 뼈만 사람 뼈 방향을 「그대로」 따라가서
+    꼬리를 팔에 대응시키면 팔처럼 아래로 늘어진다 — 그래서 대응표에 넣지 않고, 동작 계산이 끝난 뒤
+    꼬리 두 마디의 방향을 「그림의 원래 방향 ± 흔들기」로 직접 넣는다. 한 동작에 두 번, 끝 마디는 반만큼 더 휜다
+    (팀원 실험 hankan-experiments animal-monster/quadruped.py 의 TAIL_WAG 14° · sin(4πt) 와 같다).
+    장 수의 정수배 주기라 반복해도 끊기지 않는다. 꼬리가 없는 그림은 점이 엉덩이에 겹쳐 길이가 0 — 돌려도 아무것도 안 끈다"""
+
+    def __init__(self) -> None:
+        import animated_drawings.model.animated_drawing as ad
+
+        self._cls = ad.AnimatedDrawing
+        self._orig = ad.AnimatedDrawing._initialize_retargeter_bvh
+        orig = self._orig
+
+        def init(drawing, *a, **kw):  # noqa: ANN001 — Meta 쪽 서명 그대로
+            orig(drawing, *a, **kw)
+            root = drawing.rig.root_joint
+            mid, tip = root.get_transform_by_name("tail_mid"), root.get_transform_by_name("tail_tip")
+            if mid is None or tip is None:      # 꼬리 관절이 없는 형태(2족형)는 손대지 않는다
+                return
+            rt = drawing.retargeter
+            neck, hip = root.get_transform_by_name("neck"), root.get_transform_by_name("hip")
+            if neck is not None and hip is not None and neck.get_world_position()[0] < hip.get_world_position()[0]:
+                for k, v in rt.char_joint_to_orientation.items():
+                    rt.char_joint_to_orientation[k] = ((360.0 - v) % 360.0).astype(np.float32)
+                x = rt.char_root_positions[:, 0]
+                rt.char_root_positions[:, 0] = 2 * x[0] - x
+            n = rt.joint_positions.shape[0]
+            wag = TAIL_WAG_DEG * np.sin(4 * np.pi * np.arange(n) / n)
+            rt.char_joint_to_orientation["tail_mid"] = (mid.starting_theta + wag).astype(np.float32)
+            rt.char_joint_to_orientation["tail_tip"] = (tip.starting_theta + 1.5 * wag).astype(np.float32)
+
+        ad.AnimatedDrawing._initialize_retargeter_bvh = init
+
+    def release(self) -> None:
+        self._cls._initialize_retargeter_bvh = self._orig
 
 
 class _thin_frames:
@@ -608,12 +663,21 @@ def render_animation(
 
     started_at = time.perf_counter()
 
-    if motion not in MOTIONS:
+    form = forms.form_or_default({j["name"] for j in joints})
+    if form != forms.DEFAULT:
+        # 2족형이 아닌 형태는 형태 정의의 동작 · 대응표 (pt_docs 19 6장). 없는 동작은 backend 가 대신 동작으로 바꿔 부른다
+        spec = forms.get(form)
+        if motion not in spec.get("motions", {}):
+            raise RenderError(f"UNKNOWN_MOTION: {motion} for {form} (available: {', '.join(spec.get('motions', {}))})")
+        motion_cfg_path = _GENTLE_MOTIONS / spec["motions"][motion]
+        retarget_path = _GENTLE_MOTIONS / spec["retarget"]
+    elif motion not in MOTIONS:
         raise RenderError(
             f"UNKNOWN_MOTION: {motion} (available: {', '.join(MOTIONS)})"
         )
 
-    motion_cfg_path, retarget_path = MOTIONS[motion]
+    else:
+        motion_cfg_path, retarget_path = MOTIONS[motion]
 
     work_dir = Path(tempfile.mkdtemp(prefix="drawtale-render-"))
 
@@ -644,8 +708,10 @@ def render_animation(
             # 기본 카메라는 캐릭터가 화면 높이의 3할 남짓이라 장면에서 늘리면 흐려진다 — 가까이 당긴다.
             # 모든 동작이 같은 카메라라 같은 캐릭터면 크기 · 발끝 자리가 같다 (팔 · 점프 여유는 남긴다)
             mvc_cfg["view"]["WINDOW_DIMENSIONS"] = [SPRITE_WINDOW, SPRITE_WINDOW]
-            mvc_cfg["view"]["CAMERA_POS"] = list(SPRITE_CAMERA_POS)
-            mvc_cfg["view"]["CAMERA_FWD"] = list(SPRITE_CAMERA_FWD)
+            # 옆으로 긴 형태(4족형)는 사람 기준 카메라면 칸 양끝이 잘린다 — 형태 정의에서 카메라를 물린다
+            cam = forms.get(form).get("sprite_camera", {})
+            mvc_cfg["view"]["CAMERA_POS"] = list(cam.get("pos", SPRITE_CAMERA_POS))
+            mvc_cfg["view"]["CAMERA_FWD"] = list(cam.get("fwd", SPRITE_CAMERA_FWD))
 
         mvc_path = work_dir / "mvc_cfg.yaml"
         with open(mvc_path, "w") as f:
@@ -653,7 +719,7 @@ def render_animation(
 
         # 큰 얼굴을 원본 그대로 옮겨 붙일 그림인지 (face_lock — 머리가 크고 목 없는 그림만). 그런 그림은
         # 프레임을 늘 가로챈다(MP4 만 만들 때도) — 붙인 얼굴이 MP4 · 프레임 묶음 둘 다에 들어가게
-        face = face_lock.plan(char_dir) if FACE_LOCK else None
+        face = face_lock.plan(char_dir) if FACE_LOCK and form == forms.DEFAULT else None   # 큰 얼굴 붙이기는 사람 그림만
         capture = bool(sprite_path) or face is not None
 
         def run_meta():
@@ -668,10 +734,11 @@ def render_animation(
                 still = _in_place() if sprite_path else None
                 thin = _thin_frames() if sprite_path else None
                 reuse = _reuse_setup() if REUSE_SETUP else None
+                wag = _tail_wag()
                 try:
                     animated_drawings.render.start(str(mvc_path))
                 finally:
-                    for patch in (frames, still, thin, reuse):
+                    for patch in (frames, still, thin, reuse, wag):
                         if patch is not None:
                             patch.release()
                 return frames

@@ -1,0 +1,99 @@
+{
+  "id": "biped",
+  "label": "2족형",
+  "group": "humanoid",
+  "kid_label": "두 발로 서는 친구",
+  "examples": [
+    "사람",
+    "곰인형",
+    "펭귄"
+  ],
+  "view": "front",
+  "find": "pose_model",
+  "root_at": "hip",
+  "joints": [
+    {
+      "name": "hip",
+      "parent": "root",
+      "label": "엉덩이"
+    },
+    {
+      "name": "torso",
+      "parent": "hip",
+      "label": "몸통"
+    },
+    {
+      "name": "neck",
+      "parent": "torso",
+      "label": "얼굴"
+    },
+    {
+      "name": "right_shoulder",
+      "parent": "torso",
+      "label": "오른쪽 어깨"
+    },
+    {
+      "name": "right_elbow",
+      "parent": "right_shoulder",
+      "label": "오른쪽 팔꿈치"
+    },
+    {
+      "name": "right_hand",
+      "parent": "right_elbow",
+      "label": "오른쪽 손목"
+    },
+    {
+      "name": "left_shoulder",
+      "parent": "torso",
+      "label": "왼쪽 어깨"
+    },
+    {
+      "name": "left_elbow",
+      "parent": "left_shoulder",
+      "label": "왼쪽 팔꿈치"
+    },
+    {
+      "name": "left_hand",
+      "parent": "left_elbow",
+      "label": "왼쪽 손목"
+    },
+    {
+      "name": "right_hip",
+      "parent": "root",
+      "label": "오른쪽 골반"
+    },
+    {
+      "name": "right_knee",
+      "parent": "right_hip",
+      "label": "오른쪽 무릎"
+    },
+    {
+      "name": "right_foot",
+      "parent": "right_knee",
+      "label": "오른쪽 발목"
+    },
+    {
+      "name": "left_hip",
+      "parent": "root",
+      "label": "왼쪽 골반"
+    },
+    {
+      "name": "left_knee",
+      "parent": "left_hip",
+      "label": "왼쪽 무릎"
+    },
+    {
+      "name": "left_foot",
+      "parent": "left_knee",
+      "label": "왼쪽 발목"
+    }
+  ],
+  "guide": [
+    "점을 끌어서 그림의 관절 자리에 맞춰 주세요. 목록을 누르면 그 점이 커져요"
+  ],
+  "hero": {
+    "fit": "height",
+    "facing": "front"
+  },
+  "ready": true
+}

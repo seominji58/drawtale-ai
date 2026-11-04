@@ -1,0 +1,138 @@
+{
+  "id": "quadruped",
+  "label": "4족형",
+  "group": "nonhumanoid",
+  "kid_label": "네 발로 걷는 친구",
+  "examples": [
+    "강아지",
+    "고양이",
+    "공룡"
+  ],
+  "view": "side",
+  "find": "mask_quadruped",
+  "root_at": "hip",
+  "joints": [
+    {
+      "name": "hip",
+      "parent": "root",
+      "label": "엉덩이"
+    },
+    {
+      "name": "torso",
+      "parent": "hip",
+      "label": "어깨"
+    },
+    {
+      "name": "neck",
+      "parent": "torso",
+      "label": "목"
+    },
+    {
+      "name": "right_hip_b",
+      "parent": "root",
+      "label": "뒷다리 1 위"
+    },
+    {
+      "name": "right_knee_b",
+      "parent": "right_hip_b",
+      "label": "뒷다리 1 무릎"
+    },
+    {
+      "name": "right_foot_b",
+      "parent": "right_knee_b",
+      "label": "뒷다리 1 발"
+    },
+    {
+      "name": "left_hip_b",
+      "parent": "root",
+      "label": "뒷다리 2 위"
+    },
+    {
+      "name": "left_knee_b",
+      "parent": "left_hip_b",
+      "label": "뒷다리 2 무릎"
+    },
+    {
+      "name": "left_foot_b",
+      "parent": "left_knee_b",
+      "label": "뒷다리 2 발"
+    },
+    {
+      "name": "right_hip_f",
+      "parent": "root",
+      "label": "앞다리 1 위"
+    },
+    {
+      "name": "right_knee_f",
+      "parent": "right_hip_f",
+      "label": "앞다리 1 무릎"
+    },
+    {
+      "name": "right_foot_f",
+      "parent": "right_knee_f",
+      "label": "앞다리 1 발"
+    },
+    {
+      "name": "left_hip_f",
+      "parent": "root",
+      "label": "앞다리 2 위"
+    },
+    {
+      "name": "left_knee_f",
+      "parent": "left_hip_f",
+      "label": "앞다리 2 무릎"
+    },
+    {
+      "name": "left_foot_f",
+      "parent": "left_knee_f",
+      "label": "앞다리 2 발"
+    },
+    {
+      "name": "tail",
+      "parent": "hip",
+      "label": "꼬리 뿌리"
+    },
+    {
+      "name": "tail_mid",
+      "parent": "tail",
+      "label": "꼬리 가운데"
+    },
+    {
+      "name": "tail_tip",
+      "parent": "tail_mid",
+      "label": "꼬리 끝"
+    }
+  ],
+  "guide": [
+    "엉덩이 → 어깨 → 목 → 뒷다리 → 앞다리 순서예요",
+    "어깨는 등 가운데가 아니라 목 바로 밑이에요",
+    "다리가 아래로 가게 그림을 돌려 두면 잘 찾아요",
+    "꼬리가 없으면 꼬리 점 셋을 엉덩이에 겹쳐 두면 돼요"
+  ],
+  "retarget": "quadruped/four_legs_cmu.yaml",
+  "motions": {
+    "walk": "quadruped/walk.yaml",
+    "run": "quadruped/run.yaml",
+    "jumping_gentle": "quadruped/jumping_gentle.yaml",
+    "breathe": "quadruped/breathe.yaml",
+    "shiver": "quadruped/shiver.yaml"
+  },
+  "hero": {
+    "fit": "width",
+    "facing": "auto"
+  },
+  "ready": true,
+  "sprite_camera": {
+    "pos": [
+      0.0,
+      0.45,
+      2.2
+    ],
+    "fwd": [
+      0.0,
+      0.45,
+      2.0
+    ],
+    "_why": "옆으로 긴 몸이라 사람 기준(0.6, 1.35)이면 칸 양끝이 잘렸다. 2.2 에서 호랑이 · 줄무늬 동물 · 고양이 모두 잘리지 않음 (11/4)"
+  }
+}

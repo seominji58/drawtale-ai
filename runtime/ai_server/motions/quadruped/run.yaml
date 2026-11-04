@@ -1,0 +1,10 @@
+# 4족형 run — 사람 run 와 같은 CMU 동작(../run.bvh)을 네 발 대응표(four_legs_cmu.yaml)로. 10/20 · 11/4 시험(experiments/quadruped) 설정 그대로
+filepath: ../run.bvh
+start_frame_idx: 0
+end_frame_idx: 36
+groundplane_joint: LeftFoot
+forward_perp_joint_vectors:
+  - [LeftShoulder, RightShoulder]
+  - [LeftUpLeg, RightUpLeg]
+scale: 0.025
+up: +y

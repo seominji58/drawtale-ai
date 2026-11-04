@@ -42,6 +42,11 @@ class AnalyzeResponse(BaseModel):
 
     # 캐릭터 검출 점수 (0~1). 낮으면 백엔드·프론트가 어른 확인을 권한다
     confidence: float | None = None
+
+    # 형태 (pt_docs 19, forms/*.json). 관절 이름이 형태마다 다르다
+    form: str = "biped"
+    # 관절을 실제로 찾았나. False 면 형태의 기본 뼈대를 그림 크기에 맞춰 놓은 것 — 화면이 관절 고치기로 보낸다
+    joints_found: bool = True
     mask: MaskInfo | None = None
     message: str | None = None
 

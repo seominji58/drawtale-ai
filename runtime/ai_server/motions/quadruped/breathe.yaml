@@ -1,0 +1,12 @@
+# 4족형 breathe — 사람 동작 ../breathe.bvh 를 네 발 대응표(four_legs_cmu.yaml)로 (11/4 시험 experiments/quadruped)
+filepath: ../breathe.bvh
+start_frame_idx: 0
+end_frame_idx: 60
+groundplane_joint: LeftFoot
+forward_perp_joint_vectors:
+- - LeftShoulder
+  - RightShoulder
+- - LeftUpLeg
+  - RightUpLeg
+scale: 0.025
+up: +y

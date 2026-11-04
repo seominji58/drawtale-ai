@@ -20,6 +20,7 @@ from ai_server.analyzer import (
     check_torchserve,
 )
 from ai_server.renderer import MOTIONS, SPRITE_CELL, SPRITE_COLS, RenderError, render_animation
+from ai_server import forms
 from ai_server.schemas import AnalyzeResponse, HealthResponse
 
 log = logging.getLogger(__name__)
@@ -66,14 +67,34 @@ def health():
     )
 
 
+@app.get("/internal/v1/forms")
+def list_forms():
+    """형태 정의 전부 (pt_docs 19). backend 가 받아 관절 검증 · 화면(형태 고르기 · 관절 고치기)에 쓴다.
+    ready=false 인 형태는 화면이 숨긴다."""
+
+    return {"forms": list(forms.all_forms().values())}
+
+
 # 분석·렌더링은 CPU를 오래 쓰므로 def로 둔다.
 # async def로 두면 처리하는 동안 /health 등 다른 요청까지 멈춘다.
 @app.post("/internal/v1/analyze", response_model=AnalyzeResponse)
-def analyze(file: UploadFile = File(...)):
+def analyze(
+    file: UploadFile = File(...),
+    form: str = Form("biped", description="형태 (GET /internal/v1/forms). 없으면 사람(2족형)"),
+    facing: str = Form("", description="옆모습 형태의 머리 쪽 left · right. 없으면 추측 (「얼굴이 반대쪽이에요」)"),
+):
     """그림을 분석해 bbox, 관절 15개를 반환한다.
+
+    form 이 4족형이면 사람 관절 모델 없이 마스크 모양으로 찾는다 (pt_docs 19). 다리를 못 찾으면
+    joints_found=False 와 기본 뼈대 — 실패로 돌려보내지 않는다(화면이 관절 고치기로 보낸다).
 
     렌더링에 필요한 원본 그림과 마스크는 request_id 폴더에 저장해 둔다.
     """
+
+    try:
+        forms.get(form)
+    except KeyError as e:
+        return AnalyzeResponse(success=False, message=str(e).strip("'"))
 
     purge_old_sessions()
 
@@ -89,7 +110,8 @@ def analyze(file: UploadFile = File(...)):
         with open(temp_path, "wb") as f:
             f.write(file.file.read())
 
-        result = analyze_image(temp_path, mask_path=str(session_dir / "mask.png"))
+        result = analyze_image(temp_path, mask_path=str(session_dir / "mask.png"), form=form,
+                               facing=facing if facing in ("left", "right") else None)
 
         if not result.get("success"):
             shutil.rmtree(session_dir, ignore_errors=True)
@@ -101,7 +123,7 @@ def analyze(file: UploadFile = File(...)):
         # 렌더링에서 재사용할 정보를 남긴다
         with open(session_dir / "analysis.json", "w") as f:
             json.dump(
-                {"bbox": result["bbox"], "source": os.path.basename(temp_path)}, f
+                {"bbox": result["bbox"], "source": os.path.basename(temp_path), "form": result.get("form", "biped")}, f
             )
 
         return AnalyzeResponse(request_id=request_id, **result)
