@@ -73,6 +73,15 @@ MOTIONS: dict[str, tuple[Path, Path]] = {
     "walk_orig": (_GENTLE_MOTIONS / "walk.yaml", _GENTLE_MOTIONS / "cmu1_human.yaml"),
     "run_orig": (_GENTLE_MOTIONS / "run.yaml", _GENTLE_MOTIONS / "cmu1_human.yaml"),
     "dab_gentle": (_GENTLE_MOTIONS / "dab_gentle.yaml", _META_RETARGET / "fair1_ppf.yaml"),
+    # 이야기 쪽 동작 9개 (2026-11-04, pt_docs 17 — 쪽 45%가 가만히였다). CMU 후보 32개 중 평면 그림에서 몸이
+    # 뒤집히거나 팔이 뭉개지지 않고 서로 달라 보이는 것만 골랐고, 만세 · 떨기는 관절 각도로 만들었다.
+    # 이름은 백엔드 쪽 동작 이름과 같다. 만드는 법은 runtime/tools/install_more_motions.py
+    **{
+        name: (_GENTLE_MOTIONS / f"{name}.yaml", _GENTLE_MOTIONS / "cmu1_front.yaml")
+        for name in (
+            "breathe", "shiver", "hooray", "point", "fly", "swim", "march", "kick", "search",
+        )
+    },
 }
 DEFAULT_MOTION = "wave_hello"
 

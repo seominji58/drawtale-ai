@@ -1,0 +1,13 @@
+# 91_19, knees x2.0 — install_more_motions.py, 2026-11-04. Use with cmu1_front.yaml
+# CMU Mocap (source: CMU-NOTICE.md) unless built from joint angles
+filepath: march.bvh
+start_frame_idx: 0
+end_frame_idx: 76
+groundplane_joint: LeftFoot
+forward_perp_joint_vectors:
+- - LeftShoulder
+  - RightShoulder
+- - LeftUpLeg
+  - RightUpLeg
+scale: 0.025
+up: +y
