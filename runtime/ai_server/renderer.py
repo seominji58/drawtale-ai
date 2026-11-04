@@ -99,6 +99,8 @@ MASK_ERODE_ITERATIONS = 1
 RENDER_MAX_SIDE = 800
 # 움직이는 틀 윤곽을 매끈하게 넘기는 흐림 정도 (px)
 MESH_SMOOTH = 2.0
+# 가장자리에 닿은 그림에 덧대는 투명 여백 (긴 변 대비)
+EDGE_PAD = 0.04
 
 # 움직이는 틀(메시)을 이을 뼈대 띠 굵기 (자른 그림 대각선 대비)
 BONE_BAND = 0.012
@@ -252,10 +254,20 @@ def prepare_character(
         raise RenderError("INVALID_BBOX: character bounding box is invalid")
 
     cropped = image[top:bottom, left:right]
-    height, width = cropped.shape[:2]
 
     # 마스크는 원본 전체 크기이므로 같은 범위로 자른다
     mask = mask[top:bottom, left:right].copy()
+
+    # 사진 가장자리에 닿은 그림(잘라 낼 여유가 없어 그림 칸 = 사진 전체)은 둘레에 투명 여백을 덧댄다.
+    # 아니면 아래 윤곽 흐리기(MESH_SMOOTH)가 가장자리 쪽 윤곽을 끊어 Meta 가 틀을 절반만 만들었다 —
+    # S-05 미리보기에서 캐릭터 왼쪽 절반이 잘림 (2026-11-04 사용자, Meta 예제 char1: 손끝이 사진 왼쪽 끝에 닿음).
+    # 닿지 않는 그림은 그대로 둔다 (Meta 는 그림 칸 크기로 캐릭터 크기를 잡아, 늘 덧대면 다른 그림 크기도 바뀐다)
+    if mask[0].any() or mask[-1].any() or mask[:, 0].any() or mask[:, -1].any():
+        pad = max(8, round(EDGE_PAD * max(mask.shape[:2])))
+        cropped = cv2.copyMakeBorder(cropped, pad, pad, pad, pad, cv2.BORDER_REPLICATE)
+        mask = cv2.copyMakeBorder(mask, pad, pad, pad, pad, cv2.BORDER_CONSTANT, value=0)
+        left, top = left - pad, top - pad   # 관절을 옮길 때 같은 만큼 더해지게
+    height, width = cropped.shape[:2]
 
     # 마스크가 가장자리까지 차면 Meta 메시가 윤곽선을 찾지 못해 렌더가 실패한다
     mask[[0, -1], :] = 0
