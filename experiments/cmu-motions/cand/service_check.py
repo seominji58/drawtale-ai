@@ -19,7 +19,7 @@ from ai_server import renderer  # noqa: E402
 HERE = Path(__file__).parent.resolve()
 CHAR = Path("/opt/AnimatedDrawings/examples/characters/char1")
 NEW = ["breathe", "sway", "cheer", "laugh", "hooray", "clap", "skip_walk", "march", "sad_walk",
-       "point", "reach", "kick", "search", "tilt", "shiver", "swim", "fly", "monkey", "elephant"]
+       "point", "reach", "kick", "search", "shiver", "swim", "fly", "monkey", "elephant"]
 
 cfg = yaml.safe_load((CHAR / "char_cfg.yaml").read_text())
 joints = [{"name": j["name"], "x": j["loc"][0], "y": j["loc"][1]} for j in cfg["skeleton"]]

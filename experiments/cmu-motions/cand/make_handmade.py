@@ -106,11 +106,11 @@ def shiver(v, t):
 
 def clap_overhead(v, t):
     s = 0.5 - 0.5 * np.cos(2 * np.pi * 4 * t)     # 2초에 네 번 모음
-    arms(v, 68 + 18 * s, fore_deg=15 + 15 * s)
+    arms(v, 58 + 14 * s, fore_deg=10 + 10 * s)       # 11/4 68~86도는 손이 얼굴을 덮었다
 
 
 def head_tilt(v, t):
-    set_rot(v, "Neck1", z(16 * np.sin(2 * np.pi * t)) * rot_of(v, "Neck1"))
+    set_rot(v, "Neck1", z(26 * np.sin(2 * np.pi * t)) * rot_of(v, "Neck1"))
 
 
 for name, fn in [("hooray", hooray), ("shiver", shiver), ("clap_overhead", clap_overhead), ("head_tilt", head_tilt)]:
