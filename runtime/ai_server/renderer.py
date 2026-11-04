@@ -448,6 +448,9 @@ class _tail_wag:
     (실제 그림 8장 모두)은 꼬리 쪽으로 걸음을 내디뎌 뒤로 걸었다 — 몸이 오른쪽으로 흘렀다(재 보니 +0.011 · +0.015).
     목이 엉덩이보다 왼쪽이면 모든 뼈 방향을 세로축에 대해 뒤집고(각 → 360 − 각) 몸통 가로 이동도 뒤집는다.
 
+    겹친 다리 (11/4 운영 소 그림): 다리를 둘만 그린 그림은 분석이 한 다리에 한 쌍을 겹쳐 놓는다. 동작 파일의 두 다리는
+    번갈아 움직여 그림 다리 하나가 양쪽으로 찢어졌다 — 한 쌍이 겹쳐 있으면 왼쪽도 오른쪽 다리 움직임을 그대로 따른다.
+
     꼬리 흔들기 (11/4 사용자 「꼬리도 적용시켜줘」).
 
     동작 파일은 사람 것이라 꼬리 움직임이 없다. Meta 는 대응표에 있는 뼈만 사람 뼈 방향을 「그대로」 따라가서
@@ -476,6 +479,16 @@ class _tail_wag:
                     rt.char_joint_to_orientation[k] = ((360.0 - v) % 360.0).astype(np.float32)
                 x = rt.char_root_positions[:, 0]
                 rt.char_root_positions[:, 0] = 2 * x[0] - x
+            if neck is not None and hip is not None:
+                pos = lambda n: np.asarray(root.get_transform_by_name(n).get_world_position()[:2])  # noqa: E731
+                tol = 0.03 * float(np.linalg.norm(pos("neck") - pos("hip")))
+                for side in ("b", "f"):
+                    parts = ("hip", "knee", "foot")
+                    if all(float(np.linalg.norm(pos(f"left_{k}_{side}") - pos(f"right_{k}_{side}"))) <= tol for k in parts):
+                        for k in ("knee", "foot"):
+                            src = rt.char_joint_to_orientation.get(f"right_{k}_{side}")
+                            if src is not None:
+                                rt.char_joint_to_orientation[f"left_{k}_{side}"] = src.copy()
             n = rt.joint_positions.shape[0]
             wag = TAIL_WAG_DEG * np.sin(4 * np.pi * np.arange(n) / n)
             rt.char_joint_to_orientation["tail_mid"] = (mid.starting_theta + wag).astype(np.float32)

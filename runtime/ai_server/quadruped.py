@@ -134,7 +134,8 @@ def _legs(runs: list[tuple[int, int]], W: int) -> list[tuple[int, int]]:
     """다리 높이의 가로 덩어리를 다리 단위로 합친다 (실제 그림 11/4).
     - 거의 맞닿은 덩어리(틈 < 폭 0.5%) — 색칠이 끊겨 한 다리가 둘로 갈렸다 (악어 3px).
       1%면 붙여 그린 진짜 두 다리(회색 고양이 7px)까지 합쳐져 다리를 못 찾았다
-    - 가는 선 둘이 가까이 — 속을 칠하지 않은 다리의 양쪽 테두리다 (선 고양이: 3다리가 4로 세어졌다)"""
+    - 가는 선 둘이 가까이 — 속을 칠하지 않은 다리의 양쪽 테두리다 (선 고양이: 3다리가 4로 세어졌다)
+    - 다리 바로 옆의 가는 선 — 그 다리의 테두리가 떨어져 나온 것 (소: 뒷다리 하나가 둘로 세어져 다리가 따로 붙었다)"""
     thin = W * 0.03
     out: list[tuple[int, int]] = []
     for a, b in runs:
@@ -142,7 +143,8 @@ def _legs(runs: list[tuple[int, int]], W: int) -> list[tuple[int, int]]:
             pa, pb = out[-1]
             touching = a - pb < W * 0.005
             outline = pb - pa < thin and b - a < thin and a - pb < W * 0.1
-            if touching or outline:
+            edge = (pb - pa < thin or b - a < thin) and a - pb < W * 0.04
+            if touching or outline or edge:
                 out[-1] = (pa, b)
                 continue
         out.append((a, b))
@@ -176,7 +178,11 @@ def find_joints(mask: np.ndarray, facing: str | None = None) -> tuple[dict[str, 
     probe = min(rows, key=lambda y: (abs(min(leg_count(y), 6) - 4), y))
     leg_runs = _legs(_runs(mask[probe], min_w), W)
     centers = [(a + b) / 2 for a, b in leg_runs]
-    found = len(centers) >= 3 and (bottom - belly) >= H * 0.08
+    # 다리 둘도 찾은 것으로 — 옆모습은 반대편 다리를 그리지 않는 아이가 많다 (소 · 기린, 운영 11/4). 앞뒤로 떨어져 있고
+    # 둘 다 다리 하나 굵기일 때만 (붙여 그린 다리 한 쌍이 넓적한 한 덩어리면 지금처럼 어른이 맞춘다). 각 다리는 한 쌍을 겹쳐 놓는다
+    two = (len(leg_runs) == 2 and centers[1] - centers[0] >= W * 0.3
+           and all(b - a <= W * 0.22 for a, b in leg_runs))
+    found = (len(centers) >= 3 or two) and (bottom - belly) >= H * 0.08
     if len(centers) < 2:
         return template(mask, facing), False
     # 그래도 넷이 넘으면 가장 가까운 것끼리 합쳐 넷 이하로
