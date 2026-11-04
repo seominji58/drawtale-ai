@@ -1,0 +1,30 @@
+{
+  "id": "biped",
+  "label": "2족형",
+  "group": "humanoid",
+  "kid_label": "두 발로 서는 친구",
+  "examples": ["사람", "곰인형", "펭귄"],
+  "view": "front",
+  "find": "pose_model",
+  "root_at": "hip",
+  "joints": [
+    {"name": "hip", "parent": "root", "label": "엉덩이"},
+    {"name": "torso", "parent": "hip", "label": "가슴"},
+    {"name": "neck", "parent": "torso", "label": "목"},
+    {"name": "right_shoulder", "parent": "torso", "label": "오른 어깨"},
+    {"name": "right_elbow", "parent": "right_shoulder", "label": "오른 팔꿈치"},
+    {"name": "right_hand", "parent": "right_elbow", "label": "오른손"},
+    {"name": "left_shoulder", "parent": "torso", "label": "왼 어깨"},
+    {"name": "left_elbow", "parent": "left_shoulder", "label": "왼 팔꿈치"},
+    {"name": "left_hand", "parent": "left_elbow", "label": "왼손"},
+    {"name": "right_hip", "parent": "root", "label": "오른 골반"},
+    {"name": "right_knee", "parent": "right_hip", "label": "오른 무릎"},
+    {"name": "right_foot", "parent": "right_knee", "label": "오른발"},
+    {"name": "left_hip", "parent": "root", "label": "왼 골반"},
+    {"name": "left_knee", "parent": "left_hip", "label": "왼 무릎"},
+    {"name": "left_foot", "parent": "left_knee", "label": "왼발"}
+  ],
+  "guide": ["점을 끌어서 몸에 맞게 옮겨 주세요"],
+  "hero": {"fit": "height", "facing": "front"},
+  "ready": true
+}

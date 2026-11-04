@@ -21,7 +21,7 @@ import cv2
 import numpy as np
 import yaml
 
-from ai_server import face_lock
+from ai_server import face_lock, forms
 
 ANIMATED_DRAWINGS_DIR = Path(
     os.getenv("ANIMATED_DRAWINGS_DIR", "/opt/AnimatedDrawings")
@@ -118,8 +118,10 @@ def mesh_mask(mask: np.ndarray, joints: list[dict]) -> np.ndarray:
 
     out = mask.copy()
     at = {j["name"]: (int(j["x"]), int(j["y"])) for j in joints}
+    form = forms.form_or_default(set(at))
+    bones = BONES if form == forms.DEFAULT else forms.bones(form)   # 사람은 목 → 어깨 (부모 관계와 다르다)
     width = max(3, round(BONE_BAND * float(np.hypot(*mask.shape[:2]))))
-    for a, b in BONES:
+    for a, b in bones:
         if a in at and b in at:
             cv2.line(out, at[a], at[b], 255, width)
     # 윤곽을 매끈하게 — Meta 는 윤곽 점마다 계산이 커져, 깎은 마스크의 들쭉날쭉한 윤곽 그대로면
@@ -141,11 +143,16 @@ class RenderError(RuntimeError):
 
 
 def build_char_cfg(joints: list[dict], width: int, height: int) -> dict:
-    """관절 15개로 Meta char_cfg.yaml 내용을 만든다. 좌표는 crop 이미지 기준."""
+    """관절로 Meta char_cfg.yaml 내용을 만든다. 좌표는 crop 이미지 기준.
+    뼈대(관절 이름 · 부모)는 관절 이름으로 알아본 형태의 정의에서 (forms/*.json, pt_docs 19)."""
 
     by_name = {j["name"]: j for j in joints}
+    try:
+        parents = forms.parents(forms.form_of(set(by_name)))
+    except KeyError:
+        parents = JOINT_PARENTS        # 이름이 모자라면 아래에서 사람 관절 기준으로 무엇이 빠졌는지 알린다
 
-    missing = [n for n in JOINT_PARENTS if n != "root" and n not in by_name]
+    missing = [n for n in parents if n != "root" and n not in by_name]
     if missing:
         raise RenderError(f"INVALID_JOINTS: missing joints {missing}")
 
@@ -154,7 +161,7 @@ def build_char_cfg(joints: list[dict], width: int, height: int) -> dict:
     by_name["root"] = {"name": "root", "x": hip["x"], "y": hip["y"]}
 
     skeleton = []
-    for name, parent in JOINT_PARENTS.items():
+    for name, parent in parents.items():
         joint = by_name[name]
         skeleton.append(
             {
@@ -596,12 +603,21 @@ def render_animation(
 
     started_at = time.perf_counter()
 
-    if motion not in MOTIONS:
+    form = forms.form_or_default({j["name"] for j in joints})
+    if form != forms.DEFAULT:
+        # 2족형이 아닌 형태는 형태 정의의 동작 · 대응표 (pt_docs 19 6장). 없는 동작은 backend 가 대신 동작으로 바꿔 부른다
+        spec = forms.get(form)
+        if motion not in spec.get("motions", {}):
+            raise RenderError(f"UNKNOWN_MOTION: {motion} for {form} (available: {', '.join(spec.get('motions', {}))})")
+        motion_cfg_path = _GENTLE_MOTIONS / spec["motions"][motion]
+        retarget_path = _GENTLE_MOTIONS / spec["retarget"]
+    elif motion not in MOTIONS:
         raise RenderError(
             f"UNKNOWN_MOTION: {motion} (available: {', '.join(MOTIONS)})"
         )
 
-    motion_cfg_path, retarget_path = MOTIONS[motion]
+    else:
+        motion_cfg_path, retarget_path = MOTIONS[motion]
 
     work_dir = Path(tempfile.mkdtemp(prefix="drawtale-render-"))
 
@@ -632,8 +648,10 @@ def render_animation(
             # 기본 카메라는 캐릭터가 화면 높이의 3할 남짓이라 장면에서 늘리면 흐려진다 — 가까이 당긴다.
             # 모든 동작이 같은 카메라라 같은 캐릭터면 크기 · 발끝 자리가 같다 (팔 · 점프 여유는 남긴다)
             mvc_cfg["view"]["WINDOW_DIMENSIONS"] = [SPRITE_WINDOW, SPRITE_WINDOW]
-            mvc_cfg["view"]["CAMERA_POS"] = list(SPRITE_CAMERA_POS)
-            mvc_cfg["view"]["CAMERA_FWD"] = list(SPRITE_CAMERA_FWD)
+            # 옆으로 긴 형태(4족형)는 사람 기준 카메라면 칸 양끝이 잘린다 — 형태 정의에서 카메라를 물린다
+            cam = forms.get(form).get("sprite_camera", {})
+            mvc_cfg["view"]["CAMERA_POS"] = list(cam.get("pos", SPRITE_CAMERA_POS))
+            mvc_cfg["view"]["CAMERA_FWD"] = list(cam.get("fwd", SPRITE_CAMERA_FWD))
 
         mvc_path = work_dir / "mvc_cfg.yaml"
         with open(mvc_path, "w") as f:
@@ -641,7 +659,7 @@ def render_animation(
 
         # 큰 얼굴을 원본 그대로 옮겨 붙일 그림인지 (face_lock — 머리가 크고 목 없는 그림만). 그런 그림은
         # 프레임을 늘 가로챈다(MP4 만 만들 때도) — 붙인 얼굴이 MP4 · 프레임 묶음 둘 다에 들어가게
-        face = face_lock.plan(char_dir) if FACE_LOCK else None
+        face = face_lock.plan(char_dir) if FACE_LOCK and form == forms.DEFAULT else None   # 큰 얼굴 붙이기는 사람 그림만
         capture = bool(sprite_path) or face is not None
 
         def run_meta():
