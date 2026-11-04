@@ -671,7 +671,11 @@ def drop_pockets(img: np.ndarray, mask: np.ndarray, joints: list, bbox: dict, sc
                     if 0 <= round(x) < w and 0 <= round(y) < h:
                         yield round(x), round(y)
 
-    deep_pts = list(samples(BODY_BONES, np.linspace(0, 1, 24)))
+    # 목 → 어깨는 뺀다 — 머리가 큰 그림은 목 관절이 얼굴 한가운데 잡혀, 이 뼈대가 얼굴 아래 · 팔 · 옷 사이
+    # 빈 종이를 비스듬히 가로질러 틈을 몸으로 남겼다 (2026-11-04 사용자 「오른쪽 팔부분에서 배경을 캐릭터로 여전히」).
+    # 칠하지 않은 몸통은 엉덩이 → 몸통 → 목 뼈대가 지킨다
+    deep_bones = [bone for bone in BODY_BONES if not (bone[0] == "neck" and bone[1].endswith("_shoulder"))]
+    deep_pts = list(samples(deep_bones, np.linspace(0, 1, 24)))
     deep_pts += list(samples([("torso", "neck")], np.linspace(1.3, 2.6, 14)))   # 머리 중심 쪽
     # 손 · 발 관절은 손목 · 발목 쪽에 놓여 칠하지 않은 손바닥 · 발 안쪽을 못 지난다 — 끝 너머로 조금 늘린다
     ends = [("right_elbow", "right_hand"), ("left_elbow", "left_hand"), ("right_knee", "right_foot"), ("left_knee", "left_foot")]
