@@ -161,7 +161,7 @@ ai hub에서 동작 움직임 데이터 다운로드 받아서 모델을 통해 
 
 | 항목 | 내용 |
 |---|---|
-| 그림 | 아이 그림 사진 11장 |
+| 그림 | 아이 그림 사진 12장(이족보행 형태) |
 | 동작 | 서비스 동작 6종 (Animated Drawings 예제 BVH: `dab`, `jesse_dance`, `jumping`, `jumping_jacks`, `wave_hello`, `zombie`) |
 | 포즈 모델 | RTMPose-m 15관절 (그림 데이터 30에폭 학습, `rtmpose-m_drawing15_ep30.pth`) |
 | 배경 분리 | 배경 제거 모델(IS-Net) + 포즈 모델 관절 기반 인물 선택 → 11장 모두 성공 |
