@@ -941,7 +941,8 @@ def flatten_transparency(path: Path) -> None:
     path.write_bytes(cv2.imencode(".png", flat)[1].tobytes())
 
 
-def analyze_image(image_path: str, mask_path: str | None = None, form: str = "biped") -> dict:
+def analyze_image(image_path: str, mask_path: str | None = None, form: str = "biped",
+                  facing: str | None = None) -> dict:
     """그림을 분석해 bbox, 관절 15개, 마스크 정보를 반환한다.
 
     mask_path를 주면 캐릭터 영역 마스크를 원본 크기의 PNG로 저장한다.
@@ -951,7 +952,7 @@ def analyze_image(image_path: str, mask_path: str | None = None, form: str = "bi
     # 4족형은 사람 관절 모델 없이 마스크 모양으로 (quadruped.py, pt_docs 19). 2족형은 아래 그대로
     if form == "quadruped":
         from ai_server import quadruped
-        return quadruped.analyze(image_path, mask_path)
+        return quadruped.analyze(image_path, mask_path, facing)
 
     started_at = time.perf_counter()
 

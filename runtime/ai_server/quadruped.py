@@ -149,7 +149,7 @@ def _legs(runs: list[tuple[int, int]], W: int) -> list[tuple[int, int]]:
     return out
 
 
-def find_joints(mask: np.ndarray) -> tuple[dict[str, tuple[float, float]], bool]:
+def find_joints(mask: np.ndarray, facing: str | None = None) -> tuple[dict[str, tuple[float, float]], bool]:
     """다리가 아래인 마스크(bool)에서 관절 15개. (관절, 다리 넷을 찾았나).
 
     아래에서 위로 올라가며 가로로 끊긴 덩어리를 센다 — 둘 이상인 구간이 다리, 그 맨 위가 배 선.
@@ -178,7 +178,7 @@ def find_joints(mask: np.ndarray) -> tuple[dict[str, tuple[float, float]], bool]
     centers = [(a + b) / 2 for a, b in leg_runs]
     found = len(centers) >= 3 and (bottom - belly) >= H * 0.08
     if len(centers) < 2:
-        return template(mask), False
+        return template(mask, facing), False
     # 그래도 넷이 넘으면 가장 가까운 것끼리 합쳐 넷 이하로
     while len(centers) > 4:
         k = int(np.argmin(np.diff(centers)))
@@ -192,7 +192,12 @@ def find_joints(mask: np.ndarray) -> tuple[dict[str, tuple[float, float]], bool]
     def thickness(x0: int, x1: int) -> float:
         cols = mask[:, max(left, x0):max(left, x0) + max(1, x1 - x0)]
         return float(cols.sum(axis=0).mean()) if cols.size else 0.0
-    head_right = thickness(int(max(side_b)), right + 1) >= thickness(left, int(min(side_a)))
+    # 머리 쪽: 어른이 「얼굴이 반대쪽이에요」로 정해 주면 그대로 (11/4 — 굵은 쪽 추측은 악어처럼 꼬리가 굵으면 틀린다.
+    # 눈 · 입 선으로 가리는 팀원 실험 방법도 크레파스 그림에선 못 가렸다: 실제 그림 7장 중 맞음 2)
+    if facing in ("left", "right"):
+        head_right = facing == "right"
+    else:
+        head_right = thickness(int(max(side_b)), right + 1) >= thickness(left, int(min(side_a)))
     back, front = (side_a, side_b) if head_right else (side_b, side_a)
 
     def foot(x: float) -> tuple[float, float]:
@@ -280,7 +285,7 @@ def find_tail(mask: np.ndarray, belly: int, leg_runs: list[tuple[int, int]], hea
     return {n: (float(x), float(y)) for n, (x, y) in zip(TAIL, pts)}
 
 
-def template(mask: np.ndarray) -> dict[str, tuple[float, float]]:
+def template(mask: np.ndarray, facing: str | None = None) -> dict[str, tuple[float, float]]:
     """다리를 못 찾았을 때의 기본 뼈대 — 마스크 상자에 맞춘 옆모습 네 발 (머리는 오른쪽). 사람이 옮겨 맞춘다."""
     ys, xs = np.where(mask)
     l, t, r, b = xs.min(), ys.min(), xs.max(), ys.max()
@@ -293,10 +298,12 @@ def template(mask: np.ndarray) -> dict[str, tuple[float, float]]:
             j[f"{name}_knee_{side}"] = (X(x), Y(0.8))
             j[f"{name}_foot_{side}"] = (X(x), Y(0.98))
     j.update({n: j["hip"] for n in TAIL})                    # 꼬리 없음 — 있으면 사람이 끌어다 놓는다
+    if facing == "left":                                     # 머리가 왼쪽이라고 정해 주면 좌우로 뒤집는다
+        j = {n: (float(l + r - x), y) for n, (x, y) in j.items()}
     return j
 
 
-def analyze(image_path: str, mask_path: str | None) -> dict:
+def analyze(image_path: str, mask_path: str | None, facing: str | None = None) -> dict:
     """analyzer.analyze_image 와 같은 모양으로 돌려준다 (+ form · joints_found)."""
     started = time.perf_counter()
     original = cv2.imread(image_path, cv2.IMREAD_COLOR)            # 휴대폰 방향 정보를 반영한다
@@ -317,7 +324,7 @@ def analyze(image_path: str, mask_path: str | None) -> dict:
     if not (mask > 127).any():
         return {"success": False, "bbox": None, "joints": [], "message": "NO_CHARACTER_DETECTED: empty mask"}
 
-    joints, found = find_joints(mask > 127)
+    joints, found = find_joints(mask > 127, facing)
     saved = False
     if mask_path is not None:
         Path(mask_path).parent.mkdir(parents=True, exist_ok=True)

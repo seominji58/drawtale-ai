@@ -81,6 +81,7 @@ def list_forms():
 def analyze(
     file: UploadFile = File(...),
     form: str = Form("biped", description="형태 (GET /internal/v1/forms). 없으면 사람(2족형)"),
+    facing: str = Form("", description="옆모습 형태의 머리 쪽 left · right. 없으면 추측 (「얼굴이 반대쪽이에요」)"),
 ):
     """그림을 분석해 bbox, 관절 15개를 반환한다.
 
@@ -109,7 +110,8 @@ def analyze(
         with open(temp_path, "wb") as f:
             f.write(file.file.read())
 
-        result = analyze_image(temp_path, mask_path=str(session_dir / "mask.png"), form=form)
+        result = analyze_image(temp_path, mask_path=str(session_dir / "mask.png"), form=form,
+                               facing=facing if facing in ("left", "right") else None)
 
         if not result.get("success"):
             shutil.rmtree(session_dir, ignore_errors=True)
