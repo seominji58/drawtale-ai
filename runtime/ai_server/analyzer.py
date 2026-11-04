@@ -626,6 +626,7 @@ POCKET_MIN_AREA = 0.01     # 마스크 넓이 대비 이보다 작은 흰 곳(�
 POCKET_TOUCH = 0.02        # 팔다리 뼈대가 이 거리 안에 닿으면 팔다리에 둘러싸인 곳
 POCKET_OUTSIDE = 0.015     # 이 거리 안에 캐릭터 바깥이 있으면 가는 선 하나 너머가 바깥
 POCKET_DEEP = 0.5          # 뼈대 · 머리 중심이 덩어리 가장 깊은 곳의 이 비율 이상 깊이 지나면 몸
+POCKET_CENTER = 0.8        # 팔다리 뼈대로 몸이라 볼 때 덩어리 중심이 뼈대에서 가장 깊은 곳 반지름의 이 배 안
 LIMB_BONES = (
     ("right_shoulder", "right_elbow"), ("right_elbow", "right_hand"),
     ("left_shoulder", "left_elbow"), ("left_elbow", "left_hand"),
@@ -651,11 +652,13 @@ def drop_pockets(img: np.ndarray, mask: np.ndarray, joints: list, bbox: dict, sc
     # 그림 둘레 전체가 아니라 캐릭터 바로 바깥 띠로 잰다 — 책상이 함께 찍힌 사진도 흰 종이로 보게
     k = max(5, round(diag * 0.03) | 1)
     ring = (cv2.dilate(m.astype(np.uint8), cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (k, k))) > 0) & ~m
+    # 회색(그늘진) 종이 사진은 건너뛴다 — 넓혀 보니(2026-11-04, 회색 종이 180) 선으로만 그린 얼굴 · 치마 · 손이
+    # 통째로 지워졌다(사진 9장 중 3장). 흰 종이 기준(200)은 그대로 둔다
     if not ring.any() or not is_white_paper(np.median(img[ring], axis=0)):
         return mask
     cand = (m & (paper_distance(img, mask) < PAPER_NEAR)).astype(np.uint8)
     cand = cv2.morphologyEx(cand, cv2.MORPH_OPEN, np.ones((3, 3), np.uint8))
-    count, labels, stats, _ = cv2.connectedComponentsWithStats(cand, connectivity=4)
+    count, labels, stats, centers = cv2.connectedComponentsWithStats(cand, connectivity=4)
     big = [i for i in range(1, count) if stats[i, cv2.CC_STAT_AREA] >= m.sum() * POCKET_MIN_AREA]
     if not big:
         return mask
@@ -675,11 +678,26 @@ def drop_pockets(img: np.ndarray, mask: np.ndarray, joints: list, bbox: dict, sc
     # 빈 종이를 비스듬히 가로질러 틈을 몸으로 남겼다 (2026-11-04 사용자 「오른쪽 팔부분에서 배경을 캐릭터로 여전히」).
     # 칠하지 않은 몸통은 엉덩이 → 몸통 → 목 뼈대가 지킨다
     deep_bones = [bone for bone in BODY_BONES if not (bone[0] == "neck" and bone[1].endswith("_shoulder"))]
-    deep_pts = list(samples(deep_bones, np.linspace(0, 1, 24)))
-    deep_pts += list(samples([("torso", "neck")], np.linspace(1.3, 2.6, 14)))   # 머리 중심 쪽
+    trunk = [("hip", "torso"), ("torso", "neck")]
+    # (점, 뼈대) — 팔다리 뼈대는 덩어리 중심이 그 뼈대 가까이 있을 때만 「몸 한가운데」로 본다 (아래)
+    deep_pts = [(pt, None) for pt in samples(trunk, np.linspace(0, 1, 24))]
+    deep_pts += [(pt, None) for pt in samples([("torso", "neck")], np.linspace(1.3, 2.6, 14))]   # 머리 중심 쪽
+    for bone in deep_bones:
+        if bone not in trunk:
+            deep_pts += [(pt, bone) for pt in samples([bone], np.linspace(0, 1, 24))]
     # 손 · 발 관절은 손목 · 발목 쪽에 놓여 칠하지 않은 손바닥 · 발 안쪽을 못 지난다 — 끝 너머로 조금 늘린다
     ends = [("right_elbow", "right_hand"), ("left_elbow", "left_hand"), ("right_knee", "right_foot"), ("left_knee", "left_foot")]
-    deep_pts += list(samples(ends, np.linspace(1.0, 1.6, 10)))
+    for bone in ends:
+        deep_pts += [(pt, (bone[0], bone[1], 1.6)) for pt in samples([bone], np.linspace(1.0, 1.6, 10))]
+
+    def off_bone(center, bone) -> float:
+        """덩어리 중심과 뼈대 선분(끝 너머로 늘린 것 포함) 사이 거리."""
+        a, b = np.array(at[bone[0]]), np.array(at[bone[1]])
+        if len(bone) == 3:
+            a, b = b, a + (b - a) * bone[2]
+        d = b - a
+        t = float(np.clip(np.dot(center - a, d) / max(float(np.dot(d, d)), 1e-6), 0, 1))
+        return float(np.linalg.norm(center - (a + d * t)))
     limb_pts = list(samples(LIMB_BONES, np.linspace(0, 1, 24)))
     touch = max(3, round(diag * POCKET_TOUCH))
     near_out = max(3, round(diag * POCKET_OUTSIDE))
@@ -688,7 +706,13 @@ def drop_pockets(img: np.ndarray, mask: np.ndarray, joints: list, bbox: dict, sc
     for i in big:
         comp = labels == i
         r = float(depth[comp].max())
-        if any(labels[y, x] == i and depth[y, x] >= r * POCKET_DEEP for x, y in deep_pts):
+        center = np.array(centers[i])
+        # 팔다리 뼈대는 관절 모델이 팔 선보다 안쪽(팔과 몸 사이 틈)에 잡기도 해서, 뼈대가 틈 한가운데를 지났다
+        # (2026-11-04 주황 티셔츠 그림 — 선으로만 그린 팔 옆 소매 아래 종이). 진짜 칠 안 한 팔다리는 뼈대가
+        # 덩어리 가운데를 길게 지나 중심이 뼈대 가까이 있다 → 중심이 뼈대에서 r × POCKET_CENTER 안일 때만 몸
+        if any(labels[y, x] == i and depth[y, x] >= r * POCKET_DEEP
+               and (bone is None or off_bone(center, bone) <= r * POCKET_CENTER)
+               for (x, y), bone in deep_pts):
             continue
         x0, y0, bw, bh = stats[i, :4]
         pad = touch + near_out + 2
