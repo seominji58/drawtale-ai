@@ -576,8 +576,11 @@ def is_white_paper(color: np.ndarray) -> bool:
     return float(color.min()) >= WHITE_PAPER_MIN and float(color.max() - color.min()) <= WHITE_PAPER_TINT
 
 
-# 덜 칠한 몸 메우기 (fill_body) — 틈을 이을 굵기(캐릭터 대각선 대비)와 뼈대
-BODY_GAP = 0.05
+# 덜 칠한 몸 메우기 (fill_body) — 틈을 이을 굵기(캐릭터 대각선 대비)와 뼈대.
+# 0.05 는 손과 옷 사이 같은 넓은 틈까지 이어 그 안 종이를 몸으로 가뒀다(2026-11-04 주황 티셔츠 사진).
+# 0.025 로 줄였다 — 그 틈은 빠지고, 대신 윤곽선이 넓게 끊긴 칠 안 한 몸은 빠진다(시험 gap-char1 몸통 28%,
+# 사진 k16 치마 아래 조각). 사용자 「조금 쥐파먹더라도」 배경이 몸으로 들어가지 않는 쪽. 0.026~0.05 는 틈이 남는다
+BODY_GAP = 0.025
 BODY_BONES = (
     ("hip", "torso"), ("torso", "neck"),
     ("neck", "right_shoulder"), ("right_shoulder", "right_elbow"), ("right_elbow", "right_hand"),
