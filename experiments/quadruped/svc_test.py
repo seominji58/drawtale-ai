@@ -1,7 +1,8 @@
+import os
 """로컬 AI 서버(feat/forms)로 4족형 분석 → 걷기 렌더 (시험용). out/svc_q_{번호}.png 에 관절 · 걷기 6장면."""
 import base64, io, json, sys, time, urllib.request, uuid
 from PIL import Image, ImageDraw
-BASE = "http://127.0.0.1:18001/internal/v1"
+BASE = os.environ.get("AI_BASE", "http://127.0.0.1:18001") + "/internal/v1"
 
 def post(path, fields, files=None):
     b = uuid.uuid4().hex; body = b""

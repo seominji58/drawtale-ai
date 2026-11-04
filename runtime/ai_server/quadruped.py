@@ -128,6 +128,25 @@ def _runs(row: np.ndarray, min_w: int) -> list[tuple[int, int]]:
     return [(a, b) for a, b in zip(np.where(d == 1)[0], np.where(d == -1)[0]) if b - a >= min_w]
 
 
+def _legs(runs: list[tuple[int, int]], W: int) -> list[tuple[int, int]]:
+    """다리 높이의 가로 덩어리를 다리 단위로 합친다 (실제 그림 11/4).
+    - 거의 맞닿은 덩어리(틈 < 폭 0.5%) — 색칠이 끊겨 한 다리가 둘로 갈렸다 (악어 3px).
+      1%면 붙여 그린 진짜 두 다리(회색 고양이 7px)까지 합쳐져 다리를 못 찾았다
+    - 가는 선 둘이 가까이 — 속을 칠하지 않은 다리의 양쪽 테두리다 (선 고양이: 3다리가 4로 세어졌다)"""
+    thin = W * 0.03
+    out: list[tuple[int, int]] = []
+    for a, b in runs:
+        if out:
+            pa, pb = out[-1]
+            touching = a - pb < W * 0.005
+            outline = pb - pa < thin and b - a < thin and a - pb < W * 0.1
+            if touching or outline:
+                out[-1] = (pa, b)
+                continue
+        out.append((a, b))
+    return out
+
+
 def find_joints(mask: np.ndarray) -> tuple[dict[str, tuple[float, float]], bool]:
     """다리가 아래인 마스크(bool)에서 관절 15개. (관절, 다리 넷을 찾았나).
 
@@ -147,12 +166,23 @@ def find_joints(mask: np.ndarray) -> tuple[dict[str, tuple[float, float]], bool]
             break
         if len(row) >= 2:
             belly = y
-    probe = round(belly + (bottom - belly) * 0.35)
-    centers = [(a + b) / 2 for a, b in _runs(mask[probe], min_w)]
+    # 다리를 세는 높이: 한 줄만 보면 붙어 그린 두 다리(뒷다리끼리 · 발끝)가 하나로 세어졌다 (실제 그림 호랑이, 11/4).
+    # 다리 구간의 여러 높이에서 세어 넷에 가장 가깝게 갈라진 줄을 쓴다 (같으면 위쪽 — 발끝보다 덜 붙는다)
+    def leg_count(y: int) -> int:
+        return len(_runs(mask[y], min_w))
+    rows = [round(belly + (bottom - belly) * f) for f in (0.2, 0.3, 0.4, 0.5, 0.6, 0.7)]
+    probe = min(rows, key=lambda y: (abs(min(leg_count(y), 6) - 4), y))
+    centers = [(a + b) / 2 for a, b in _legs(_runs(mask[probe], min_w), W)]
     found = len(centers) >= 3 and (bottom - belly) >= H * 0.08
     if len(centers) < 2:
         return template(mask), False
-    cut = int(np.argmax(np.diff(centers))) + 1
+    # 그래도 넷이 넘으면 가장 가까운 것끼리 합쳐 넷 이하로
+    while len(centers) > 4:
+        k = int(np.argmin(np.diff(centers)))
+        centers[k:k + 2] = [(centers[k] + centers[k + 1]) / 2]
+    # 앞뒤 나누기: 넷이면 둘 · 둘. 가장 넓은 틈으로 나누면 간격이 고른 다리(호랑이)가 하나 | 셋으로 갈려
+    # 앞다리 하나를 두 번 쓰고 가운데 다리가 빠졌다 (실제 그림, 11/4). 셋 이하일 때만 넓은 틈으로
+    cut = 2 if len(centers) == 4 else int(np.argmax(np.diff(centers))) + 1
     pair = lambda c: [c[0], c[0]] if len(c) == 1 else [c[0], c[-1]]  # noqa: E731
     side_a, side_b = pair(centers[:cut]), pair(centers[cut:])
 
