@@ -42,6 +42,9 @@ char_bodypart_groups:
   - hip
   - torso
   - neck
+  - tail
+  - tail_mid
+  - tail_tip
 - bvh_depth_drivers:
   - LeftFoot
   char_joints:

@@ -32,7 +32,7 @@ for n in sys.argv[2:]:
         fr = []; line += f" | 렌더 실패 {e}"
     src = Image.open(path).convert("RGB"); d = ImageDraw.Draw(src); rr = max(5, src.width // 120)
     for j in a["joints"]:
-        col = (0, 90, 255) if j["name"].endswith("_b") else (0, 170, 0) if j["name"].endswith("_f") else (255, 200, 0)
+        col = (200, 0, 200) if j["name"].startswith("tail") else (0, 90, 255) if j["name"].endswith("_b") else (0, 170, 0) if j["name"].endswith("_f") else (255, 200, 0)
         d.ellipse((j["x"] - rr, j["y"] - rr, j["x"] + rr, j["y"] + rr), fill=col, outline="black")
     src.thumbnail((300, 300))
     strip = Image.new("RGB", (300 + 200 * 6, 300), "white"); strip.paste(src, (0, 0))

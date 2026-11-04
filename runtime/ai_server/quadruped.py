@@ -25,7 +25,9 @@ from ai_server import analyzer as A
 
 ORDER = ["hip", "torso", "neck",
          "right_hip_b", "right_knee_b", "right_foot_b", "left_hip_b", "left_knee_b", "left_foot_b",
-         "right_hip_f", "right_knee_f", "right_foot_f", "left_hip_f", "left_knee_f", "left_foot_f"]
+         "right_hip_f", "right_knee_f", "right_foot_f", "left_hip_f", "left_knee_f", "left_foot_f",
+         "tail", "tail_mid", "tail_tip"]
+TAIL = ("tail", "tail_mid", "tail_tip")
 
 # 사람 탐지 상자는 점수가 이보다 낮으면 버린다 (사람으로 안 보여도 자리는 잘 잡는다 — 실제 그림 8장 0.91~1.00)
 MIN_BOX_SCORE = 0.05
@@ -172,7 +174,8 @@ def find_joints(mask: np.ndarray) -> tuple[dict[str, tuple[float, float]], bool]
         return len(_runs(mask[y], min_w))
     rows = [round(belly + (bottom - belly) * f) for f in (0.2, 0.3, 0.4, 0.5, 0.6, 0.7)]
     probe = min(rows, key=lambda y: (abs(min(leg_count(y), 6) - 4), y))
-    centers = [(a + b) / 2 for a, b in _legs(_runs(mask[probe], min_w), W)]
+    leg_runs = _legs(_runs(mask[probe], min_w), W)
+    centers = [(a + b) / 2 for a, b in leg_runs]
     found = len(centers) >= 3 and (bottom - belly) >= H * 0.08
     if len(centers) < 2:
         return template(mask), False
@@ -221,7 +224,60 @@ def find_joints(mask: np.ndarray) -> tuple[dict[str, tuple[float, float]], bool]
     j["torso"] = (fx_, belly - (belly - body_top(fx_)) * 0.55)
     neck_x = fx_ + toward_head * span * 0.08
     j["neck"] = (neck_x, belly - (belly - body_top(neck_x)) * 0.65)
+    j.update(find_tail(mask, belly, leg_runs, head_right, j["hip"]))
     return j, found
+
+
+def find_tail(mask: np.ndarray, belly: int, leg_runs: list[tuple[int, int]], head_right: bool,
+              hip: tuple[float, float]) -> dict[str, tuple[float, float]]:
+    """꼬리 점 셋(뿌리 · 가운데 · 끝). 꼬리가 없으면 셋 다 엉덩이에 겹친다 — 겹친 점은 움직여도 아무것도 안 끈다.
+
+    팀원 실험(hankan-experiments animal-monster/quadruped.py find_head_tail, 10/20)의 방법:
+    몸통 가운데에서 몸 한가운데 능선을 따라 꼬리 쪽 가장 먼 끝까지 가고, 끝에서 거슬러 오다 굵기가 끝 굵기의 2배를 넘는 곳이 뿌리.
+    끝에서 몸 폭 12% 들어가도 몸통 굵기의 45%보다 가늘어야 꼬리다 (둥근 엉덩이는 금방 굵어져서 꼬리가 아니다).
+    팀원 실험은 35% — 실제 그림에서 굵게 칠한 꼬리(선 고양이 0.42)를 놓쳤다. 꼬리 없는 그림은 0.53 · 0.67 (11/4)"""
+    from skimage.graph import MCP_Geometric
+
+    none = {n: hip for n in TAIL}
+    body = mask.astype(np.uint8)
+    # 다리를 뺀 몸 — 배 선 아래, 다리 사이 구간만 지운다 (뒷다리 바깥으로 늘어진 꼬리는 남긴다)
+    lo, hi = min(a for a, _ in leg_runs), max(b for _, b in leg_runs)
+    body[belly + 1:, lo:hi + 1] = 0
+    dt = cv2.distanceTransform(body, cv2.DIST_L2, 5)
+    band = np.zeros(dt.shape, bool)
+    band[:, lo:hi + 1] = True
+    c = np.unravel_index(int(np.argmax(np.where(band, dt, 0))), dt.shape)
+    if dt[c] <= 0:
+        return none
+    D, _ = MCP_Geometric(np.where(body > 0, 1.0, np.inf)).find_costs([c])
+    D = np.where(np.isfinite(D), D, -1)
+    xx = np.arange(body.shape[1])[None, :]
+    side = -1 if head_right else 1                           # 꼬리 쪽
+    ref = lo if side < 0 else hi
+    cand = np.where(((xx - ref) * side > 0) & (body > 0), D, -1)
+    if cand.max() <= 0:
+        return none
+    tip = np.unravel_index(int(np.argmax(cand)), cand.shape)
+    ridge = MCP_Geometric(np.where(body > 0, 1.0 / (dt + 1.0), np.inf))
+    ridge.find_costs([c])
+    path = np.array(ridge.traceback(tip), np.float32)[:, ::-1]     # (x, y), 몸통 가운데 → 끝
+    w = np.array([dt[int(round(y)), int(round(x))] for x, y in path])
+    tip_w = float(np.median(w[-max(3, len(w) // 4):]))
+    root_i = 0
+    for i in range(len(w) - 1, -1, -1):
+        if w[i] > 2.0 * max(tip_w, 2.0):
+            root_i = i
+            break
+    # 뿌리는 뒷다리 바깥에서 — 굵게 칠한 꼬리는 「굵기 2배」가 몸 한가운데까지 밀려, 흔들 때 엉덩이가 같이 휘었다 (선 고양이 11/4)
+    outside = np.nonzero((path[:, 0] - ref) * side > 0)[0]
+    if outside.size:
+        root_i = max(root_i, int(outside[0]))
+    xs = np.nonzero(body.any(0))[0]
+    L = int(0.12 * (xs[-1] - xs[0]))
+    if not (len(w) - root_i > L and len(w) > L and w[-L] < 0.45 * dt[c]):
+        return none
+    pts = (path[root_i], path[(root_i + len(w) - 1) // 2], path[-1])
+    return {n: (float(x), float(y)) for n, (x, y) in zip(TAIL, pts)}
 
 
 def template(mask: np.ndarray) -> dict[str, tuple[float, float]]:
@@ -236,6 +292,7 @@ def template(mask: np.ndarray) -> dict[str, tuple[float, float]]:
             j[f"{name}_hip_{side}"] = (X(x), Y(0.6))
             j[f"{name}_knee_{side}"] = (X(x), Y(0.8))
             j[f"{name}_foot_{side}"] = (X(x), Y(0.98))
+    j.update({n: j["hip"] for n in TAIL})                    # 꼬리 없음 — 있으면 사람이 끌어다 놓는다
     return j
 
 

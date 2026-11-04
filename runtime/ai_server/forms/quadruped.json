@@ -86,12 +86,28 @@
       "name": "left_foot_f",
       "parent": "left_knee_f",
       "label": "앞다리 2 발"
+    },
+    {
+      "name": "tail",
+      "parent": "hip",
+      "label": "꼬리 뿌리"
+    },
+    {
+      "name": "tail_mid",
+      "parent": "tail",
+      "label": "꼬리 가운데"
+    },
+    {
+      "name": "tail_tip",
+      "parent": "tail_mid",
+      "label": "꼬리 끝"
     }
   ],
   "guide": [
     "엉덩이 → 어깨 → 목 → 뒷다리 → 앞다리 순서예요",
     "어깨는 등 가운데가 아니라 목 바로 밑이에요",
-    "다리가 아래로 가게 그림을 돌려 두면 잘 찾아요"
+    "다리가 아래로 가게 그림을 돌려 두면 잘 찾아요",
+    "꼬리가 없으면 꼬리 점 셋을 엉덩이에 겹쳐 두면 돼요"
   ],
   "retarget": "quadruped/four_legs_cmu.yaml",
   "motions": {

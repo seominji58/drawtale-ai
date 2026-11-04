@@ -326,6 +326,8 @@ SPRITE_COLS = 8
 SPRITE_MAX_FRAMES = 48
 # 같은 캐릭터의 준비 계산 다시 쓰기 (_reuse_setup). 끄면 늘 새로 계산 (검사 · 문제 생길 때)
 REUSE_SETUP = os.environ.get("DRAWTALE_REUSE_SETUP", "1") != "0"
+# 꼬리 흔들기 각 (4족형 꼬리 첫 마디 기준, 끝 마디는 1.5배 — _tail_wag)
+TAIL_WAG_DEG = 14.0
 # 기본(Meta mvc_base_cfg)은 [0, 0.7, 2.0] · [0, 0.5, 2.0]. 기울기는 그대로 두고 가까이 · 조금 아래로
 SPRITE_CAMERA_POS = (0.0, 0.6, 1.35)   # 11/3 실측: 캐릭터가 칸 높이의 4할(기본은 3할), 뛰기 · 점프도 안 잘림
 SPRITE_CAMERA_FWD = (0.0, 0.5, 2.0)
@@ -437,6 +439,40 @@ class _reuse_setup:
     def release(self) -> None:
         self._cls._initialize_joint_to_triangles_dict = self._orig_jt
         self._mod.ARAP = self._orig_arap
+
+
+class _tail_wag:
+    """꼬리 흔들기 (4족형, 11/4 사용자 「꼬리도 적용시켜줘」).
+
+    동작 파일은 사람 것이라 꼬리 움직임이 없다. Meta 는 대응표에 있는 뼈만 사람 뼈 방향을 「그대로」 따라가서
+    꼬리를 팔에 대응시키면 팔처럼 아래로 늘어진다 — 그래서 대응표에 넣지 않고, 동작 계산이 끝난 뒤
+    꼬리 두 마디의 방향을 「그림의 원래 방향 ± 흔들기」로 직접 넣는다. 한 동작에 두 번, 끝 마디는 반만큼 더 휜다
+    (팀원 실험 hankan-experiments animal-monster/quadruped.py 의 TAIL_WAG 14° · sin(4πt) 와 같다).
+    장 수의 정수배 주기라 반복해도 끊기지 않는다. 꼬리가 없는 그림은 점이 엉덩이에 겹쳐 길이가 0 — 돌려도 아무것도 안 끈다"""
+
+    def __init__(self) -> None:
+        import animated_drawings.model.animated_drawing as ad
+
+        self._cls = ad.AnimatedDrawing
+        self._orig = ad.AnimatedDrawing._initialize_retargeter_bvh
+        orig = self._orig
+
+        def init(drawing, *a, **kw):  # noqa: ANN001 — Meta 쪽 서명 그대로
+            orig(drawing, *a, **kw)
+            root = drawing.rig.root_joint
+            mid, tip = root.get_transform_by_name("tail_mid"), root.get_transform_by_name("tail_tip")
+            if mid is None or tip is None:
+                return
+            rt = drawing.retargeter
+            n = rt.joint_positions.shape[0]
+            wag = TAIL_WAG_DEG * np.sin(4 * np.pi * np.arange(n) / n)
+            rt.char_joint_to_orientation["tail_mid"] = (mid.starting_theta + wag).astype(np.float32)
+            rt.char_joint_to_orientation["tail_tip"] = (tip.starting_theta + 1.5 * wag).astype(np.float32)
+
+        ad.AnimatedDrawing._initialize_retargeter_bvh = init
+
+    def release(self) -> None:
+        self._cls._initialize_retargeter_bvh = self._orig
 
 
 class _thin_frames:
@@ -686,10 +722,11 @@ def render_animation(
                 still = _in_place() if sprite_path else None
                 thin = _thin_frames() if sprite_path else None
                 reuse = _reuse_setup() if REUSE_SETUP else None
+                wag = _tail_wag()
                 try:
                     animated_drawings.render.start(str(mvc_path))
                 finally:
-                    for patch in (frames, still, thin, reuse):
+                    for patch in (frames, still, thin, reuse, wag):
                         if patch is not None:
                             patch.release()
                 return frames
