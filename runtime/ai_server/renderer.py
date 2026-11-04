@@ -442,7 +442,13 @@ class _reuse_setup:
 
 
 class _tail_wag:
-    """꼬리 흔들기 (4족형, 11/4 사용자 「꼬리도 적용시켜줘」).
+    """옆모습 형태(4족형)의 동작 손질 — 머리 쪽으로 걷게 뒤집기 · 꼬리 흔들기.
+
+    뒤집기 (11/4 사용자 「얼굴 방향에 따라 < 인지 > 인지」): 동작 파일은 화면 오른쪽으로 걷는다. 머리가 왼쪽인 그림
+    (실제 그림 8장 모두)은 꼬리 쪽으로 걸음을 내디뎌 뒤로 걸었다 — 몸이 오른쪽으로 흘렀다(재 보니 +0.011 · +0.015).
+    목이 엉덩이보다 왼쪽이면 모든 뼈 방향을 세로축에 대해 뒤집고(각 → 360 − 각) 몸통 가로 이동도 뒤집는다.
+
+    꼬리 흔들기 (11/4 사용자 「꼬리도 적용시켜줘」).
 
     동작 파일은 사람 것이라 꼬리 움직임이 없다. Meta 는 대응표에 있는 뼈만 사람 뼈 방향을 「그대로」 따라가서
     꼬리를 팔에 대응시키면 팔처럼 아래로 늘어진다 — 그래서 대응표에 넣지 않고, 동작 계산이 끝난 뒤
@@ -461,9 +467,15 @@ class _tail_wag:
             orig(drawing, *a, **kw)
             root = drawing.rig.root_joint
             mid, tip = root.get_transform_by_name("tail_mid"), root.get_transform_by_name("tail_tip")
-            if mid is None or tip is None:
+            if mid is None or tip is None:      # 꼬리 관절이 없는 형태(2족형)는 손대지 않는다
                 return
             rt = drawing.retargeter
+            neck, hip = root.get_transform_by_name("neck"), root.get_transform_by_name("hip")
+            if neck is not None and hip is not None and neck.get_world_position()[0] < hip.get_world_position()[0]:
+                for k, v in rt.char_joint_to_orientation.items():
+                    rt.char_joint_to_orientation[k] = ((360.0 - v) % 360.0).astype(np.float32)
+                x = rt.char_root_positions[:, 0]
+                rt.char_root_positions[:, 0] = 2 * x[0] - x
             n = rt.joint_positions.shape[0]
             wag = TAIL_WAG_DEG * np.sin(4 * np.pi * np.arange(n) / n)
             rt.char_joint_to_orientation["tail_mid"] = (mid.starting_theta + wag).astype(np.float32)

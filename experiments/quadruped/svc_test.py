@@ -24,7 +24,7 @@ for n in sys.argv[2:]:
     line = f"{n} 분석 {time.time()-t:.1f}s form={a['form']} 찾음={a['joints_found']} 신뢰도={a['confidence']}"
     t = time.time()
     try:
-        r = post("/render", {"request_id": a["request_id"], "joints": json.dumps(a["joints"]), "motion": "walk", "sprite": "true"})
+        r = post("/render", {"request_id": a["request_id"], "joints": json.dumps(a["joints"]), "motion": os.environ.get("MOTION", "walk"), "sprite": "true"})
         sp = Image.open(io.BytesIO(base64.b64decode(r["sprite"]))); c = sp.size[0] // 8
         fr = [sp.crop(((k % 8) * c, (k // 8) * c, (k % 8 + 1) * c, (k // 8 + 1) * c)).convert("RGBA") for k in range(0, r["sprite_frames"], max(1, r["sprite_frames"] // 6))][:6]
         line += f" | 렌더 {time.time()-t:.1f}s 프레임 {r['sprite_frames']}"
@@ -38,4 +38,4 @@ for n in sys.argv[2:]:
     strip = Image.new("RGB", (300 + 200 * 6, 300), "white"); strip.paste(src, (0, 0))
     for i, f in enumerate(fr):
         g = Image.new("RGBA", f.size, "white"); g.alpha_composite(f); strip.paste(g.convert("RGB").resize((200, 200)), (300 + i * 200, 50))
-    strip.save(f"out/svc_{form}_{n.split('/')[-1].split('.')[0]}.png"); print(line, flush=True)
+    strip.save(f"out/svc_{form}_{os.environ.get('MOTION', 'walk')}_{n.split('/')[-1].split('.')[0]}.png"); print(line, flush=True)

@@ -112,7 +112,10 @@
   "retarget": "quadruped/four_legs_cmu.yaml",
   "motions": {
     "walk": "quadruped/walk.yaml",
-    "run": "quadruped/run.yaml"
+    "run": "quadruped/run.yaml",
+    "jumping_gentle": "quadruped/jumping_gentle.yaml",
+    "breathe": "quadruped/breathe.yaml",
+    "shiver": "quadruped/shiver.yaml"
   },
   "hero": {
     "fit": "width",
