@@ -21,6 +21,8 @@ import cv2
 import numpy as np
 import yaml
 
+from ai_server import face_lock
+
 ANIMATED_DRAWINGS_DIR = Path(
     os.getenv("ANIMATED_DRAWINGS_DIR", "/opt/AnimatedDrawings")
 )
@@ -297,6 +299,8 @@ def prepare_character(
 # 투명 프레임 묶음 (S-09 장면 층). 칸은 정사각 SPRITE_CELL, 가로는 늘 SPRITE_COLS 칸(남는 칸은 투명)으로 줄을 바꾼다.
 # 렌더 화면을 자르지 않아 같은 캐릭터면 동작이 달라도 크기 · 발끝 자리가 같다.
 # 칸 크기 그대로 그린다(11/3 저녁 — 전에는 640 으로 그려 512 로 줄였다. 그리는 픽셀이 36% 적고 줄이는 단계가 없다)
+# 큰 얼굴 원본 그대로 옮겨 붙이기 (face_lock.py). 끄면 늘 지금처럼 Meta 가 얼굴까지 변형한다
+FACE_LOCK = os.environ.get("DRAWTALE_FACE_LOCK", "1") != "0"
 SPRITE_WINDOW = 512
 SPRITE_CELL = 512
 SPRITE_COLS = 8
@@ -635,28 +639,59 @@ def render_animation(
         with open(mvc_path, "w") as f:
             yaml.dump(mvc_cfg, f)
 
-        # Meta 코드는 상대 경로를 자기 저장소 기준으로 해석한다
-        cwd = os.getcwd()
-        try:
-            os.chdir(ANIMATED_DRAWINGS_DIR)
-            import animated_drawings.render
+        # 큰 얼굴을 원본 그대로 옮겨 붙일 그림인지 (face_lock — 머리가 크고 목 없는 그림만). 그런 그림은
+        # 프레임을 늘 가로챈다(MP4 만 만들 때도) — 붙인 얼굴이 MP4 · 프레임 묶음 둘 다에 들어가게
+        face = face_lock.plan(char_dir) if FACE_LOCK else None
+        capture = bool(sprite_path) or face is not None
 
-            frames = _capture_frames() if sprite_path else None
-            still = _in_place() if sprite_path else None
-            thin = _thin_frames() if sprite_path else None
-            reuse = _reuse_setup() if REUSE_SETUP else None
+        def run_meta():
+            """Meta 렌더 한 번. 가로챈 프레임(_capture_frames) 또는 None(GIF 로 저장)."""
+            # Meta 코드는 상대 경로를 자기 저장소 기준으로 해석한다
+            cwd = os.getcwd()
             try:
-                animated_drawings.render.start(str(mvc_path))
+                os.chdir(ANIMATED_DRAWINGS_DIR)
+                import animated_drawings.render
+
+                frames = _capture_frames() if capture else None
+                still = _in_place() if sprite_path else None
+                thin = _thin_frames() if sprite_path else None
+                reuse = _reuse_setup() if REUSE_SETUP else None
+                try:
+                    animated_drawings.render.start(str(mvc_path))
+                finally:
+                    for patch in (frames, still, thin, reuse):
+                        if patch is not None:
+                            patch.release()
+                return frames
+            except RenderError:
+                raise
+            except Exception as e:
+                raise RenderError(f"RENDER_FAILED: {e}") from e
             finally:
-                for patch in (frames, still, thin, reuse):
-                    if patch is not None:
-                        patch.release()
-        except RenderError:
-            raise
-        except Exception as e:
-            raise RenderError(f"RENDER_FAILED: {e}") from e
-        finally:
-            os.chdir(cwd)
+                os.chdir(cwd)
+
+        face_used = False
+        frames = None
+        if face is not None:
+            # 찾기 렌더(얼굴만) → 그리기 렌더(얼굴 자리 표시색) → 덮어 붙이기. 준비 계산은 틀 · 관절만 보므로
+            # 두 번째부터는 _reuse_setup 이 다시 쓴다 (늘어나는 시간은 그리기 한 번). 어디서든 어긋나면 원래 텍스처로 다시 그린다
+            try:
+                face_lock.write_texture(char_dir, face, "locate")
+                located = run_meta()
+                where = face_lock.track(located.frames, face) if located is not None else None
+                if where is not None:
+                    face_lock.write_texture(char_dir, face, "paint")
+                    frames = run_meta()
+                    if frames is not None and len(frames.frames) == len(where):
+                        frames.frames[:] = face_lock.apply(frames.frames, where, face)
+                        face_used = True
+            except RenderError:
+                face_used = False
+            if not face_used:
+                face_lock.write_texture(char_dir, face, "original")
+                frames = None
+        if frames is None:
+            frames = run_meta()
 
         output = Path(output_path)
         output.parent.mkdir(parents=True, exist_ok=True)
@@ -668,13 +703,14 @@ def render_animation(
             if not gif_path.exists():
                 raise RenderError("RENDER_FAILED: no output produced")
             _gif_to_mp4(gif_path, output)
-        sprite = _write_sprite(frames.frames, Path(sprite_path)) if frames is not None else None
+        sprite = _write_sprite(frames.frames, Path(sprite_path)) if frames is not None and sprite_path else None
 
         return {
             "format": "mp4",
             "motion": motion,
             "size_bytes": output.stat().st_size,
             "sprite": sprite,
+            "face_lock": face_used,
             "processing_time_ms": round((time.perf_counter() - started_at) * 1000),
         }
 
