@@ -1,0 +1,4 @@
+*.parts.png
+*.mask.png
+*.joints.json
+out/

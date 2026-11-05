@@ -957,6 +957,10 @@ def analyze_image(image_path: str, mask_path: str | None = None, form: str = "bi
     if form in ("chain", "finned"):
         from ai_server import chain
         return chain.analyze(image_path, mask_path, form, facing)
+    # 날개형은 선으로 닫힌 칸으로 머리 · 몸통 · 날개를 나눈다 (winged.py)
+    if form == "winged":
+        from ai_server import winged
+        return winged.analyze(image_path, mask_path, facing)
 
     started_at = time.perf_counter()
 

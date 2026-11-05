@@ -1,0 +1,138 @@
+{
+  "id": "winged",
+  "label": "날개형",
+  "group": "nonhumanoid",
+  "kid_label": "날개로 나는 친구",
+  "examples": [
+    "새",
+    "나비",
+    "잠자리"
+  ],
+  "view": "side",
+  "find": "regions",
+  "root_at": "body",
+  "joints": [
+    {
+      "name": "body",
+      "parent": "root",
+      "label": "몸통"
+    },
+    {
+      "name": "head",
+      "parent": "body",
+      "label": "머리"
+    },
+    {
+      "name": "wing1_root",
+      "parent": "body",
+      "label": "날개 1 뿌리"
+    },
+    {
+      "name": "wing1_mid",
+      "parent": "wing1_root",
+      "label": "날개 1 가운데"
+    },
+    {
+      "name": "wing1_tip",
+      "parent": "wing1_mid",
+      "label": "날개 1 끝"
+    },
+    {
+      "name": "wing2_root",
+      "parent": "body",
+      "label": "날개 2 뿌리"
+    },
+    {
+      "name": "wing2_mid",
+      "parent": "wing2_root",
+      "label": "날개 2 가운데"
+    },
+    {
+      "name": "wing2_tip",
+      "parent": "wing2_mid",
+      "label": "날개 2 끝"
+    }
+  ],
+  "guide": [
+    "몸통 → 머리 → 날개 뿌리 · 가운데 · 끝 순서예요",
+    "날개가 하나면 날개 2 점을 날개 1 에 겹쳐 두면 돼요"
+  ],
+  "retarget": "chain/retarget_winged.yaml",
+  "motions": {
+    "walk": "chain/wiggle.yaml",
+    "run": "chain/wiggle.yaml",
+    "breathe": "chain/wiggle.yaml"
+  },
+  "waves": {
+    "walk": {
+      "bones": [
+        "wing1_mid",
+        "wing1_tip",
+        "wing2_mid",
+        "wing2_tip"
+      ],
+      "amp": [
+        28,
+        38,
+        28,
+        38
+      ],
+      "cycles": 4,
+      "lag": 0.4,
+      "bob": 0.05
+    },
+    "run": {
+      "bones": [
+        "wing1_mid",
+        "wing1_tip",
+        "wing2_mid",
+        "wing2_tip"
+      ],
+      "amp": [
+        32,
+        44,
+        32,
+        44
+      ],
+      "cycles": 6,
+      "lag": 0.4,
+      "bob": 0.04
+    },
+    "breathe": {
+      "bones": [
+        "wing1_mid",
+        "wing1_tip",
+        "wing2_mid",
+        "wing2_tip"
+      ],
+      "amp": [
+        6,
+        9,
+        6,
+        9
+      ],
+      "cycles": 2,
+      "lag": 0.4,
+      "bob": 0.02
+    }
+  },
+  "hero": {
+    "fit": "width",
+    "facing": "auto",
+    "float": 0.22,
+    "size": 0.6
+  },
+  "ready": false,
+  "sprite_camera": {
+    "pos": [
+      0.0,
+      0.45,
+      2.2
+    ],
+    "fwd": [
+      0.0,
+      0.45,
+      2.0
+    ]
+  }
+}

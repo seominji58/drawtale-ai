@@ -55,7 +55,7 @@ def _ink(img: np.ndarray) -> np.ndarray:
                                                  cv2.THRESH_BINARY, 115, 8)) > 0
 
 
-def _place(img: np.ndarray) -> dict:
+def _place(img: np.ndarray, grow: bool = False) -> dict:
     boxes = [d for d in _detections(img) if d.get("score", 0) >= MIN_BOX_SCORE]
     if boxes:
         best = max(boxes, key=lambda d: (d["bbox"][2] - d["bbox"][0]) * (d["bbox"][3] - d["bbox"][1]))
@@ -69,7 +69,28 @@ def _place(img: np.ndarray) -> dict:
         r, b = int(np.percentile(xs, 98)), int(np.percentile(ys, 98))
         score = 0.0
     h, w = img.shape[:2]
-    return {"left": max(0, l), "top": max(0, t), "right": min(w, r), "bottom": min(h, b), "score": score}
+    l, t, r, b = max(0, l), max(0, t), min(w, r), min(h, b)
+    if grow:
+        l, t, r, b = _grow(img, (l, t, r, b))
+    return {"left": l, "top": t, "right": r, "bottom": b, "score": score}
+
+
+def _grow(img: np.ndarray, box: tuple[int, int, int, int]) -> tuple[int, int, int, int]:
+    """탐지 상자에 걸친 선 덩어리가 상자 밖으로 이어지면 그 덩어리가 다 들어오게 넓힌다 (11/5 — 등 위로 크게 솟은
+    새 날개가 사람 탐지 상자 밖이라 그림 영역에서 통째로 빠졌다). 상자보다 훨씬 큰 덩어리(종이 가장자리 · 책상 선)는 넣지 않는다.
+    날개형만 쓴다 — 4족형 종이 사진에 쓰니 종이 위 다른 선(글씨 · 그림자)까지 넓어져 8장 중 4장 관절이 바뀌었다"""
+    l, t, r, b = box
+    ink = _ink(img).astype(np.uint8)
+    ink = cv2.dilate(ink, np.ones((3, 3), np.uint8))
+    n, lab, st, _ = cv2.connectedComponentsWithStats(ink, connectivity=8)
+    bw, bh = max(1, r - l), max(1, b - t)
+    ids = np.unique(lab[t:b, l:r])
+    for i in ids[ids > 0]:
+        x, y, w_, h_ = st[i, :4]
+        if w_ > 2.0 * bw or h_ > 2.0 * bh:
+            continue
+        l, t, r, b = min(l, int(x)), min(t, int(y)), max(r, int(x + w_)), max(b, int(y + h_))
+    return l, t, r, b
 
 
 def build_mask(img: np.ndarray, box: dict) -> np.ndarray:
@@ -346,7 +367,7 @@ def drop_background(img: np.ndarray, mask: np.ndarray) -> np.ndarray:
     return out if (out > 0).sum() > 0.2 * (mask > 0).sum() else mask
 
 
-def cut_out(image_path: str) -> dict:
+def cut_out(image_path: str, grow: bool = False) -> dict:
     """사람 관절 모델 없이 그림 영역을 잘라 낸다 — 4족형 · 사슬형 · 지느러미형이 함께 쓴다.
     {"original", "box"(분석 크기, score 포함), "big_box"(원본 크기), "mask"(원본 크기 0/255)} 또는 {"error": 메시지}"""
     original = cv2.imread(image_path, cv2.IMREAD_COLOR)            # 휴대폰 방향 정보를 반영한다
@@ -356,7 +377,7 @@ def cut_out(image_path: str) -> dict:
     img = original if scale == 1.0 else cv2.resize(
         original, (round(original.shape[1] * scale), round(original.shape[0] * scale)), interpolation=cv2.INTER_AREA)
 
-    box = _place(img)
+    box = _place(img, grow)
     if box["right"] <= box["left"] or box["bottom"] <= box["top"]:
         return {"error": "INVALID_BBOX: Character bounding box is invalid"}
     small = build_mask(img, box)
