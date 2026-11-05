@@ -59,7 +59,8 @@
   "retarget": "chain/retarget.yaml",
   "motions": {
     "walk": "chain/wiggle.yaml",
-    "run": "chain/wiggle.yaml"
+    "run": "chain/wiggle.yaml",
+    "breathe": "chain/wiggle.yaml"
   },
   "waves": {
     "walk": {
@@ -104,6 +105,28 @@
         14
       ],
       "cycles": 3,
+      "lag": 0.9
+    },
+    "breathe": {
+      "bones": [
+        "b1",
+        "b2",
+        "b3",
+        "b4",
+        "b5",
+        "b6",
+        "tail"
+      ],
+      "amp": [
+        1,
+        3,
+        4,
+        4,
+        4,
+        4,
+        4
+      ],
+      "cycles": 1,
       "lag": 0.9
     }
   },

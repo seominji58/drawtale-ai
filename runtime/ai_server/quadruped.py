@@ -309,26 +309,36 @@ def template(mask: np.ndarray, facing: str | None = None) -> dict[str, tuple[flo
     return j
 
 
-def analyze(image_path: str, mask_path: str | None, facing: str | None = None) -> dict:
-    """analyzer.analyze_image 와 같은 모양으로 돌려준다 (+ form · joints_found)."""
-    started = time.perf_counter()
+def cut_out(image_path: str) -> dict:
+    """사람 관절 모델 없이 그림 영역을 잘라 낸다 — 4족형 · 사슬형 · 지느러미형이 함께 쓴다.
+    {"original", "box"(분석 크기, score 포함), "big_box"(원본 크기), "mask"(원본 크기 0/255)} 또는 {"error": 메시지}"""
     original = cv2.imread(image_path, cv2.IMREAD_COLOR)            # 휴대폰 방향 정보를 반영한다
     if original is None:
-        return {"success": False, "bbox": None, "joints": [], "message": "INVALID_IMAGE: could not read image"}
+        return {"error": "INVALID_IMAGE: could not read image"}
     scale = min(1.0, A.MAX_ANALYSIS_SIZE / max(original.shape[:2]))
     img = original if scale == 1.0 else cv2.resize(
         original, (round(original.shape[1] * scale), round(original.shape[0] * scale)), interpolation=cv2.INTER_AREA)
 
     box = _place(img)
     if box["right"] <= box["left"] or box["bottom"] <= box["top"]:
-        return {"success": False, "bbox": None, "joints": [], "message": "INVALID_BBOX: Character bounding box is invalid"}
+        return {"error": "INVALID_BBOX: Character bounding box is invalid"}
     small = build_mask(img, box)
     before = cv2.resize(small, (original.shape[1], original.shape[0]), interpolation=cv2.INTER_NEAREST)
     after = A.refine_mask(original, before)
     big_box = {k: round(v / scale) for k, v in box.items() if k != "score"}
     mask = restore_lines(original, before, after, big_box)
     if not (mask > 127).any():
-        return {"success": False, "bbox": None, "joints": [], "message": "NO_CHARACTER_DETECTED: empty mask"}
+        return {"error": "NO_CHARACTER_DETECTED: empty mask"}
+    return {"original": original, "box": box, "big_box": big_box, "mask": mask}
+
+
+def analyze(image_path: str, mask_path: str | None, facing: str | None = None) -> dict:
+    """analyzer.analyze_image 와 같은 모양으로 돌려준다 (+ form · joints_found)."""
+    started = time.perf_counter()
+    cut = cut_out(image_path)
+    if "error" in cut:
+        return {"success": False, "bbox": None, "joints": [], "message": cut["error"]}
+    original, box, big_box, mask = cut["original"], cut["box"], cut["big_box"], cut["mask"]
 
     joints, found = find_joints(mask > 127, facing)
     saved = False
