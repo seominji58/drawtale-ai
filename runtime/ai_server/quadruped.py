@@ -309,6 +309,43 @@ def template(mask: np.ndarray, facing: str | None = None) -> dict[str, tuple[flo
     return j
 
 
+def drop_background(img: np.ndarray, mask: np.ndarray) -> np.ndarray:
+    """칠한 배경을 마스크에서 깎는다 (11/5 사용자 — 진한 초록 배경에 그린 지렁이가 초록 띠를 두르고 움직였다).
+
+    refine_mask 는 종이색(밝은 색)만 깎아, 진하게 칠한 배경은 그림 둘레에 넉넉히 잡힌 띠로 남았다.
+    사진 가장자리 띠의 색이 고르면(칠한 배경) 그 색이면서 바깥과 이어진 곳을 뺀다. 그림 윤곽선(진한 선)은 남겨
+    선 안쪽은 바깥과 이어지지 않는다. 배경이 종이색이면 지금처럼 refine_mask 에 맡긴다 (흰 종이 사진은 그대로)."""
+    h, w = mask.shape
+    k = max(4, round(0.03 * min(h, w)))
+    lab = cv2.cvtColor(cv2.GaussianBlur(img, (5, 5), 0), cv2.COLOR_BGR2LAB).astype(np.float32)
+    frame = np.zeros((h, w), bool)
+    frame[:k], frame[-k:], frame[:, :k], frame[:, -k:] = True, True, True, True
+    edge = lab[frame & (mask == 0)]
+    if len(edge) < 50:
+        return mask
+    bg = np.median(edge, axis=0)
+    spread = float(np.median(np.linalg.norm(edge - bg, axis=1)))
+    chroma = float(np.hypot(bg[1] - 128, bg[2] - 128))
+    if spread > 12 or chroma < 15:
+        # 가장자리 색이 고르지 않거나(책상 · 그림자) 색이 없는 회색 · 흰색(그늘진 종이 사진) — refine_mask 에 맡긴다.
+        # 「흰색과 멀다」로만 보면 그늘진 종이를 배경으로 깎아 회색 고양이 몸까지 깎였다 (실제 사진 3장 관절이 바뀜, 11/5)
+        return mask
+    dark = lab[..., 0] < 70                 # 윤곽선 · 눈은 남긴다 — 밝기로 본다(RGB 최솟값이면 진한 초록 배경도 「어둡다」로 남았다)
+    like = (np.linalg.norm(lab - bg, axis=2) < 22) & ~dark
+    reach = (like | (mask == 0)).astype(np.uint8)
+    n, lab_ids = cv2.connectedComponents(reach, connectivity=4)
+    outside = np.unique(lab_ids[frame & (reach > 0)])
+    drop = np.isin(lab_ids, outside[outside > 0]) & like & (mask > 0)
+    out = mask.copy()
+    out[drop] = 0
+    # 깎고 남은 큰 덩어리 하나만 (깎다 떨어진 작은 조각 버림)
+    cnt, ids, st, _ = cv2.connectedComponentsWithStats((out > 0).astype(np.uint8), connectivity=8)
+    if cnt > 2:
+        big = 1 + int(np.argmax(st[1:, cv2.CC_STAT_AREA]))
+        out = np.where(ids == big, out, 0).astype(mask.dtype)
+    return out if (out > 0).sum() > 0.2 * (mask > 0).sum() else mask
+
+
 def cut_out(image_path: str) -> dict:
     """사람 관절 모델 없이 그림 영역을 잘라 낸다 — 4족형 · 사슬형 · 지느러미형이 함께 쓴다.
     {"original", "box"(분석 크기, score 포함), "big_box"(원본 크기), "mask"(원본 크기 0/255)} 또는 {"error": 메시지}"""
@@ -326,7 +363,7 @@ def cut_out(image_path: str) -> dict:
     before = cv2.resize(small, (original.shape[1], original.shape[0]), interpolation=cv2.INTER_NEAREST)
     after = A.refine_mask(original, before)
     big_box = {k: round(v / scale) for k, v in box.items() if k != "score"}
-    mask = restore_lines(original, before, after, big_box)
+    mask = drop_background(original, restore_lines(original, before, after, big_box))
     if not (mask > 127).any():
         return {"error": "NO_CHARACTER_DETECTED: empty mask"}
     return {"original": original, "box": box, "big_box": big_box, "mask": mask}
