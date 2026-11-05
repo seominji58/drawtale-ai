@@ -1,0 +1,10 @@
+# 사슬형 · 지느러미형 동작 — 사람 걷기(../walk.bvh)의 장 수 · 박자만 쓴다 (뼈 대응 없음, 물결은 형태 정의 waves)
+filepath: ../walk.bvh
+start_frame_idx: 0
+end_frame_idx: 78
+groundplane_joint: LeftFoot
+forward_perp_joint_vectors:
+  - [LeftShoulder, RightShoulder]
+  - [LeftUpLeg, RightUpLeg]
+scale: 0.025
+up: +y

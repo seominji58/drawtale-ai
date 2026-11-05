@@ -1,0 +1,127 @@
+{
+  "id": "chain",
+  "label": "사슬형",
+  "group": "nonhumanoid",
+  "kid_label": "꿈틀꿈틀 기는 친구",
+  "examples": [
+    "뱀",
+    "지렁이",
+    "애벌레"
+  ],
+  "view": "side",
+  "find": "centerline",
+  "root_at": "head",
+  "joints": [
+    {
+      "name": "head",
+      "parent": "root",
+      "label": "머리"
+    },
+    {
+      "name": "b1",
+      "parent": "head",
+      "label": "몸 1"
+    },
+    {
+      "name": "b2",
+      "parent": "b1",
+      "label": "몸 2"
+    },
+    {
+      "name": "b3",
+      "parent": "b2",
+      "label": "몸 3"
+    },
+    {
+      "name": "b4",
+      "parent": "b3",
+      "label": "몸 4"
+    },
+    {
+      "name": "b5",
+      "parent": "b4",
+      "label": "몸 5"
+    },
+    {
+      "name": "b6",
+      "parent": "b5",
+      "label": "몸 6"
+    },
+    {
+      "name": "tail",
+      "parent": "b6",
+      "label": "꼬리 끝"
+    }
+  ],
+  "guide": [
+    "머리 → 꼬리 끝까지 몸 가운데를 따라 점을 놓아요"
+  ],
+  "retarget": "chain/retarget.yaml",
+  "motions": {
+    "walk": "chain/wiggle.yaml",
+    "run": "chain/wiggle.yaml"
+  },
+  "waves": {
+    "walk": {
+      "bones": [
+        "b1",
+        "b2",
+        "b3",
+        "b4",
+        "b5",
+        "b6",
+        "tail"
+      ],
+      "amp": [
+        4,
+        9,
+        12,
+        12,
+        12,
+        12,
+        12
+      ],
+      "cycles": 2,
+      "lag": 0.9
+    },
+    "run": {
+      "bones": [
+        "b1",
+        "b2",
+        "b3",
+        "b4",
+        "b5",
+        "b6",
+        "tail"
+      ],
+      "amp": [
+        5,
+        11,
+        14,
+        14,
+        14,
+        14,
+        14
+      ],
+      "cycles": 3,
+      "lag": 0.9
+    }
+  },
+  "hero": {
+    "fit": "width",
+    "facing": "auto"
+  },
+  "ready": false,
+  "sprite_camera": {
+    "pos": [
+      0.0,
+      0.45,
+      2.2
+    ],
+    "fwd": [
+      0.0,
+      0.45,
+      2.0
+    ]
+  }
+}

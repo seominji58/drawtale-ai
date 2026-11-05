@@ -1,0 +1,100 @@
+{
+  "id": "finned",
+  "label": "지느러미형",
+  "group": "nonhumanoid",
+  "kid_label": "헤엄치는 친구",
+  "examples": [
+    "물고기",
+    "고래",
+    "올챙이"
+  ],
+  "view": "side",
+  "find": "centerline",
+  "root_at": "head",
+  "joints": [
+    {
+      "name": "head",
+      "parent": "root",
+      "label": "머리"
+    },
+    {
+      "name": "b1",
+      "parent": "head",
+      "label": "몸 1"
+    },
+    {
+      "name": "b2",
+      "parent": "b1",
+      "label": "몸 2"
+    },
+    {
+      "name": "b3",
+      "parent": "b2",
+      "label": "몸 3"
+    },
+    {
+      "name": "tail",
+      "parent": "b3",
+      "label": "꼬리 끝"
+    }
+  ],
+  "guide": [
+    "머리 → 꼬리지느러미 끝까지 몸 가운데를 따라 점을 놓아요"
+  ],
+  "retarget": "chain/retarget_finned.yaml",
+  "motions": {
+    "walk": "chain/wiggle.yaml",
+    "run": "chain/wiggle.yaml"
+  },
+  "waves": {
+    "walk": {
+      "bones": [
+        "b1",
+        "b2",
+        "b3",
+        "tail"
+      ],
+      "amp": [
+        0,
+        4,
+        12,
+        24
+      ],
+      "cycles": 2,
+      "lag": 0.7
+    },
+    "run": {
+      "bones": [
+        "b1",
+        "b2",
+        "b3",
+        "tail"
+      ],
+      "amp": [
+        0,
+        5,
+        15,
+        30
+      ],
+      "cycles": 3,
+      "lag": 0.7
+    }
+  },
+  "hero": {
+    "fit": "width",
+    "facing": "auto"
+  },
+  "ready": false,
+  "sprite_camera": {
+    "pos": [
+      0.0,
+      0.45,
+      2.2
+    ],
+    "fwd": [
+      0.0,
+      0.45,
+      2.0
+    ]
+  }
+}
