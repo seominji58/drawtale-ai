@@ -446,8 +446,11 @@ def _apply_wave(drawing, wave: dict) -> None:  # noqa: ANN001
     """몸 가운데 선을 따라 나눈 마디를 물결처럼 (사슬형 꿈틀 · 지느러미형 헤엄, 11/5 시험).
 
     동작 파일에 이런 움직임이 없어 대응표 대신 마디(뼈)마다 방향을 직접 넣는다 — 꼬리 흔들기와 같은 방법.
-    wave = {"bones": [자식 관절 이름 …(머리 → 꼬리)], "amp": [마디별 폭(도) …], "cycles": 한 동작에 몇 번, "lag": 마디마다 늦는 각(라디안)}
-    늦음이 있어 물결이 머리에서 꼬리로 흘러간다. 장 수의 정수배 주기라 반복해도 끊기지 않는다"""
+    wave = {"bones": [자식 관절 이름 …(머리 → 꼬리)], "amp": [마디별 폭(도) …], "cycles": 한 동작에 몇 번, "lag": 마디마다 늦는 각(라디안),
+            "bob": 몸 전체 오르내림 (몸길이 대비, 없으면 0)}
+    늦음이 있어 물결이 머리에서 꼬리로 흘러간다. 장 수의 정수배 주기라 반복해도 끊기지 않는다.
+    물결이 흐르는 빠르기(물결 길이 × 박자)를 장면이 옮기는 빠르기에 맞춘다 — 물결이 6배 빠르면 제자리에서 꿈틀대며
+    미끄러지는 것처럼 보였다 (11/5). 장면 걷기는 1초에 몸길이 0.08 ~ 0.14, 뛰기 0.12 ~ 0.22 (프론트 SceneStage STRIDE)"""
     root, rt = drawing.rig.root_joint, drawing.retargeter
     n = rt.joint_positions.shape[0]
     t = 2 * np.pi * float(wave.get("cycles", 2)) * np.arange(n) / n
@@ -456,6 +459,16 @@ def _apply_wave(drawing, wave: dict) -> None:  # noqa: ANN001
         if joint is not None:
             angle = joint.starting_theta + float(amp) * np.sin(t - float(wave.get("lag", 0.7)) * i)
             rt.char_joint_to_orientation[name] = angle.astype(np.float32)
+    # 몸 위치는 사람 걷기 데이터(박자용)의 오르내림 · 흔들림을 따르지 않는다 — 제자리에 둔다
+    rt.char_root_positions[:] = rt.char_root_positions[0]
+    # 몸 전체가 천천히 오르내린다 (지느러미형 헤엄, 11/5 사용자 「헤엄치는 느낌」) — 몸길이 대비 폭, 한 동작에 한 번
+    bob = float(wave.get("bob", 0))
+    if bob:
+        ends = [root.get_transform_by_name(n) for n in (wave["bones"][0], wave["bones"][-1])]
+        if all(e is not None for e in ends):
+            length = float(np.linalg.norm(np.subtract(ends[0].get_world_position(), ends[1].get_world_position())[:2]))
+            m = rt.char_root_positions.shape[0]
+            rt.char_root_positions[:, 1] += (bob * length * np.sin(2 * np.pi * np.arange(m) / m)).astype(np.float32)
 
 
 class _tail_wag:

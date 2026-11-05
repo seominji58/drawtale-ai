@@ -1,3 +1,4 @@
 *.mask.png
 *.overlay.png
 *.joints.json
+out/
