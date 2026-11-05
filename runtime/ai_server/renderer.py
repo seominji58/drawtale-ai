@@ -471,9 +471,9 @@ def _apply_wave(drawing, wave: dict) -> None:  # noqa: ANN001
         if joint is None or parent is None:
             continue
         dx = float(joint.get_world_position()[0] - parent.get_world_position()[0])
-        # 땅 쪽으로 도는 쪽 — Meta 각도는 그림(아래로 가는 y) 기준이라 오른쪽을 보는 뼈는 반시계(+)가 아래다.
-        # 반대로 두었더니 「고개 들기」가 머리를 떨구고 「냄새 맡기」가 고개를 뒤로 젖혀 얼굴이 돌아갔다 (11/5 시험)
-        down = 1.0 if dx >= 0 else -1.0
+        # 땅 쪽으로 도는 쪽 — 오른쪽을 보는 뼈는 − 가 아래, 왼쪽을 보는 뼈는 + 가 아래 (11/5 뱀 목 마디 ±40° 렌더로 확인).
+        # 냄새 맡기에서 얼굴이 돌아간 것은 부호가 아니라 각(70°)이 커서였다
+        down = -1.0 if dx >= 0 else 1.0
         angle = (joint.starting_theta + down * float(lowers[i]) + float(amps[i]) * np.sin(t - float(wave.get("lag", 0.7)) * i)
                  + curl * (i + 1) + turn)
         rt.char_joint_to_orientation[name] = (angle % 360.0).astype(np.float32)
