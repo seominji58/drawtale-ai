@@ -32,7 +32,9 @@ def find_joints(img: np.ndarray, mask: np.ndarray, facing: str | None = None) ->
     box = (xs0.min(), ys0.min(), xs0.max() + 1, ys0.max() + 1)
     crop = img[box[1]:box[3], box[0]:box[2]]
     inside = mask[box[1]:box[3], box[0]:box[2]] > 0
-    ink = ((crop.min(axis=2) < 160) & inside).astype(np.uint8)
+    # 선 = 어두운 곳 — 밝기(Lab L)로 본다. RGB 최솟값으로 보면 갈색 · 진한 색으로 칠한 몸까지 선이 되어 칸이 안 나뉘었다 (11/5)
+    light = cv2.cvtColor(crop, cv2.COLOR_BGR2LAB)[..., 0]
+    ink = ((light < 90) & inside).astype(np.uint8)
     lw = max(3.0, 2 * float(cv2.distanceTransform(ink, cv2.DIST_L2, 3).max()))   # 선 굵기
     # 날개 선과 몸 선이 만나는 곳의 작은 틈을 막는다 — 틈으로 날개 칸이 바깥과 이어져 칸이 안 잡혔다
     ink = cv2.dilate(ink, np.ones((5, 5), np.uint8))

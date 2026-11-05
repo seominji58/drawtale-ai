@@ -359,6 +359,13 @@ def drop_background(img: np.ndarray, mask: np.ndarray) -> np.ndarray:
     drop = np.isin(lab_ids, outside[outside > 0]) & like & (mask > 0)
     out = mask.copy()
     out[drop] = 0
+    # 몸에 이어진 진한 선(다리 · 부리)을 되살린다 — 선 되살리기(restore_lines)는 색 중 가장 어두운 값으로 선을 찾아,
+    # 노란 배경(가장 어두운 값이 0)에서는 검은 선과 배경이 같아 가는 다리가 통째로 빠졌다 (11/5 노란 배경 새)
+    n_d, ids_d, st_d, _ = cv2.connectedComponentsWithStats(dark.astype(np.uint8), connectivity=8)
+    touch = np.unique(ids_d[(cv2.dilate((out > 0).astype(np.uint8), np.ones((5, 5), np.uint8)) > 0) & dark])
+    for i in touch[touch > 0]:
+        if st_d[i, cv2.CC_STAT_AREA] < 0.3 * h * w:
+            out[ids_d == i] = 255
     # 깎고 남은 큰 덩어리 하나만 (깎다 떨어진 작은 조각 버림)
     cnt, ids, st, _ = cv2.connectedComponentsWithStats((out > 0).astype(np.uint8), connectivity=8)
     if cnt > 2:
