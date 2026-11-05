@@ -150,17 +150,18 @@ def build_char_cfg(joints: list[dict], width: int, height: int) -> dict:
 
     by_name = {j["name"]: j for j in joints}
     try:
-        parents = forms.parents(forms.form_of(set(by_name)))
+        form = forms.form_of(set(by_name))
+        parents, root_at = forms.parents(form), forms.get(form).get("root_at", "hip")
     except KeyError:
-        parents = JOINT_PARENTS        # 이름이 모자라면 아래에서 사람 관절 기준으로 무엇이 빠졌는지 알린다
+        parents, root_at = JOINT_PARENTS, "hip"   # 이름이 모자라면 아래에서 사람 관절 기준으로 무엇이 빠졌는지 알린다
 
     missing = [n for n in parents if n != "root" and n not in by_name]
     if missing:
         raise RenderError(f"INVALID_JOINTS: missing joints {missing}")
 
-    # root는 hip과 같은 위치에 둔다 (Meta 예시와 동일)
-    hip = by_name["hip"]
-    by_name["root"] = {"name": "root", "x": hip["x"], "y": hip["y"]}
+    # root는 hip과 같은 위치에 둔다 (Meta 예시와 동일). 엉덩이가 없는 형태(사슬형 …)는 형태 정의의 root_at
+    at = by_name[root_at]
+    by_name["root"] = {"name": "root", "x": at["x"], "y": at["y"]}
 
     skeleton = []
     for name, parent in parents.items():
@@ -441,6 +442,35 @@ class _reuse_setup:
         self._mod.ARAP = self._orig_arap
 
 
+def _apply_wave(drawing, wave: dict) -> None:  # noqa: ANN001
+    """몸 가운데 선을 따라 나눈 마디를 물결처럼 (사슬형 꿈틀 · 지느러미형 헤엄, 11/5 시험).
+
+    동작 파일에 이런 움직임이 없어 대응표 대신 마디(뼈)마다 방향을 직접 넣는다 — 꼬리 흔들기와 같은 방법.
+    wave = {"bones": [자식 관절 이름 …(머리 → 꼬리)], "amp": [마디별 폭(도) …], "cycles": 한 동작에 몇 번, "lag": 마디마다 늦는 각(라디안),
+            "bob": 몸 전체 오르내림 (몸길이 대비, 없으면 0)}
+    늦음이 있어 물결이 머리에서 꼬리로 흘러간다. 장 수의 정수배 주기라 반복해도 끊기지 않는다.
+    물결이 흐르는 빠르기(물결 길이 × 박자)를 장면이 옮기는 빠르기에 맞춘다 — 물결이 6배 빠르면 제자리에서 꿈틀대며
+    미끄러지는 것처럼 보였다 (11/5). 장면 걷기는 1초에 몸길이 0.08 ~ 0.14, 뛰기 0.12 ~ 0.22 (프론트 SceneStage STRIDE)"""
+    root, rt = drawing.rig.root_joint, drawing.retargeter
+    n = rt.joint_positions.shape[0]
+    t = 2 * np.pi * float(wave.get("cycles", 2)) * np.arange(n) / n
+    for i, (name, amp) in enumerate(zip(wave["bones"], wave["amp"])):
+        joint = root.get_transform_by_name(name)
+        if joint is not None:
+            angle = joint.starting_theta + float(amp) * np.sin(t - float(wave.get("lag", 0.7)) * i)
+            rt.char_joint_to_orientation[name] = angle.astype(np.float32)
+    # 몸 위치는 사람 걷기 데이터(박자용)의 오르내림 · 흔들림을 따르지 않는다 — 제자리에 둔다
+    rt.char_root_positions[:] = rt.char_root_positions[0]
+    # 몸 전체가 천천히 오르내린다 (지느러미형 헤엄, 11/5 사용자 「헤엄치는 느낌」) — 몸길이 대비 폭, 한 동작에 한 번
+    bob = float(wave.get("bob", 0))
+    if bob:
+        ends = [root.get_transform_by_name(n) for n in (wave["bones"][0], wave["bones"][-1])]
+        if all(e is not None for e in ends):
+            length = float(np.linalg.norm(np.subtract(ends[0].get_world_position(), ends[1].get_world_position())[:2]))
+            m = rt.char_root_positions.shape[0]
+            rt.char_root_positions[:, 1] += (bob * length * np.sin(2 * np.pi * np.arange(m) / m)).astype(np.float32)
+
+
 class _tail_wag:
     """옆모습 형태(4족형)의 동작 손질 — 머리 쪽으로 걷게 뒤집기 · 꼬리 흔들기.
 
@@ -459,7 +489,7 @@ class _tail_wag:
     (팀원 실험 hankan-experiments animal-monster/quadruped.py 의 TAIL_WAG 14° · sin(4πt) 와 같다).
     장 수의 정수배 주기라 반복해도 끊기지 않는다. 꼬리가 없는 그림은 점이 엉덩이에 겹쳐 길이가 0 — 돌려도 아무것도 안 끈다"""
 
-    def __init__(self) -> None:
+    def __init__(self, wave: dict | None = None) -> None:
         import animated_drawings.model.animated_drawing as ad
 
         self._cls = ad.AnimatedDrawing
@@ -469,6 +499,8 @@ class _tail_wag:
         def init(drawing, *a, **kw):  # noqa: ANN001 — Meta 쪽 서명 그대로
             orig(drawing, *a, **kw)
             root = drawing.rig.root_joint
+            if wave:
+                _apply_wave(drawing, wave)
             mid, tip = root.get_transform_by_name("tail_mid"), root.get_transform_by_name("tail_tip")
             if mid is None or tip is None:      # 꼬리 관절이 없는 형태(2족형)는 손대지 않는다
                 return
@@ -747,7 +779,8 @@ def render_animation(
                 still = _in_place() if sprite_path else None
                 thin = _thin_frames() if sprite_path else None
                 reuse = _reuse_setup() if REUSE_SETUP else None
-                wag = _tail_wag()
+                # 물결로 움직이는 형태(사슬형 · 지느러미형)는 형태 정의의 그 동작 물결
+                wag = _tail_wag(None if form == forms.DEFAULT else forms.get(form).get("waves", {}).get(motion))
                 try:
                     animated_drawings.render.start(str(mvc_path))
                 finally:

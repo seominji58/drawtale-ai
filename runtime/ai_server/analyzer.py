@@ -953,6 +953,10 @@ def analyze_image(image_path: str, mask_path: str | None = None, form: str = "bi
     if form == "quadruped":
         from ai_server import quadruped
         return quadruped.analyze(image_path, mask_path, facing)
+    # 사슬형 · 지느러미형은 몸 가운데 선을 마디로 (chain.py)
+    if form in ("chain", "finned"):
+        from ai_server import chain
+        return chain.analyze(image_path, mask_path, form, facing)
 
     started_at = time.perf_counter()
 

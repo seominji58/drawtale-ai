@@ -1,0 +1,124 @@
+{
+  "id": "finned",
+  "label": "지느러미형",
+  "group": "nonhumanoid",
+  "kid_label": "헤엄치는 친구",
+  "examples": [
+    "물고기",
+    "고래",
+    "올챙이"
+  ],
+  "view": "side",
+  "find": "centerline",
+  "root_at": "head",
+  "joints": [
+    {
+      "name": "head",
+      "parent": "root",
+      "label": "머리"
+    },
+    {
+      "name": "b1",
+      "parent": "head",
+      "label": "몸 1"
+    },
+    {
+      "name": "b2",
+      "parent": "b1",
+      "label": "몸 2"
+    },
+    {
+      "name": "b3",
+      "parent": "b2",
+      "label": "몸 3"
+    },
+    {
+      "name": "tail",
+      "parent": "b3",
+      "label": "꼬리 끝"
+    }
+  ],
+  "guide": [
+    "머리 → 꼬리지느러미 끝까지 몸 가운데를 따라 점을 놓아요"
+  ],
+  "retarget": "chain/retarget_finned.yaml",
+  "motions": {
+    "walk": "chain/wiggle.yaml",
+    "run": "chain/wiggle.yaml",
+    "breathe": "chain/wiggle.yaml"
+  },
+  "waves": {
+    "walk": {
+      "bones": [
+        "b1",
+        "b2",
+        "b3",
+        "tail"
+      ],
+      "amp": [
+        -4,
+        4,
+        12,
+        24
+      ],
+      "cycles": 2,
+      "lag": 0.7,
+      "bob": 0.04
+    },
+    "run": {
+      "bones": [
+        "b1",
+        "b2",
+        "b3",
+        "tail"
+      ],
+      "amp": [
+        -5,
+        5,
+        15,
+        30
+      ],
+      "cycles": 3,
+      "lag": 0.7,
+      "bob": 0.03
+    },
+    "breathe": {
+      "bones": [
+        "b1",
+        "b2",
+        "b3",
+        "tail"
+      ],
+      "amp": [
+        -1,
+        1,
+        4,
+        9
+      ],
+      "cycles": 1,
+      "lag": 0.7,
+      "bob": 0.03
+    }
+  },
+  "hero": {
+    "fit": "width",
+    "facing": "auto",
+    "float": 0.14,
+    "size": 0.5
+  },
+  "ready": false,
+  "sprite_camera": {
+    "pos": [
+      0.0,
+      0.45,
+      2.2
+    ],
+    "fwd": [
+      0.0,
+      0.45,
+      2.0
+    ]
+  },
+  "_hero_float_why": "헤엄치는 친구는 바닥선에 붙이면 땅을 기는 것처럼 보였다 — 장면 높이의 이만큼 띄운다 (11/5)",
+  "_hero_size_why": "몸길이 기준(사람 키 × 1.25)이면 통통한 물고기가 사람보다 훨씬 컸다 — 절반으로 (11/5)"
+}
