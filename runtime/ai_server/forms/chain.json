@@ -134,7 +134,7 @@
     "fit": "width",
     "facing": "auto"
   },
-  "ready": false,
+  "ready": true,
   "sprite_camera": {
     "pos": [
       0.0,

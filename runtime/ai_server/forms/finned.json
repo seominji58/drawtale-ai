@@ -106,7 +106,7 @@
     "float": 0.14,
     "size": 0.5
   },
-  "ready": false,
+  "ready": true,
   "sprite_camera": {
     "pos": [
       0.0,
