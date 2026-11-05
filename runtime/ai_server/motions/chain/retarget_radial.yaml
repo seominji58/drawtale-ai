@@ -1,0 +1,21 @@
+# 촉수형 대응표 (11/5 시험) — 뼈 대응 없이 동작 파일의 장 수 · 박자만. 흐느적은 renderer._apply_wave
+# 마디 방향은 renderer._apply_wave 가 형태 정의의 물결(waves)로 넣는다. 크기 맞춤(root offset)만 몸 끝 마디로
+char_starting_location: [-0.3, -0.2, -0.5]
+bvh_projection_bodypart_groups:
+- bvh_joint_names: [RightUpLeg, RightLeg, RightFoot, RightToeBase, LeftUpLeg, LeftLeg, LeftFoot, LeftToeBase]
+  method: pca
+  name: Lower Limbs
+- bvh_joint_names: [Hips, Spine, Spine1, Neck, Head, RightShoulder, RightArm, RightForeArm, RightHand, LeftShoulder, LeftArm, LeftForeArm, LeftHand]
+  method: frontal
+  name: Trunk
+char_bodypart_groups:
+- bvh_depth_drivers: [Hips]
+  char_joints: [body, leg1_root, leg1_mid, leg1_tip, leg2_root, leg2_mid, leg2_tip, leg3_root, leg3_mid, leg3_tip, leg4_root, leg4_mid, leg4_tip, leg5_root, leg5_mid, leg5_tip, leg6_root, leg6_mid, leg6_tip, leg7_root, leg7_mid, leg7_tip, leg8_root, leg8_mid, leg8_tip]
+char_bvh_root_offset:
+  bvh_projection_bodypart_group_for_offset: Lower Limbs
+  bvh_joints:
+  - [RightFoot, RightLeg, RightUpLeg]
+  char_joints:
+  - [leg1_tip, leg1_mid, leg1_root]
+char_joint_bvh_joints_mapping: {}
+char_runtime_checks: []

@@ -1,0 +1,298 @@
+{
+  "id": "radial",
+  "label": "촉수형",
+  "group": "nonhumanoid",
+  "kid_label": "흐느적흐느적 친구",
+  "examples": [
+    "문어",
+    "해파리",
+    "불가사리"
+  ],
+  "view": "front",
+  "find": "skeleton_tips",
+  "root_at": "body",
+  "joints": [
+    {
+      "name": "body",
+      "parent": "root",
+      "label": "몸통"
+    },
+    {
+      "name": "leg1_root",
+      "parent": "body",
+      "label": "다리 1 뿌리"
+    },
+    {
+      "name": "leg1_mid",
+      "parent": "leg1_root",
+      "label": "다리 1 가운데"
+    },
+    {
+      "name": "leg1_tip",
+      "parent": "leg1_mid",
+      "label": "다리 1 끝"
+    },
+    {
+      "name": "leg2_root",
+      "parent": "body",
+      "label": "다리 2 뿌리"
+    },
+    {
+      "name": "leg2_mid",
+      "parent": "leg2_root",
+      "label": "다리 2 가운데"
+    },
+    {
+      "name": "leg2_tip",
+      "parent": "leg2_mid",
+      "label": "다리 2 끝"
+    },
+    {
+      "name": "leg3_root",
+      "parent": "body",
+      "label": "다리 3 뿌리"
+    },
+    {
+      "name": "leg3_mid",
+      "parent": "leg3_root",
+      "label": "다리 3 가운데"
+    },
+    {
+      "name": "leg3_tip",
+      "parent": "leg3_mid",
+      "label": "다리 3 끝"
+    },
+    {
+      "name": "leg4_root",
+      "parent": "body",
+      "label": "다리 4 뿌리"
+    },
+    {
+      "name": "leg4_mid",
+      "parent": "leg4_root",
+      "label": "다리 4 가운데"
+    },
+    {
+      "name": "leg4_tip",
+      "parent": "leg4_mid",
+      "label": "다리 4 끝"
+    },
+    {
+      "name": "leg5_root",
+      "parent": "body",
+      "label": "다리 5 뿌리"
+    },
+    {
+      "name": "leg5_mid",
+      "parent": "leg5_root",
+      "label": "다리 5 가운데"
+    },
+    {
+      "name": "leg5_tip",
+      "parent": "leg5_mid",
+      "label": "다리 5 끝"
+    },
+    {
+      "name": "leg6_root",
+      "parent": "body",
+      "label": "다리 6 뿌리"
+    },
+    {
+      "name": "leg6_mid",
+      "parent": "leg6_root",
+      "label": "다리 6 가운데"
+    },
+    {
+      "name": "leg6_tip",
+      "parent": "leg6_mid",
+      "label": "다리 6 끝"
+    },
+    {
+      "name": "leg7_root",
+      "parent": "body",
+      "label": "다리 7 뿌리"
+    },
+    {
+      "name": "leg7_mid",
+      "parent": "leg7_root",
+      "label": "다리 7 가운데"
+    },
+    {
+      "name": "leg7_tip",
+      "parent": "leg7_mid",
+      "label": "다리 7 끝"
+    },
+    {
+      "name": "leg8_root",
+      "parent": "body",
+      "label": "다리 8 뿌리"
+    },
+    {
+      "name": "leg8_mid",
+      "parent": "leg8_root",
+      "label": "다리 8 가운데"
+    },
+    {
+      "name": "leg8_tip",
+      "parent": "leg8_mid",
+      "label": "다리 8 끝"
+    }
+  ],
+  "guide": [
+    "다리는 서로 떨어지게 그려요 — 그래야 하나씩 흐느적거려요",
+    "몸통 → 다리 뿌리 · 가운데 · 끝 순서예요",
+    "다리가 8개보다 적으면 남는 다리 점은 몸통에 겹쳐 두면 돼요"
+  ],
+  "retarget": "chain/retarget_radial.yaml",
+  "motions": {
+    "walk": "chain/wiggle.yaml",
+    "run": "chain/wiggle.yaml",
+    "breathe": "chain/wiggle.yaml"
+  },
+  "waves": {
+    "walk": {
+      "bones": [
+        "leg1_mid",
+        "leg1_tip",
+        "leg2_mid",
+        "leg2_tip",
+        "leg3_mid",
+        "leg3_tip",
+        "leg4_mid",
+        "leg4_tip",
+        "leg5_mid",
+        "leg5_tip",
+        "leg6_mid",
+        "leg6_tip",
+        "leg7_mid",
+        "leg7_tip",
+        "leg8_mid",
+        "leg8_tip"
+      ],
+      "amp": [
+        10,
+        16,
+        10,
+        16,
+        10,
+        16,
+        10,
+        16,
+        10,
+        16,
+        10,
+        16,
+        10,
+        16,
+        10,
+        16
+      ],
+      "cycles": 2,
+      "lag": 0.9,
+      "bob": 0.05
+    },
+    "run": {
+      "bones": [
+        "leg1_mid",
+        "leg1_tip",
+        "leg2_mid",
+        "leg2_tip",
+        "leg3_mid",
+        "leg3_tip",
+        "leg4_mid",
+        "leg4_tip",
+        "leg5_mid",
+        "leg5_tip",
+        "leg6_mid",
+        "leg6_tip",
+        "leg7_mid",
+        "leg7_tip",
+        "leg8_mid",
+        "leg8_tip"
+      ],
+      "amp": [
+        14,
+        22,
+        14,
+        22,
+        14,
+        22,
+        14,
+        22,
+        14,
+        22,
+        14,
+        22,
+        14,
+        22,
+        14,
+        22
+      ],
+      "cycles": 3,
+      "lag": 0.9,
+      "bob": 0.04
+    },
+    "breathe": {
+      "bones": [
+        "leg1_mid",
+        "leg1_tip",
+        "leg2_mid",
+        "leg2_tip",
+        "leg3_mid",
+        "leg3_tip",
+        "leg4_mid",
+        "leg4_tip",
+        "leg5_mid",
+        "leg5_tip",
+        "leg6_mid",
+        "leg6_tip",
+        "leg7_mid",
+        "leg7_tip",
+        "leg8_mid",
+        "leg8_tip"
+      ],
+      "amp": [
+        5,
+        8,
+        5,
+        8,
+        5,
+        8,
+        5,
+        8,
+        5,
+        8,
+        5,
+        8,
+        5,
+        8,
+        5,
+        8
+      ],
+      "cycles": 1,
+      "lag": 0.9,
+      "bob": 0.03
+    }
+  },
+  "_waves_why": "다리마다 가운데 · 끝 두 마디, 마디 순서대로 박자를 늦춰 다리끼리 엇갈려 흐느적 (11/5)",
+  "hero": {
+    "fit": "height",
+    "facing": "front",
+    "float": 0.15,
+    "size": 0.8
+  },
+  "ready": true,
+  "sprite_camera": {
+    "pos": [
+      0.0,
+      0.4,
+      2.4
+    ],
+    "fwd": [
+      0.0,
+      0.4,
+      2.0
+    ],
+    "_why": "다리가 아래로 길게 뻗어 사람 기준 카메라면 칸 아래로 잘렸다 (11/5)"
+  }
+}

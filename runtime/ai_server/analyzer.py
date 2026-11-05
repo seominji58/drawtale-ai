@@ -961,6 +961,10 @@ def analyze_image(image_path: str, mask_path: str | None = None, form: str = "bi
     if form == "winged":
         from ai_server import winged
         return winged.analyze(image_path, mask_path, facing)
+    # 촉수형은 뼈대선 끝으로 다리를 찾는다 (radial.py)
+    if form == "radial":
+        from ai_server import radial
+        return radial.analyze(image_path, mask_path, facing)
 
     started_at = time.perf_counter()
 
