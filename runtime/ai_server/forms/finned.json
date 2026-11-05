@@ -45,7 +45,8 @@
   "motions": {
     "walk": "chain/wiggle.yaml",
     "run": "chain/wiggle.yaml",
-    "breathe": "chain/wiggle.yaml"
+    "breathe": "chain/wiggle.yaml",
+    "hooray": "chain/wiggle.yaml"
   },
   "waves": {
     "walk": {
@@ -98,6 +99,24 @@
       "cycles": 1,
       "lag": 0.7,
       "bob": 0.03
+    },
+    "hooray": {
+      "bones": [
+        "b1",
+        "b2",
+        "b3",
+        "tail"
+      ],
+      "spin": 1,
+      "amp": [
+        -2,
+        2,
+        6,
+        12
+      ],
+      "cycles": 2,
+      "lag": 0.7,
+      "bob": 0
     }
   },
   "hero": {

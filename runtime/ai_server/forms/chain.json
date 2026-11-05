@@ -60,7 +60,9 @@
   "motions": {
     "walk": "chain/wiggle.yaml",
     "run": "chain/wiggle.yaml",
-    "breathe": "chain/wiggle.yaml"
+    "breathe": "chain/wiggle.yaml",
+    "search": "chain/wiggle.yaml",
+    "shiver": "chain/wiggle.yaml"
   },
   "waves": {
     "walk": {
@@ -128,6 +130,60 @@
       ],
       "cycles": 1,
       "lag": 1.8
+    },
+    "search": {
+      "bones": [
+        "b1",
+        "b2",
+        "b3",
+        "b4",
+        "b5",
+        "b6",
+        "tail"
+      ],
+      "lower": [
+        60,
+        -20,
+        0,
+        0,
+        0,
+        0,
+        0
+      ],
+      "amp": [
+        8,
+        2,
+        0,
+        0,
+        0,
+        0,
+        0
+      ],
+      "cycles": 2,
+      "lag": 0.0
+    },
+    "shiver": {
+      "bones": [
+        "b1",
+        "b2",
+        "b3",
+        "b4",
+        "b5",
+        "b6",
+        "tail"
+      ],
+      "curl": 20,
+      "amp": [
+        0,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1
+      ],
+      "cycles": 4,
+      "lag": 0.0
     }
   },
   "hero": {

@@ -443,32 +443,60 @@ class _reuse_setup:
 
 
 def _apply_wave(drawing, wave: dict) -> None:  # noqa: ANN001
-    """몸 가운데 선을 따라 나눈 마디를 물결처럼 (사슬형 꿈틀 · 지느러미형 헤엄, 11/5 시험).
+    """마디(뼈)마다 방향을 직접 넣는 움직임 — 동작 파일에 없는 움직임 (사슬형 꿈틀 · 지느러미형 헤엄 · 형태별 대표 동작, 11/5).
 
-    동작 파일에 이런 움직임이 없어 대응표 대신 마디(뼈)마다 방향을 직접 넣는다 — 꼬리 흔들기와 같은 방법.
-    wave = {"bones": [자식 관절 이름 …(머리 → 꼬리)], "amp": [마디별 폭(도) …], "cycles": 한 동작에 몇 번, "lag": 마디마다 늦는 각(라디안),
-            "bob": 몸 전체 오르내림 (몸길이 대비, 없으면 0)}
-    늦음이 있어 물결이 머리에서 꼬리로 흘러간다. 장 수의 정수배 주기라 반복해도 끊기지 않는다.
-    물결이 흐르는 빠르기(물결 길이 × 박자)를 장면이 옮기는 빠르기에 맞춘다 — 물결이 6배 빠르면 제자리에서 꿈틀대며
-    미끄러지는 것처럼 보였다 (11/5). 장면 걷기는 1초에 몸길이 0.08 ~ 0.14, 뛰기 0.12 ~ 0.22 (프론트 SceneStage STRIDE)"""
+    꼬리 흔들기와 같은 방법이다. wave 칸 (모두 마디 목록 bones 순서, 머리 → 꼬리):
+    - amp · cycles · lag: 물결 「폭(도) × sin(박자 − 마디 지연)」. 늦음이 있어 물결이 머리에서 꼬리로 흐른다.
+      물결 흐르는 빠르기(물결 길이 × 박자)를 장면이 옮기는 빠르기에 맞춘다 — 물결이 6배 빠르면 제자리에서 꿈틀대며
+      미끄러지는 것처럼 보였다. 장면 걷기는 1초에 몸길이 0.08 ~ 0.14, 뛰기 0.12 ~ 0.22 (프론트 SceneStage STRIDE)
+    - lower: 마디를 땅 쪽으로 숙이는 각(도, 음수면 든다). 뼈가 오른쪽을 보는지 왼쪽을 보는지에 따라 회전 방향을 바꿔 —
+      머리 방향과 상관없이 「숙이기」가 된다 (4족 냄새 맡기 · 뱀 고개 들기)
+    - curl: 말기 — 꼬리 쪽 마디일수록 이만큼(도)씩 더 휜다. 한 동작에 한 번 말았다 편다 (뱀 몸 말기)
+    - spin: 한 동작에 몇 바퀴 — 몸 가운데를 축으로 돈다 (물고기 빙글 돌기)
+    - bob: 몸 전체 오르내림 (몸길이 대비, 지느러미형 헤엄)
+    - keep_root: 참이면 몸 위치를 동작 파일 그대로(4족 — 숨쉬기 몸 들썩임). 아니면 제자리
+    장 수의 정수배 주기라 반복해도 끊기지 않는다"""
     root, rt = drawing.rig.root_joint, drawing.retargeter
     n = rt.joint_positions.shape[0]
-    t = 2 * np.pi * float(wave.get("cycles", 2)) * np.arange(n) / n
-    for i, (name, amp) in enumerate(zip(wave["bones"], wave["amp"])):
+    phase = np.arange(n) / n
+    t = 2 * np.pi * float(wave.get("cycles", 2)) * phase
+    bones = wave["bones"]
+    amps = wave.get("amp") or [0] * len(bones)
+    lowers = wave.get("lower") or [0] * len(bones)
+    curl = float(wave.get("curl", 0)) * (0.5 - 0.5 * np.cos(2 * np.pi * phase))   # 0 → 최대 → 0
+    turn = 360.0 * float(wave.get("spin", 0)) * phase
+    for i, name in enumerate(bones):
         joint = root.get_transform_by_name(name)
-        if joint is not None:
-            angle = joint.starting_theta + float(amp) * np.sin(t - float(wave.get("lag", 0.7)) * i)
-            rt.char_joint_to_orientation[name] = angle.astype(np.float32)
-    # 몸 위치는 사람 걷기 데이터(박자용)의 오르내림 · 흔들림을 따르지 않는다 — 제자리에 둔다
-    rt.char_root_positions[:] = rt.char_root_positions[0]
-    # 몸 전체가 천천히 오르내린다 (지느러미형 헤엄, 11/5 사용자 「헤엄치는 느낌」) — 몸길이 대비 폭, 한 동작에 한 번
+        parent = joint.get_parent() if joint is not None else None
+        if joint is None or parent is None:
+            continue
+        dx = float(joint.get_world_position()[0] - parent.get_world_position()[0])
+        # 땅 쪽으로 도는 쪽 — Meta 각도는 그림(아래로 가는 y) 기준이라 오른쪽을 보는 뼈는 반시계(+)가 아래다.
+        # 반대로 두었더니 「고개 들기」가 머리를 떨구고 「냄새 맡기」가 고개를 뒤로 젖혀 얼굴이 돌아갔다 (11/5 시험)
+        down = 1.0 if dx >= 0 else -1.0
+        angle = (joint.starting_theta + down * float(lowers[i]) + float(amps[i]) * np.sin(t - float(wave.get("lag", 0.7)) * i)
+                 + curl * (i + 1) + turn)
+        rt.char_joint_to_orientation[name] = (angle % 360.0).astype(np.float32)
+    if not wave.get("keep_root"):
+        # 몸 위치는 사람 동작 데이터(박자용)의 오르내림 · 흔들림을 따르지 않는다 — 제자리에 둔다
+        rt.char_root_positions[:] = rt.char_root_positions[0]
+    ends = [root.get_transform_by_name(m) for m in (bones[0], bones[-1])]
+    if any(e is None for e in ends):
+        return
+    head, tail = (np.asarray(e.get_world_position()[:2], float) for e in ends)
+    m = rt.char_root_positions.shape[0]
+    if turn.any():
+        # 뿌리(머리) 둘레로 돌면 몸이 크게 원을 그린다 — 몸 가운데가 제자리에 있게 뿌리를 옮긴다
+        root_xy = np.asarray(root.get_world_position()[:2], float)
+        v = (head + tail) / 2 - root_xy
+        a = np.radians(360.0 * float(wave.get("spin", 0)) * np.arange(m) / m)
+        rv = np.stack([v[0] * np.cos(a) - v[1] * np.sin(a), v[0] * np.sin(a) + v[1] * np.cos(a)], axis=1)
+        rt.char_root_positions[:, :2] += (v - rv).astype(np.float32)
     bob = float(wave.get("bob", 0))
     if bob:
-        ends = [root.get_transform_by_name(n) for n in (wave["bones"][0], wave["bones"][-1])]
-        if all(e is not None for e in ends):
-            length = float(np.linalg.norm(np.subtract(ends[0].get_world_position(), ends[1].get_world_position())[:2]))
-            m = rt.char_root_positions.shape[0]
-            rt.char_root_positions[:, 1] += (bob * length * np.sin(2 * np.pi * np.arange(m) / m)).astype(np.float32)
+        # 몸 전체가 천천히 오르내린다 (지느러미형 헤엄, 11/5 사용자 「헤엄치는 느낌」) — 몸길이 대비 폭, 한 동작에 한 번
+        length = float(np.linalg.norm(head - tail))
+        rt.char_root_positions[:, 1] += (bob * length * np.sin(2 * np.pi * np.arange(m) / m)).astype(np.float32)
 
 
 class _tail_wag:
@@ -499,12 +527,12 @@ class _tail_wag:
         def init(drawing, *a, **kw):  # noqa: ANN001 — Meta 쪽 서명 그대로
             orig(drawing, *a, **kw)
             root = drawing.rig.root_joint
-            if wave:
-                _apply_wave(drawing, wave)
-            mid, tip = root.get_transform_by_name("tail_mid"), root.get_transform_by_name("tail_tip")
-            if mid is None or tip is None:      # 꼬리 관절이 없는 형태(2족형)는 손대지 않는다
-                return
             rt = drawing.retargeter
+            mid, tip = root.get_transform_by_name("tail_mid"), root.get_transform_by_name("tail_tip")
+            if mid is None or tip is None:      # 꼬리 관절이 없는 형태(2족형 · 사슬형 · 지느러미형)는 물결만
+                if wave:
+                    _apply_wave(drawing, wave)
+                return
             neck, hip = root.get_transform_by_name("neck"), root.get_transform_by_name("hip")
             if neck is not None and hip is not None and neck.get_world_position()[0] < hip.get_world_position()[0]:
                 for k, v in rt.char_joint_to_orientation.items():
@@ -521,6 +549,9 @@ class _tail_wag:
                             src = rt.char_joint_to_orientation.get(f"right_{k}_{side}")
                             if src is not None:
                                 rt.char_joint_to_orientation[f"left_{k}_{side}"] = src.copy()
+            # 직접 넣는 각도(냄새 맡기 …)는 뒤집기 뒤에 — 그림 자신의 방향 기준이라 뒤집으면 반대로 숙였다
+            if wave:
+                _apply_wave(drawing, wave)
             n = rt.joint_positions.shape[0]
             wag = TAIL_WAG_DEG * np.sin(4 * np.pi * np.arange(n) / n)
             rt.char_joint_to_orientation["tail_mid"] = (mid.starting_theta + wag).astype(np.float32)

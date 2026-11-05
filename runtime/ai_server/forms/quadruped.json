@@ -115,7 +115,8 @@
     "run": "quadruped/run.yaml",
     "jumping_gentle": "quadruped/jumping_gentle.yaml",
     "breathe": "quadruped/breathe.yaml",
-    "shiver": "quadruped/shiver.yaml"
+    "shiver": "quadruped/shiver.yaml",
+    "search": "quadruped/breathe.yaml"
   },
   "hero": {
     "fit": "width",
@@ -134,5 +135,20 @@
       2.0
     ],
     "_why": "옆으로 긴 몸이라 사람 기준(0.6, 1.35)이면 칸 양끝이 잘렸다. 2.2 에서 호랑이 · 줄무늬 동물 · 고양이 모두 잘리지 않음 (11/4)"
+  },
+  "waves": {
+    "search": {
+      "bones": [
+        "neck"
+      ],
+      "lower": [
+        40
+      ],
+      "amp": [
+        6
+      ],
+      "cycles": 4,
+      "keep_root": true
+    }
   }
 }
