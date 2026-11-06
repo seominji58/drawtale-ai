@@ -35,6 +35,13 @@ MIN_BOX_SCORE = 0.05
 LEG_REACH = 0.04
 # 상자를 거의 통째로 덮은 마스크는 안팎이 뒤집힌 것
 FLIPPED_FILL = 0.92
+# 몸 가까이 떨어져 그린 조각(머리 · 귀)을 몸에 잇는다 (attach_near, 11/6). 몸에서 그림 크기의 이 비율 안,
+# 넓이가 몸의 이 사이, 몸 상자를 이 비율만큼 넓힌 안에 있는 것만
+REACH = True
+ATTACH_GAP = 0.06
+ATTACH_AREA = (0.03, 0.8)
+ATTACH_BOX = 0.35
+ATTACH_SEEN = 0.15
 # 이만큼 넓은 가로 덩어리는 다리가 아니라 몸통 (그림 폭 대비) — 배 선을 여기서 멈춘다
 BODY_WIDTH = 0.35
 
@@ -91,6 +98,67 @@ def _grow(img: np.ndarray, box: tuple[int, int, int, int]) -> tuple[int, int, in
             continue
         l, t, r, b = min(l, int(x)), min(t, int(y)), max(r, int(x + w_)), max(b, int(y + h_))
     return l, t, r, b
+
+
+def attach_near(img: np.ndarray, mask: np.ndarray, first: np.ndarray) -> np.ndarray:
+    """몸 가까이 떨어져 그린 조각(머리 · 귀)을 몸에 잇는다. 0/255, 원본 크기.
+
+    11/6: 머리를 몸에서 조금 떨어지게(그림 폭의 4%) 그린 강아지가 걷기 영상에서 머리가 빠졌다. 머리가 따로 떨어진 선 덩어리라
+    「가장 큰 덩어리만」(restore_lines · drop_background)에서 버려지고, 사람 탐지 상자도 머리를 반쯤 잘라 먹었다.
+    그림 전체의 선 덩어리(선으로 닫힌 안쪽까지) 가운데, 몸에서 ATTACH_GAP 안에 있고 넓이가 몸의 ATTACH_AREA 사이이며
+    몸 둘레(ATTACH_BOX 만큼 넓힌 상자) 안에 있는 것만 더하고, 가장 가까운 두 점을 굵은 띠로 잇는다 — Meta 는 한 덩어리만 움직인다.
+    또 처음 만든 그림 영역(first, 탐지 상자 안 마스크)에 ATTACH_SEEN 이상 걸쳐 있던 조각만 — 그림의 일부로 잡혔다가
+    「가장 큰 덩어리만」에서 버려진 것이다. 그림 옆에 따로 그린 해 · 낙서 · 다른 동물은 처음부터 영역 밖이라 붙지 않는다
+    (종이 사진 80장 시험에서 처음엔 해 · 낙서가 붙었다)"""
+    body = mask > 127
+    ys, xs = np.where(body)
+    if ys.size == 0:
+        return mask
+    bh, bw = int(ys.ptp()) + 1, int(xs.ptp()) + 1
+    size = max(bh, bw)
+    ink = _ink(img).astype(np.uint8)
+    # 선으로 닫힌 안쪽 채우기 — 바깥(테두리에서 이어진 곳)이 아닌 곳
+    pad = cv2.copyMakeBorder(ink, 1, 1, 1, 1, cv2.BORDER_CONSTANT, value=0)
+    cv2.floodFill(pad, np.zeros((pad.shape[0] + 2, pad.shape[1] + 2), np.uint8), (0, 0), 2)
+    solid = (pad[1:-1, 1:-1] != 2).astype(np.uint8)
+    n, lab, st, _ = cv2.connectedComponentsWithStats(solid, connectivity=8)
+    if n < 3:
+        return mask
+    dist, near_lab = cv2.distanceTransformWithLabels((~body).astype(np.uint8), cv2.DIST_L2, 5,
+                                                     labelType=cv2.DIST_LABEL_PIXEL)
+    # 라벨 → 몸의 그 점 좌표
+    by, bx = np.where(~((~body).astype(bool)))
+    pix = np.zeros(int(near_lab.max()) + 1, np.int64)
+    pix[near_lab[by, bx]] = by * body.shape[1] + bx
+    area = float(body.sum())
+    m = ATTACH_BOX
+    lo_x, hi_x = xs.min() - m * bw, xs.max() + m * bw
+    lo_y, hi_y = ys.min() - m * bh, ys.max() + m * bh
+    out = body.copy()
+    thick = max(4, round(0.04 * min(bh, bw)))
+    for i in range(1, n):
+        x, y, w_, h_, a_ = st[i]
+        if not (ATTACH_AREA[0] * area <= a_ <= ATTACH_AREA[1] * area):
+            continue
+        if x < lo_x or y < lo_y or x + w_ > hi_x or y + h_ > hi_y:
+            continue
+        piece = lab == i
+        if (piece & body).any():
+            continue                                  # 이미 몸에 들어 있다
+        if (piece & (first > 127)).sum() < ATTACH_SEEN * a_:
+            continue                                  # 처음부터 그림 영역 밖이던 것 (옆에 그린 다른 것)
+        d = np.where(piece, dist, np.inf)
+        k = int(np.argmin(d))
+        if d.flat[k] > ATTACH_GAP * size:
+            continue
+        py, px = divmod(k, body.shape[1])
+        q = int(pix[near_lab[py, px]])
+        qy, qx = divmod(q, body.shape[1])
+        out |= piece
+        bridge = np.zeros(body.shape, np.uint8)
+        cv2.line(bridge, (int(px), int(py)), (int(qx), int(qy)), 1, thick)
+        out |= bridge > 0
+    return out.astype(np.uint8) * 255
 
 
 def build_mask(img: np.ndarray, box: dict) -> np.ndarray:
@@ -237,7 +305,8 @@ def find_joints(mask: np.ndarray, facing: str | None = None) -> tuple[dict[str, 
         return float(col), float(y)
 
     def body_top(x: float) -> float:
-        col = mask[:, int(round(x))]
+        # 목 자리가 그림 칸 밖으로 나가는 그림(머리가 옆으로 길게 뻗음)에서 IndexError 로 분석이 통째로 실패했다 (11/6 사진 비교 중 발견)
+        col = mask[:, min(max(int(round(x)), 0), mask.shape[1] - 1)]
         return float(np.argmax(col)) if col.any() else float(top)
 
     j: dict[str, tuple[float, float]] = {}
@@ -374,7 +443,7 @@ def drop_background(img: np.ndarray, mask: np.ndarray) -> np.ndarray:
     return out if (out > 0).sum() > 0.2 * (mask > 0).sum() else mask
 
 
-def cut_out(image_path: str, grow: bool = False) -> dict:
+def cut_out(image_path: str, grow: bool = False, reach: bool = REACH) -> dict:
     """사람 관절 모델 없이 그림 영역을 잘라 낸다 — 4족형 · 사슬형 · 지느러미형이 함께 쓴다.
     {"original", "box"(분석 크기, score 포함), "big_box"(원본 크기), "mask"(원본 크기 0/255)} 또는 {"error": 메시지}"""
     original = cv2.imread(image_path, cv2.IMREAD_COLOR)            # 휴대폰 방향 정보를 반영한다
@@ -392,6 +461,8 @@ def cut_out(image_path: str, grow: bool = False) -> dict:
     after = A.refine_mask(original, before)
     big_box = {k: round(v / scale) for k, v in box.items() if k != "score"}
     mask = drop_background(original, restore_lines(original, before, after, big_box))
+    if reach and not grow:
+        mask = attach_near(original, mask, before)
     if not (mask > 127).any():
         return {"error": "NO_CHARACTER_DETECTED: empty mask"}
     return {"original": original, "box": box, "big_box": big_box, "mask": mask}
