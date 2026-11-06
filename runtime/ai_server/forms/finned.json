@@ -48,6 +48,19 @@
     "breathe": "chain/wiggle.yaml",
     "hooray": "chain/wiggle.yaml"
   },
+  "fallback": {
+    "wave": "breathe",
+    "point": "breathe",
+    "kick": "breathe",
+    "fly": "walk",
+    "swim": "walk",
+    "jump": "hooray",
+    "dance": "hooray",
+    "shiver": "breathe",
+    "search": "breathe",
+    "march": "walk"
+  },
+  "_fallback_why": "쪽 동작(page_motions 이름) → 이 형태의 대신 동작. 렌더할 수 없는 쪽 동작을 뜻으로 바꾼다 — 기쁨(점프 · 만세 · 춤)은 그 형태의 기쁨 동작, 이동(헤엄 · 날기)은 그 형태의 걷기, 팔을 쓰는 것(손 흔들기 · 가리키기 · 공 차기)은 숨쉬기 (pt_docs 19 6장 · 20 1-2 b, 11/6). 없는 것은 backend page_motions.FALLBACK(사람 기준)을 따른다",
   "waves": {
     "walk": {
       "bones": [
