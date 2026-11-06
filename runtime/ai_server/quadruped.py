@@ -77,16 +77,23 @@ def _place(img: np.ndarray, grow: bool = False) -> dict:
         score = 0.0
     h, w = img.shape[:2]
     l, t, r, b = max(0, l), max(0, t), min(w, r), min(h, b)
-    if grow:
-        l, t, r, b = _grow(img, (l, t, r, b))
+    # 바탕이 한 가지 색(화면에 그리기 · 깨끗한 스캔)이면 종이 위 다른 선이 없으니 4족형 · 사슬형도 넓힌다 (11/6 실제 모드 점검:
+    # 화면에 옆으로 길게 그린 강아지를 사람 탐지 상자가 앞 절반만 잡아, 상자가 몸통을 가로질러 몸 안이 바깥으로 지워지고
+    # 테두리만 움직였다). 종이 사진은 바탕이 고르지 않아 예전 그대로
+    clean = not grow and A.uniform_background(img) is not None
+    if grow or clean:
+        l, t, r, b = _grow(img, (l, t, r, b), any_size=clean)
     return {"left": l, "top": t, "right": r, "bottom": b, "score": score}
 
 
-def _grow(img: np.ndarray, box: tuple[int, int, int, int]) -> tuple[int, int, int, int]:
-    """탐지 상자에 걸친 선 덩어리가 상자 밖으로 이어지면 그 덩어리가 다 들어오게 넓힌다 (11/5 — 등 위로 크게 솟은
+def _grow(img: np.ndarray, box: tuple[int, int, int, int], any_size: bool = False) -> tuple[int, int, int, int]:
+    """탐지 상자에 걸친 선 덩어리가 상자 밖으로 이어지면 그 덩어리가 다 들어오게 넓힌다 (11/5: 등 위로 크게 솟은
     새 날개가 사람 탐지 상자 밖이라 그림 영역에서 통째로 빠졌다). 상자보다 훨씬 큰 덩어리(종이 가장자리 · 책상 선)는 넣지 않는다.
-    날개형만 쓴다 — 4족형 종이 사진에 쓰니 종이 위 다른 선(글씨 · 그림자)까지 넓어져 8장 중 4장 관절이 바뀌었다"""
+    날개형 · 촉수형은 늘, 4족형 · 사슬형은 바탕이 고를 때만 (4족형 종이 사진에 쓰니 종이 위 다른 선(글씨 · 그림자)까지
+    넓어져 8장 중 4장 관절이 바뀌었다). any_size: 바탕이 고르면 상자보다 큰 덩어리도 그림이다(상자가 그림의 일부만 잡았을 때),
+    그림 칸을 거의 다 덮는 덩어리(테두리 선)만 뺀다"""
     l, t, r, b = box
+    H, W = img.shape[:2]
     ink = _ink(img).astype(np.uint8)
     ink = cv2.dilate(ink, np.ones((3, 3), np.uint8))
     n, lab, st, _ = cv2.connectedComponentsWithStats(ink, connectivity=8)
@@ -94,7 +101,10 @@ def _grow(img: np.ndarray, box: tuple[int, int, int, int]) -> tuple[int, int, in
     ids = np.unique(lab[t:b, l:r])
     for i in ids[ids > 0]:
         x, y, w_, h_ = st[i, :4]
-        if w_ > 2.0 * bw or h_ > 2.0 * bh:
+        if any_size:
+            if w_ > 0.97 * W and h_ > 0.97 * H:
+                continue
+        elif w_ > 2.0 * bw or h_ > 2.0 * bh:
             continue
         l, t, r, b = min(l, int(x)), min(t, int(y)), max(r, int(x + w_)), max(b, int(y + h_))
     return l, t, r, b
