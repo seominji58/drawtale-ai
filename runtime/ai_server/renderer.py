@@ -497,7 +497,7 @@ def _apply_wave(drawing, wave: dict) -> None:  # noqa: ANN001
         # 몸 전체가 천천히 오르내린다 (지느러미형 헤엄, 11/5 사용자 「헤엄치는 느낌」) — 몸길이 대비 폭, 한 동작에 한 번
         length = float(np.linalg.norm(head - tail))
         # bob_by: 폭을 잴 두 관절. 날개형 기쁨은 날개 끝 사이(그림마다 크게 다름)로 재면 날개를 크게 그린 새는
-        # 칸 밖으로 날아가 잘렸다 — 몸통 · 머리 사이로 잰다 (11/6 새 그림 3장)
+        # 칸 밖으로 날아가 잘렸다, 몸통 · 머리 사이로 잰다 (11/6 새 그림 3장)
         by = [root.get_transform_by_name(n) for n in wave.get("bob_by") or ()]
         if len(by) == 2 and all(b is not None for b in by):
             length = float(np.linalg.norm(np.asarray(by[0].get_world_position()[:2], float)

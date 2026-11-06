@@ -106,8 +106,8 @@ def attach_near(img: np.ndarray, mask: np.ndarray, first: np.ndarray) -> np.ndar
     11/6: 머리를 몸에서 조금 떨어지게(그림 폭의 4%) 그린 강아지가 걷기 영상에서 머리가 빠졌다. 머리가 따로 떨어진 선 덩어리라
     「가장 큰 덩어리만」(restore_lines · drop_background)에서 버려지고, 사람 탐지 상자도 머리를 반쯤 잘라 먹었다.
     그림 전체의 선 덩어리(선으로 닫힌 안쪽까지) 가운데, 몸에서 ATTACH_GAP 안에 있고 넓이가 몸의 ATTACH_AREA 사이이며
-    몸 둘레(ATTACH_BOX 만큼 넓힌 상자) 안에 있는 것만 더하고, 가장 가까운 두 점을 굵은 띠로 잇는다 — Meta 는 한 덩어리만 움직인다.
-    또 처음 만든 그림 영역(first, 탐지 상자 안 마스크)에 ATTACH_SEEN 이상 걸쳐 있던 조각만 — 그림의 일부로 잡혔다가
+    몸 둘레(ATTACH_BOX 만큼 넓힌 상자) 안에 있는 것만 더하고, 가장 가까운 두 점을 굵은 띠로 잇는다, Meta 는 한 덩어리만 움직인다.
+    또 처음 만든 그림 영역(first, 탐지 상자 안 마스크)에 ATTACH_SEEN 이상 걸쳐 있던 조각만, 그림의 일부로 잡혔다가
     「가장 큰 덩어리만」에서 버려진 것이다. 그림 옆에 따로 그린 해 · 낙서 · 다른 동물은 처음부터 영역 밖이라 붙지 않는다
     (종이 사진 80장 시험에서 처음엔 해 · 낙서가 붙었다)"""
     body = mask > 127
@@ -117,7 +117,7 @@ def attach_near(img: np.ndarray, mask: np.ndarray, first: np.ndarray) -> np.ndar
     bh, bw = int(ys.ptp()) + 1, int(xs.ptp()) + 1
     size = max(bh, bw)
     ink = _ink(img).astype(np.uint8)
-    # 선으로 닫힌 안쪽 채우기 — 바깥(테두리에서 이어진 곳)이 아닌 곳
+    # 선으로 닫힌 안쪽 채우기, 바깥(테두리에서 이어진 곳)이 아닌 곳
     pad = cv2.copyMakeBorder(ink, 1, 1, 1, 1, cv2.BORDER_CONSTANT, value=0)
     cv2.floodFill(pad, np.zeros((pad.shape[0] + 2, pad.shape[1] + 2), np.uint8), (0, 0), 2)
     solid = (pad[1:-1, 1:-1] != 2).astype(np.uint8)
