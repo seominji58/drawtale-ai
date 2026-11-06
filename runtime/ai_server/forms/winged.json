@@ -62,7 +62,8 @@
   "motions": {
     "walk": "chain/wiggle.yaml",
     "run": "chain/wiggle.yaml",
-    "breathe": "chain/wiggle.yaml"
+    "breathe": "chain/wiggle.yaml",
+    "hooray": "chain/wiggle.yaml"
   },
   "waves": {
     "walk": {
@@ -115,8 +116,30 @@
       "cycles": 2,
       "lag": 0.4,
       "bob": 0.02
+    },
+    "hooray": {
+      "bones": [
+        "wing1_mid",
+        "wing1_tip",
+        "wing2_mid",
+        "wing2_tip"
+      ],
+      "amp": [
+        45,
+        62,
+        45,
+        62
+      ],
+      "cycles": 6,
+      "lag": 0.4,
+      "bob": 0.6,
+      "bob_by": [
+        "body",
+        "head"
+      ]
     }
   },
+  "_hooray_why": "기쁨(hooray) = 높이 날아오르기 — 크게 퍼덕이며 몸이 한 번 높이 떴다 내려온다. 없을 때는 기쁜 쪽이 멈춘 그림이었다 (11/6 이야기 15편 점검, pt_docs 20 1-2 a)",
   "hero": {
     "fit": "width",
     "facing": "auto",

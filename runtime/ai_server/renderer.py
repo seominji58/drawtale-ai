@@ -453,7 +453,7 @@ def _apply_wave(drawing, wave: dict) -> None:  # noqa: ANN001
       머리 방향과 상관없이 「숙이기」가 된다 (4족 냄새 맡기 · 뱀 고개 들기)
     - curl: 말기 — 꼬리 쪽 마디일수록 이만큼(도)씩 더 휜다. 한 동작에 한 번 말았다 편다 (뱀 몸 말기)
     - spin: 한 동작에 몇 바퀴 — 몸 가운데를 축으로 돈다 (물고기 빙글 돌기)
-    - bob: 몸 전체 오르내림 (몸길이 대비, 지느러미형 헤엄)
+    - bob: 몸 전체 오르내림 (몸길이 대비, 지느러미형 헤엄). bob_by: 폭을 잴 두 관절 (없으면 bones 처음 · 끝)
     - keep_root: 참이면 몸 위치를 동작 파일 그대로(4족 — 숨쉬기 몸 들썩임). 아니면 제자리
     장 수의 정수배 주기라 반복해도 끊기지 않는다"""
     root, rt = drawing.rig.root_joint, drawing.retargeter
@@ -496,6 +496,12 @@ def _apply_wave(drawing, wave: dict) -> None:  # noqa: ANN001
     if bob:
         # 몸 전체가 천천히 오르내린다 (지느러미형 헤엄, 11/5 사용자 「헤엄치는 느낌」) — 몸길이 대비 폭, 한 동작에 한 번
         length = float(np.linalg.norm(head - tail))
+        # bob_by: 폭을 잴 두 관절. 날개형 기쁨은 날개 끝 사이(그림마다 크게 다름)로 재면 날개를 크게 그린 새는
+        # 칸 밖으로 날아가 잘렸다 — 몸통 · 머리 사이로 잰다 (11/6 새 그림 3장)
+        by = [root.get_transform_by_name(n) for n in wave.get("bob_by") or ()]
+        if len(by) == 2 and all(b is not None for b in by):
+            length = float(np.linalg.norm(np.asarray(by[0].get_world_position()[:2], float)
+                                          - np.asarray(by[1].get_world_position()[:2], float)))
         rt.char_root_positions[:, 1] += (bob * length * np.sin(2 * np.pi * np.arange(m) / m)).astype(np.float32)
 
 

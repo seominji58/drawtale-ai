@@ -147,7 +147,8 @@
   "motions": {
     "walk": "chain/wiggle.yaml",
     "run": "chain/wiggle.yaml",
-    "breathe": "chain/wiggle.yaml"
+    "breathe": "chain/wiggle.yaml",
+    "hooray": "chain/wiggle.yaml"
   },
   "waves": {
     "walk": {
@@ -272,8 +273,50 @@
       "cycles": 1,
       "lag": 0.9,
       "bob": 0.03
+    },
+    "hooray": {
+      "bones": [
+        "leg1_mid",
+        "leg1_tip",
+        "leg2_mid",
+        "leg2_tip",
+        "leg3_mid",
+        "leg3_tip",
+        "leg4_mid",
+        "leg4_tip",
+        "leg5_mid",
+        "leg5_tip",
+        "leg6_mid",
+        "leg6_tip",
+        "leg7_mid",
+        "leg7_tip",
+        "leg8_mid",
+        "leg8_tip"
+      ],
+      "amp": [
+        22,
+        34,
+        22,
+        34,
+        22,
+        34,
+        22,
+        34,
+        22,
+        34,
+        22,
+        34,
+        22,
+        34,
+        22,
+        34
+      ],
+      "cycles": 2,
+      "lag": 0.9,
+      "bob": 0.15
     }
   },
+  "_hooray_why": "기쁨(hooray) = 다리를 크게 흔들며 통통 — 기쁜 쪽이 멈춘 그림이던 것 (11/6 이야기 15편 점검, pt_docs 20 1-2 a)",
   "_waves_why": "다리마다 가운데 · 끝 두 마디, 마디 순서대로 박자를 늦춰 다리끼리 엇갈려 흐느적 (11/5)",
   "hero": {
     "fit": "height",
