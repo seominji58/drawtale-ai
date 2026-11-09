@@ -270,8 +270,11 @@ def prepare_character(
     # 아니면 아래 윤곽 흐리기(MESH_SMOOTH)가 가장자리 쪽 윤곽을 끊어 Meta 가 틀을 절반만 만들었다 —
     # S-05 미리보기에서 캐릭터 왼쪽 절반이 잘림 (2026-11-04 사용자, Meta 예제 char1: 손끝이 사진 왼쪽 끝에 닿음).
     # 닿지 않는 그림은 그대로 둔다 (Meta 는 그림 칸 크기로 캐릭터 크기를 잡아, 늘 덧대면 다른 그림 크기도 바뀐다)
-    if mask[0].any() or mask[-1].any() or mask[:, 0].any() or mask[:, -1].any():
-        pad = max(8, round(EDGE_PAD * max(mask.shape[:2])))
+    # 정확히 닿은 것만 보면, 가장자리에서 몇 픽셀 떨어진 그림(그림판 끝까지 길게 그린 뱀)은 덧대지 않아 같은 이유로
+    # 몸 대부분이 빠지고 아래쪽 두 조각만 움직였다 (11/9). 덧댈 폭 안에 들어오면 덧댄다
+    pad = max(8, round(EDGE_PAD * max(mask.shape[:2])))
+    near = max(2, pad // 2)
+    if mask[:near].any() or mask[-near:].any() or mask[:, :near].any() or mask[:, -near:].any():
         cropped = cv2.copyMakeBorder(cropped, pad, pad, pad, pad, cv2.BORDER_REPLICATE)
         mask = cv2.copyMakeBorder(mask, pad, pad, pad, pad, cv2.BORDER_CONSTANT, value=0)
         left, top = left - pad, top - pad   # 관절을 옮길 때 같은 만큼 더해지게
@@ -442,6 +445,23 @@ class _reuse_setup:
         self._mod.ARAP = self._orig_arap
 
 
+def _center_body(drawing) -> None:  # noqa: ANN001
+    """몸 가운데가 렌더 칸 가운데에 오게 몸 위치를 옮긴다 (물결로 움직이는 형태 — 사슬 · 지느러미 · 날개 · 촉수).
+
+    렌더 카메라는 뿌리 관절 쪽을 본다. 사슬형은 뿌리가 머리(몸 한쪽 끝)라, 그림판 끝까지 길게 그리거나 머리가 오른쪽 ·
+    비스듬하게 그린 뱀은 몸이 반대쪽으로 칸 밖까지 뻗어 잘렸다 (11/9 「화면에 그리기로 그린 뱀이 잘림」).
+    관절 · 움직임은 그대로 두고 모든 장의 몸 위치를 (뿌리 − 관절 가운데)만큼 옮긴다. 장면은 sprite_box 로 자리를 잡아 그대로다"""
+    root, rt = drawing.rig.root_joint, drawing.retargeter
+    pts = np.asarray(drawing.rig.get_joints_2D_positions(), float)
+    if not len(pts):
+        return
+    middle = (pts.min(axis=0) + pts.max(axis=0)) / 2
+    shift = np.asarray(root.get_world_position()[:2], float) - middle
+    # 대응표의 시작 자리(char_starting_location, x −0.3)만큼 왼쪽에 놓여 몸 가운데가 칸의 1/3 에 왔다 — 가로는 가운데로
+    shift[0] -= float(drawing.retarget_cfg.char_start_loc[0])
+    rt.char_root_positions[:, :2] += shift.astype(np.float32)
+
+
 def _apply_wave(drawing, wave: dict) -> None:  # noqa: ANN001
     """마디(뼈)마다 방향을 직접 넣는 움직임 — 동작 파일에 없는 움직임 (사슬형 꿈틀 · 지느러미형 헤엄 · 형태별 대표 동작, 11/5).
 
@@ -538,6 +558,7 @@ class _tail_wag:
             if mid is None or tip is None:      # 꼬리 관절이 없는 형태(2족형 · 사슬형 · 지느러미형)는 물결만
                 if wave:
                     _apply_wave(drawing, wave)
+                    _center_body(drawing)
                 return
             neck, hip = root.get_transform_by_name("neck"), root.get_transform_by_name("hip")
             if neck is not None and hip is not None and neck.get_world_position()[0] < hip.get_world_position()[0]:
