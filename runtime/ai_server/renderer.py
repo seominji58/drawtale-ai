@@ -75,6 +75,9 @@ MOTIONS: dict[str, tuple[Path, Path]] = {
     "walk_orig": (_GENTLE_MOTIONS / "walk.yaml", _GENTLE_MOTIONS / "cmu1_human.yaml"),
     "run_orig": (_GENTLE_MOTIONS / "run.yaml", _GENTLE_MOTIONS / "cmu1_human.yaml"),
     "dab_gentle": (_GENTLE_MOTIONS / "dab_gentle.yaml", _META_RETARGET / "fair1_ppf.yaml"),
+    # 장면 등장인물(친구 · 엄마 · 직업인 …, 팔을 몸에 붙여 그린 일러스트)이 걸어 들어올 때 — 걷기와 같은 동작에 팔만 그린
+    # 자세 그대로 (forms/biped.json waves.walk_still_arms). 팔까지 움직이면 몸에 붙은 팔이 날개처럼 찢어졌다 (11/9)
+    "walk_still_arms": (_GENTLE_MOTIONS / "walk_steps.yaml", _GENTLE_MOTIONS / "cmu1_front.yaml"),
     # 이야기 쪽 동작 9개 (2026-11-04, pt_docs 17 — 쪽 45%가 가만히였다). CMU 후보 32개 중 평면 그림에서 몸이
     # 뒤집히거나 팔이 뭉개지지 않고 서로 달라 보이는 것만 골랐고, 만세 · 떨기는 관절 각도로 만들었다.
     # 이름은 백엔드 쪽 동작 이름과 같다. 만드는 법은 runtime/tools/install_more_motions.py
@@ -612,6 +615,12 @@ class _tail_wag:
             rt = drawing.retargeter
             mid, tip = root.get_transform_by_name("tail_mid"), root.get_transform_by_name("tail_tip")
             if mid is None or tip is None:      # 꼬리 관절이 없는 형태(2족형 · 사슬형 · 지느러미형)는 물결만
+                if wave and wave.get("hold"):           # 이 뼈들만 그린 방향 그대로 (등장인물 걷기 — 팔 고정)
+                    for name in wave["hold"]:
+                        j = root.get_transform_by_name(name)
+                        if j is not None and name in rt.char_joint_to_orientation:
+                            rt.char_joint_to_orientation[name] = np.full(rt.char_root_positions.shape[0], j.starting_theta % 360.0, np.float32)
+                    return
                 if wave and wave.get("rest"):
                     _apply_rest(drawing, wave)
                     if wave.get("center"):
