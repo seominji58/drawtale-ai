@@ -525,6 +525,26 @@ def _apply_wave(drawing, wave: dict) -> None:  # noqa: ANN001
         rt.char_root_positions[:, 1] += (bob * length * np.sin(2 * np.pi * np.arange(m) / m)).astype(np.float32)
 
 
+def _apply_rest(drawing, wave: dict) -> None:  # noqa: ANN001
+    """가만히(숨쉬기) — 그린 자세 그대로 제자리에서 위아래로만 살짝 (11/9 형태 버그 4 「가만히에서 몸이 좌우로 흔들림」).
+
+    사람 숨쉬기 동작(CMU 140_06)은 서 있는 사람이 몸무게를 옮기며 상체를 좌우로 기울인다 — 붙이면 사람형은 좌우로 12px,
+    4족형은 몸통 · 다리가 2px 떨리고, 사슬형 숨쉬기 물결은 머리에서 꼬리로 흘러 제자리에서 기어가듯 좌우로 움직였다.
+    모든 뼈를 그림의 원래 방향(starting_theta)에 두고, 몸 위치는 첫 장 그대로 + 위로 살짝 (rest_bob, 몸 키 대비).
+    한 동작에 rest_cycles 번 들숨 · 날숨 — 첫 장이 쉬는 자세라 멈춘 그림과 같다. center 면 몸 가운데를 칸 가운데로(사슬형, _center_body). 꼬리 흔들기(4족)는 이 뒤에 그대로 넣는다"""
+    root, rt = drawing.rig.root_joint, drawing.retargeter
+    n = rt.char_root_positions.shape[0]
+    for name in list(rt.char_joint_to_orientation):
+        j = root.get_transform_by_name(name)
+        if j is not None:
+            rt.char_joint_to_orientation[name] = np.full(n, j.starting_theta % 360.0, np.float32)
+    rt.char_root_positions[:] = rt.char_root_positions[0]
+    pts = np.asarray(drawing.rig.get_joints_2D_positions(), float)
+    tall = float(np.ptp(pts[:, 1])) if len(pts) else 0.0
+    breath = 0.5 - 0.5 * np.cos(2 * np.pi * float(wave.get("rest_cycles", 1)) * np.arange(n) / n)
+    rt.char_root_positions[:, 1] += (float(wave.get("rest_bob", 0.012)) * tall * breath).astype(np.float32)
+
+
 def _apply_gait(drawing, gait: dict) -> None:  # noqa: ANN001
     """4족 걷기 · 뛰기 — 다리 방향을 옆모습 걸음으로 직접 넣는다 (11/9 형태 버그 3 「4족 걷기가 정면처럼 보임」).
 
@@ -592,6 +612,11 @@ class _tail_wag:
             rt = drawing.retargeter
             mid, tip = root.get_transform_by_name("tail_mid"), root.get_transform_by_name("tail_tip")
             if mid is None or tip is None:      # 꼬리 관절이 없는 형태(2족형 · 사슬형 · 지느러미형)는 물결만
+                if wave and wave.get("rest"):
+                    _apply_rest(drawing, wave)
+                    if wave.get("center"):
+                        _center_body(drawing)
+                    return
                 if wave:
                     _apply_wave(drawing, wave)
                     _center_body(drawing)
@@ -602,6 +627,8 @@ class _tail_wag:
                     rt.char_joint_to_orientation[k] = ((360.0 - v) % 360.0).astype(np.float32)
                 x = rt.char_root_positions[:, 0]
                 rt.char_root_positions[:, 0] = 2 * x[0] - x
+            if wave and wave.get("rest"):
+                _apply_rest(drawing, wave)
             if wave and wave.get("gait") and neck is not None and hip is not None:
                 _apply_gait(drawing, wave["gait"])
             if neck is not None and hip is not None:
@@ -876,7 +903,7 @@ def render_animation(
                 thin = _thin_frames() if sprite_path else None
                 reuse = _reuse_setup() if REUSE_SETUP else None
                 # 물결로 움직이는 형태(사슬형 · 지느러미형)는 형태 정의의 그 동작 물결
-                wag = _tail_wag(None if form == forms.DEFAULT else forms.get(form).get("waves", {}).get(motion))
+                wag = _tail_wag(forms.get(form).get("waves", {}).get(motion))
                 try:
                     animated_drawings.render.start(str(mvc_path))
                 finally:
