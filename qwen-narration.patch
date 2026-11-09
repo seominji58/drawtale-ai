@@ -41,7 +41,7 @@ index e2922af..13af4d2 100644
 +#   qwen 이면 녹음 목소리는 나레이션만, 기본 나레이터와 캐릭터 대사는 위 ElevenLabs 가 그대로 읽는다
 +GUARDIAN_VOICE_PROVIDER=elevenlabs
 +#   qwen 일 때 필요. 주소 · 토큰은 TTS 담당에게 받는다 (modal deploy 주소). 토큰은 여기에만 둔다
-+QWEN_TTS_URL=
++QWEN_TTS_URL=https://minjune121--drawtale-tts-ttsservice-web.us-east.modal.run
 +QWEN_TTS_TOKEN=
 +QWEN_TTS_TIMEOUT_SECONDS=180
  
