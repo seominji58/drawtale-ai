@@ -51,16 +51,26 @@ def _shape_guess(img: np.ndarray, mask: np.ndarray) -> dict[str, tuple[float, fl
                    and max(st[i, cv2.CC_STAT_WIDTH], st[i, cv2.CC_STAT_HEIGHT])
                    < 2.5 * max(1, min(st[i, cv2.CC_STAT_WIDTH], st[i, cv2.CC_STAT_HEIGHT]))), key=lambda e: e[0])
     eyes = [e[1] for e in eyes]
-    head = (float(eyes[0][0]), float(eyes[0][1])) if eyes else body
     ys, xs = np.nonzero(filled)
+    # 날개 끝: 몸통보다 위로 가장 높이 솟은 곳 (아이들은 날개를 위로 그린다). 눈 위치로 먼저 정하면 날개 깃 사이 선을
+    # 눈으로 잘못 봐 머리 · 날개가 뒤바뀌었다 (11/9 분홍 새)
     up = ys < by - 0.3 * R
-    far_head = np.hypot(xs - head[0], ys - head[1]) > 1.2 * R if eyes else np.ones_like(up)
-    cand = up & far_head
-    if not cand.any():
-        return {n_: (body if n_ != "head" else head) for n_ in NAMES}
-    d = np.hypot(xs[cand] - bx, ys[cand] - by)
-    k = int(np.argmax(d))
-    tip = (float(xs[cand][k]), float(ys[cand][k]))
+    if not up.any():
+        return {n_: body for n_ in NAMES}
+    k = int(np.argmin(ys[up]))
+    tip = (float(xs[up][k]), float(ys[up][k]))
+    # 머리: 날개 끝 반대쪽(가로)으로 몸통에서 가장 멀리 나간 곳 — 그 근처에 눈 점이 있으면 눈
+    side = -1.0 if tip[0] >= bx else 1.0
+    mid_band = (ys > by - 2.0 * R) & (ys < by + 0.5 * R)
+    far = (xs - bx) * side
+    cand = mid_band & (far > 0)
+    if cand.any():
+        i = int(np.argmax(far[cand]))
+        edge = (float(xs[cand][i]), float(ys[cand][i]))
+        near = [e for e in eyes if (e[0] - bx) * side > 0 and np.hypot(e[0] - edge[0], e[1] - edge[1]) < 1.5 * R]
+        head = (float(near[0][0]), float(near[0][1])) if near else (bx + (edge[0] - bx) * 0.75, edge[1] + 0.3 * R)
+    else:
+        head = body
     # 날개 뿌리: 몸통에서 날개 끝으로 가다 몸이 가늘어지는 곳(두께가 몸 반지름의 반 아래) — 몸 안쪽에 두면
     # 날개를 흔들 때 몸 앞쪽까지 같이 기울었다
     root = body
