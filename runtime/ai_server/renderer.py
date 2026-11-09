@@ -645,6 +645,21 @@ def _apply_gait(drawing, gait: dict) -> None:  # noqa: ANN001
     head = 1.0 if root.get_transform_by_name("neck").get_world_position()[0] >=         root.get_transform_by_name("hip").get_world_position()[0] else -1.0
     t = 2 * np.pi * float(gait.get("cycles", 2)) * np.arange(n) / n
     swing, bend = float(gait.get("swing", 22)), float(gait.get("bend", 30))
+    bob = float(gait.get("bob", 0.02))
+    # 다리가 짧고 굵은 그림(다리 길이 < 몸길이(엉덩이~목)의 SHORT_LEG 배)은 다리를 크게 흔들면 그물이 늘어나 다리 끝이
+    # 말리며 후들거렸다 (11/9 갈색 강아지 · 악어 0.42, 사용자 「게다리」). 다리는 작게 · 무릎은 펴고, 몸을 더 통통 띄운다.
+    # 다리가 긴 그림(호랑이 0.93 · 고양이 0.76 · 화면 강아지 0.59)은 그대로
+    def _pos(n: str) -> np.ndarray:
+        return np.asarray(root.get_transform_by_name(n).get_world_position()[:2], float)
+    try:
+        legs = [float(np.linalg.norm(_pos(f"{s}_hip_{e}") - _pos(f"{s}_foot_{e}")))
+                for s in ("left", "right") for e in ("f", "b")]
+        body_len = float(np.linalg.norm(_pos("neck") - _pos("hip")))
+        short = body_len > 0 and np.mean(legs) / body_len < float(gait.get("short_leg", 0.5))
+    except Exception:  # noqa: BLE001
+        short = False
+    if short:
+        swing, bend, bob = swing * 0.45, 0.0, bob * 2.5
     for name in ("hip", "torso", "neck"):
         j = root.get_transform_by_name(name)
         if j is not None and name in rt.char_joint_to_orientation:
@@ -669,8 +684,7 @@ def _apply_gait(drawing, gait: dict) -> None:  # noqa: ANN001
     rt.char_root_positions[:] = rt.char_root_positions[0]
     pts = np.asarray(drawing.rig.get_joints_2D_positions(), float)
     tall = float(np.ptp(pts[:, 1])) if len(pts) else 0.0
-    rt.char_root_positions[:, 1] += (float(gait.get("bob", 0.02)) * tall
-                                     * np.abs(np.sin(t))).astype(np.float32)
+    rt.char_root_positions[:, 1] += (bob * tall * np.abs(np.sin(t))).astype(np.float32)
 
 
 class _tail_wag:
