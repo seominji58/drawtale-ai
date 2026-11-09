@@ -70,12 +70,13 @@ MOTIONS: dict[str, tuple[Path, Path]] = {
     # 고치기 전 판은 *_orig 로 남겨 둔다 (비교용, 백엔드는 쓰지 않음)
     "jumping_gentle": (_GENTLE_MOTIONS / "jumping_soft.yaml", _META_RETARGET / "fair1_ppf.yaml"),
     # 주인공 걷기 · 뛰기 다리는 옆면(cmu1_side, 11/9 사용자 「오른쪽으로 발걸음이 나와야」) — 정면(cmu1_front)이면 제자리 정면
-    # 걸음인데 장면은 옆으로 옮겨 어색했다. 오른쪽으로 내딛게 다리만 뒤집는다(forms/biped.json waves.mirror).
-    # 왼쪽으로 옮겨 가는 쪽은 *_left (그림을 뒤집지 않으려고 — 백엔드가 같이 렌더한다)
-    "walk": (_GENTLE_MOTIONS / "walk_steps.yaml", _GENTLE_MOTIONS / "cmu1_side.yaml"),
-    "run": (_GENTLE_MOTIONS / "run_steps.yaml", _GENTLE_MOTIONS / "cmu1_side.yaml"),
-    "walk_left": (_GENTLE_MOTIONS / "walk_steps.yaml", _GENTLE_MOTIONS / "cmu1_side.yaml"),
-    "run_left": (_GENTLE_MOTIONS / "run_steps.yaml", _GENTLE_MOTIONS / "cmu1_side.yaml"),
+    # 걸음인데 장면은 옆으로 옮겨 어색했다. 그대로가 오른쪽으로 걷는다. 왼쪽으로 옮겨 가는 쪽은 *_left (다리만 뒤집음,
+    # forms/biped.json waves.mirror — 그림을 뒤집지 않으려고, 백엔드가 같이 렌더한다).
+    # 무릎을 두 배 굽힌 *_steps(정면 걸음용)는 옆면에서 바지 · 다리가 고무처럼 휘었다 — 원래 걸음(walk · run)으로
+    "walk": (_GENTLE_MOTIONS / "walk.yaml", _GENTLE_MOTIONS / "cmu1_side.yaml"),
+    "run": (_GENTLE_MOTIONS / "run.yaml", _GENTLE_MOTIONS / "cmu1_side.yaml"),
+    "walk_left": (_GENTLE_MOTIONS / "walk.yaml", _GENTLE_MOTIONS / "cmu1_side.yaml"),
+    "run_left": (_GENTLE_MOTIONS / "run.yaml", _GENTLE_MOTIONS / "cmu1_side.yaml"),
     # 정면 제자리 걸음 — 장면 등장인물이 걸어 들어올 때 (tools/people-moves, 화면이 가는 쪽으로 기울인다)
     "walk_front": (_GENTLE_MOTIONS / "walk_steps.yaml", _GENTLE_MOTIONS / "cmu1_front.yaml"),
     "jumping_gentle_orig": (_GENTLE_MOTIONS / "jumping_gentle.yaml", _META_RETARGET / "fair1_ppf.yaml"),
