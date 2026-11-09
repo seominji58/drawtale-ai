@@ -1,0 +1,8 @@
+# 로컬 시험용 (GPU · qwen-tts 없이). 서버 이미지의 패키지는 modal_app.py 에 있다
+fastapi
+python-multipart
+soundfile
+numpy
+httpx
+pytest
+modal
