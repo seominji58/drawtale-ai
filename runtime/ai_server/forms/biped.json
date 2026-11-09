@@ -109,24 +109,7 @@
         "left_elbow",
         "left_hand"
       ]
-    },
-    "walk": {
-      "mirror": [
-        "right_knee",
-        "right_foot",
-        "left_knee",
-        "left_foot"
-      ]
-    },
-    "run": {
-      "mirror": [
-        "right_knee",
-        "right_foot",
-        "left_knee",
-        "left_foot"
-      ]
     }
   },
-  "_rest_why": "가만히(숨쉬기)는 그린 자세 그대로 제자리에서 위아래로만 (renderer._apply_rest, 11/9 형태 버그 4) — 사람 숨쉬기 동작 · 숨쉬기 물결은 몸이 좌우로 흔들렸다",
-  "_side_why": "걷기 · 뛰기는 다리를 옆면으로 (renderer MOTIONS cmu1_side, 11/9) — 오른쪽으로 내딛게 다리만 뒤집는다. 등장인물(walk_still_arms)은 왼쪽으로"
+  "_rest_why": "가만히(숨쉬기)는 그린 자세 그대로 제자리에서 위아래로만 (renderer._apply_rest, 11/9 형태 버그 4) — 사람 숨쉬기 동작 · 숨쉬기 물결은 몸이 좌우로 흔들렸다"
 }
