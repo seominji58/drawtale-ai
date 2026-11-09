@@ -93,9 +93,3 @@ curl -X POST $URL/internal/v1/tts -H "Authorization: Bearer $TOKEN" -H "Content-
   Modal 은 미국 회사라 **국외 이전 대상이 ElevenLabs → Modal 로 바뀝니다.** 백엔드 동의 안내문(`consent_version`)을 바꿔야 합니다.
 - `DELETE` 하면 폴더를 지우고 메모리 캐시도 비웁니다. 백엔드의 탈퇴 · 동의 철회 흐름(`_forget`)에서 부르면 됩니다.
 - 녹음을 받은 원본 바이트는 다듬은 WAV 만 남기고 버립니다.
-
-## 아직 확인하지 않은 것
-
-- **실제 GPU 에서 돌려 보지 않았습니다.** API · 오디오 처리 · 저장은 시험(19개)으로 확인했고, Qwen 호출부(`engine.py`)는 Colab 노트북과 같은 호출을 씁니다.
-- `create_voice_clone_prompt` · `x_vector_only_mode` 는 qwen-tts 판에 따라 이름이 다를 수 있습니다. 처음 배포할 때 로그를 확인하세요. `create_voice_clone_prompt` 가 없는 판이면 `mode: text` 만 동작합니다.
-- 돌아가는 것을 확인하면 `modal_app.py` 의 `pip_install` 버전을 고정하세요.
