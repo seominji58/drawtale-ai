@@ -405,7 +405,7 @@ def _remember(cache: "OrderedDict", key: str, value) -> None:
 
 # 그물(mesh) 안쪽 점 간격 — 메타 기본은 그림 칸 전체를 40×40 으로만 나눠, 다리 · 팔처럼 가는 곳은 안쪽 점이 거의 없었다.
 # 큰 삼각형이 통째로 꺾여 걸을 때 테두리가 울퉁불퉁했다 (11/9 사용자 「관절이랑 몸통 전체가 울퉁불퉁」). 더 촘촘하게
-MESH_GRID = int(os.environ.get("MESH_GRID", "90"))
+MESH_GRID = int(os.environ.get("MESH_GRID", "40"))   # 90 이면 렌더가 3초 → 35초 (11/9 잼) — 메타 기본 40 으로 두고 실험만
 
 
 class _dense_mesh:
