@@ -13,8 +13,8 @@ from pathlib import Path
 import modal
 
 MODEL_ID = "Qwen/Qwen3-TTS-12Hz-0.6B-Base"
-GPU = "T4"
-DTYPE = "float16"
+GPU = "L4"  # bf16 지원. T4 로 바꾸면 DTYPE 을 float16 으로
+DTYPE = "bfloat16"
 
 image = (
     modal.Image.debian_slim(python_version="3.11")
