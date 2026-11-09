@@ -69,8 +69,15 @@ MOTIONS: dict[str, tuple[Path, Path]] = {
     # 점프는 웅크릴 때 몸 · 머리가 83% 로 눌려서, 걷기 · 뛰기는 다리 PCA 투영이 프레임마다 뒤집혀 다리가 꼬여서.
     # 고치기 전 판은 *_orig 로 남겨 둔다 (비교용, 백엔드는 쓰지 않음)
     "jumping_gentle": (_GENTLE_MOTIONS / "jumping_soft.yaml", _META_RETARGET / "fair1_ppf.yaml"),
-    "walk": (_GENTLE_MOTIONS / "walk_steps.yaml", _GENTLE_MOTIONS / "cmu1_front.yaml"),
-    "run": (_GENTLE_MOTIONS / "run_steps.yaml", _GENTLE_MOTIONS / "cmu1_front.yaml"),
+    # 주인공 걷기 · 뛰기 다리는 옆면(cmu1_side, 11/9 사용자 「오른쪽으로 발걸음이 나와야」) — 정면(cmu1_front)이면 제자리 정면
+    # 걸음인데 장면은 옆으로 옮겨 어색했다. 오른쪽으로 내딛게 다리만 뒤집는다(forms/biped.json waves.mirror).
+    # 왼쪽으로 옮겨 가는 쪽은 *_left (그림을 뒤집지 않으려고 — 백엔드가 같이 렌더한다)
+    "walk": (_GENTLE_MOTIONS / "walk_steps.yaml", _GENTLE_MOTIONS / "cmu1_side.yaml"),
+    "run": (_GENTLE_MOTIONS / "run_steps.yaml", _GENTLE_MOTIONS / "cmu1_side.yaml"),
+    "walk_left": (_GENTLE_MOTIONS / "walk_steps.yaml", _GENTLE_MOTIONS / "cmu1_side.yaml"),
+    "run_left": (_GENTLE_MOTIONS / "run_steps.yaml", _GENTLE_MOTIONS / "cmu1_side.yaml"),
+    # 정면 제자리 걸음 — 장면 등장인물이 걸어 들어올 때 (tools/people-moves, 화면이 가는 쪽으로 기울인다)
+    "walk_front": (_GENTLE_MOTIONS / "walk_steps.yaml", _GENTLE_MOTIONS / "cmu1_front.yaml"),
     "jumping_gentle_orig": (_GENTLE_MOTIONS / "jumping_gentle.yaml", _META_RETARGET / "fair1_ppf.yaml"),
     "walk_orig": (_GENTLE_MOTIONS / "walk.yaml", _GENTLE_MOTIONS / "cmu1_human.yaml"),
     "run_orig": (_GENTLE_MOTIONS / "run.yaml", _GENTLE_MOTIONS / "cmu1_human.yaml"),
@@ -658,14 +665,21 @@ class _tail_wag:
             rt = drawing.retargeter
             mid, tip = root.get_transform_by_name("tail_mid"), root.get_transform_by_name("tail_tip")
             if mid is None or tip is None:      # 꼬리 관절이 없는 형태(2족형 · 사슬형 · 지느러미형)는 물결만
-                if wave and wave.get("hold"):           # 이 뼈들만 그린 방향 그대로 (등장인물 걷기 — 팔 고정)
-                    for name in wave["hold"]:
+                if wave and wave.get("mirror"):
+                    # 옆면 걷기(cmu1_side)는 다리가 화면 왼쪽으로 내딛는다 — 이 뼈들만 세로축에 대해 뒤집어 오른쪽으로 (11/9)
+                    for name in wave["mirror"]:
+                        if name in rt.char_joint_to_orientation:
+                            rt.char_joint_to_orientation[name] = ((360.0 - rt.char_joint_to_orientation[name]) % 360.0).astype(np.float32)
+                if wave and (wave.get("hold") or wave.get("mirror")):   # hold: 이 뼈들만 그린 방향 그대로
+                    for name in wave.get("hold") or ():
                         j = root.get_transform_by_name(name)
                         if j is not None and name in rt.char_joint_to_orientation:
                             rt.char_joint_to_orientation[name] = np.full(rt.char_root_positions.shape[0], j.starting_theta % 360.0, np.float32)
                     return
                 if wave and wave.get("rest"):
                     _apply_rest(drawing, wave)
+                    if wave.get("bones"):               # 그린 자세에서 이 마디만 (사람 두리번 — 고개 · 몸 갸웃)
+                        _apply_wave(drawing, {**wave, "keep_root": True})
                     if wave.get("center"):
                         _center_body(drawing)
                     return

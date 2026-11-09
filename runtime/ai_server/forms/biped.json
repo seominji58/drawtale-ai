@@ -109,7 +109,39 @@
         "left_elbow",
         "left_hand"
       ]
+    },
+    "walk": {
+      "mirror": [
+        "right_knee",
+        "right_foot",
+        "left_knee",
+        "left_foot"
+      ]
+    },
+    "run": {
+      "mirror": [
+        "right_knee",
+        "right_foot",
+        "left_knee",
+        "left_foot"
+      ]
+    },
+    "search": {
+      "rest": true,
+      "rest_bob": 0.01,
+      "rest_cycles": 1,
+      "bones": [
+        "torso",
+        "neck"
+      ],
+      "amp": [
+        5,
+        14
+      ],
+      "cycles": 2,
+      "lag": 0.6
     }
   },
-  "_rest_why": "가만히(숨쉬기)는 그린 자세 그대로 제자리에서 위아래로만 (renderer._apply_rest, 11/9 형태 버그 4) — 사람 숨쉬기 동작 · 숨쉬기 물결은 몸이 좌우로 흔들렸다"
+  "_rest_why": "가만히(숨쉬기)는 그린 자세 그대로 제자리에서 위아래로만 (renderer._apply_rest, 11/9 형태 버그 4) — 사람 숨쉬기 동작 · 숨쉬기 물결은 몸이 좌우로 흔들렸다",
+  "_side_why": "걷기 · 뛰기는 다리를 옆면으로, 오른쪽으로 내딛게 다리만 뒤집는다 (11/9). 찾기(search)는 사람 동작이 허리를 숙여 줍는 것처럼 보여 이야기와 안 맞았다 — 그린 자세에서 몸 · 고개만 두리번"
 }

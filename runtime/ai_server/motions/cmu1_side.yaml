@@ -1,0 +1,116 @@
+# 다리를 옆면(sagittal, 고정)으로 투영 — 사람 그림이 옆으로 걷는다 (11/9). pca 는 프레임마다 평면이 뒤집혀 다리가 꼬였고(11/3), frontal 은 정면 제자리 걸음
+# cmu1_human.yaml 에서 다리만 정면 투영 (make_soft_motions.py, 2026-11-03 — PCA 는 걷기 다리가 꼬였다)
+char_starting_location: [0.0, 0.0, -0.5]
+bvh_projection_bodypart_groups:
+- bvh_joint_names:
+  - LeftArm
+  - LeftForeArm
+  - LeftHand
+  - LeftFingerBase
+  - RightArm
+  - RightForeArm
+  - RightHand
+  - RightFingerBase
+  method: pca
+  name: Upper Limbs
+- bvh_joint_names:
+  - LeftUpLeg
+  - LeftLeg
+  - LeftFoot
+  - LeftToeBase
+  - RightUpLeg
+  - RightLeg
+  - RightFoot
+  - RightToeBase
+  method: sagittal
+  name: Lower Limbs
+- bvh_joint_names:
+  - Hips
+  - Spine
+  - Spine1
+  - Head
+  method: frontal
+  name: Trunk
+char_bodypart_groups:
+- bvh_depth_drivers:
+  - Hips
+  char_joints:
+  - right_shoulder
+  - left_shoulder
+  - right_hip
+  - left_hip
+  - hip
+  - torso
+  - neck
+- bvh_depth_drivers:
+  - LeftHand
+  char_joints:
+  - left_elbow
+  - left_hand
+- bvh_depth_drivers:
+  - RightHand
+  char_joints:
+  - right_elbow
+  - right_hand
+- bvh_depth_drivers:
+  - LeftFoot
+  char_joints:
+  - left_knee
+  - left_foot
+- bvh_depth_drivers:
+  - RightFoot
+  char_joints:
+  - right_knee
+  - right_foot
+char_bvh_root_offset:
+  bvh_projection_bodypart_group_for_offset: Lower Limbs
+  bvh_joints:
+  - - RightFoot
+    - RightLeg
+    - RightUpLeg
+  - - LeftFoot
+    - LeftLeg
+    - LeftUpLeg
+  char_joints:
+  - - left_foot
+    - left_knee
+    - left_hip
+  - - right_foot
+    - right_knee
+    - right_hip
+char_joint_bvh_joints_mapping:
+  left_elbow: !!python/tuple
+  - LeftArm
+  - LeftForeArm
+  left_foot: !!python/tuple
+  - LeftLeg
+  - LeftFoot
+  left_hand: !!python/tuple
+  - LeftForeArm
+  - LeftHand
+  left_knee: !!python/tuple
+  - LeftUpLeg
+  - LeftLeg
+  torso: !!python/tuple
+  - Hips
+  - Spine1
+  neck: !!python/tuple
+  - Hips
+  - Head
+  right_elbow: !!python/tuple
+  - RightArm
+  - RightForeArm
+  right_foot: !!python/tuple
+  - RightLeg
+  - RightFoot
+  right_hand: !!python/tuple
+  - RightForeArm
+  - RightHand
+  right_knee: !!python/tuple
+  - RightUpLeg
+  - RightLeg
+char_runtime_checks:
+  - - above
+    - neck
+    - right_shoulder
+    - left_shoulder
