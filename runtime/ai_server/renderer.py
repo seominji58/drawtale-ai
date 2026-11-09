@@ -124,12 +124,17 @@ BONES = (
 )
 
 
-def mesh_mask(mask: np.ndarray, joints: list[dict]) -> np.ndarray:
+def mesh_mask(mask: np.ndarray, joints: list[dict], tight: bool = False) -> np.ndarray:
     """Meta 는 마스크에서 가장 큰 덩어리 하나만 움직인다 (나머지는 버림).
     종이색을 깎으면 가는 팔다리 선이 몸통과 떨어진 조각이 되므로, 관절 사이 뼈대 띠로 이어 붙인다.
-    보이는 부분은 텍스처 투명도(깎은 마스크)가 정하니 띠 자리의 종이는 보이지 않는다 (2026-11-03)."""
+    보이는 부분은 텍스처 투명도(깎은 마스크)가 정하니 띠 자리의 종이는 보이지 않는다 (2026-11-03).
+
+    tight: 오린 그림(투명도 마스크, alpha_mask)이면 부풀려 매끈하게 한 틀을 원래 모양 + 뼈대 띠로 다시 깎는다 (2026-11-09).
+    부풀리기가 좁은 다리 사이 틈을 메워 두 다리가 한 덩어리 틀이 되면, 렌더에서 한쪽 다리가 무릎에서 꺾여 파였다(장면 할머니).
+    오린 그림은 윤곽이 원래 매끈해 점 수가 늘지 않는다. 아이 그림은 그대로"""
 
     out = mask.copy()
+    bands = np.zeros_like(mask)
     at = {j["name"]: (int(j["x"]), int(j["y"])) for j in joints}
     form = forms.form_or_default(set(at))
     bones = BONES if form == forms.DEFAULT else forms.bones(form)   # 사람은 목 → 어깨 (부모 관계와 다르다)
@@ -137,11 +142,14 @@ def mesh_mask(mask: np.ndarray, joints: list[dict]) -> np.ndarray:
     for a, b in bones:
         if a in at and b in at:
             cv2.line(out, at[a], at[b], 255, width)
+            cv2.line(bands, at[a], at[b], 255, width)
     # 윤곽을 매끈하게 — Meta 는 윤곽 점마다 계산이 커져, 깎은 마스크의 들쭉날쭉한 윤곽 그대로면
     # 렌더 한 번에 메모리가 1.6GB 를 넘어 컨테이너(2GB)가 죽었다. 틀이 조금 커져도 텍스처가 투명이라 안 보인다
     k = max(3, round(BONE_BAND * float(np.hypot(*mask.shape[:2]))))
     out = cv2.dilate(out, cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (k, k)))
     out = np.where(cv2.GaussianBlur(out, (0, 0), k) > 127, 255, 0).astype(np.uint8)
+    if tight:
+        out = np.where((out > 127) & (np.maximum(mask, bands) > 127), 255, 0).astype(np.uint8)
     count, labels, stats, _ = cv2.connectedComponentsWithStats((out > 127).astype(np.uint8), connectivity=8)
     if count > 2:
         biggest = 1 + int(np.argmax(stats[1:, cv2.CC_STAT_AREA]))
@@ -320,7 +328,8 @@ def prepare_character(
     # 움직이는 틀은 팔다리 조각을 뼈대로 이어 붙인 마스크 (보이는 부분은 위 텍스처).
     # 흑백 두 값 그대로면 Meta 가 찾는 윤곽(128 등고선)이 픽셀 계단을 따라가 점이 수천 개가 되고,
     # 렌더 시간 · 메모리가 점 수에 비례해 는다. 살짝 흐려 등고선을 매끈한 선으로 넘긴다
-    mesh = mesh_mask(np.where(mask > 127, 255, 0).astype(np.uint8), crop_joints)
+    tight = (Path(mask_path).parent / "mask_alpha").exists()   # 오린 그림 (main.analyze mask_from=alpha)
+    mesh = mesh_mask(np.where(mask > 127, 255, 0).astype(np.uint8), crop_joints, tight)
     cv2.imwrite(str(char_dir / "mask.png"), cv2.GaussianBlur(mesh, (0, 0), MESH_SMOOTH))
 
     char_cfg = build_char_cfg(crop_joints, width=width, height=height)

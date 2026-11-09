@@ -35,6 +35,10 @@ def read_alpha(path: str | Path) -> np.ndarray | None:
     return cv2.bitwise_or(mask, holes)
 
 
+MARK = "mask_alpha"   # 세션 폴더에 이 이름의 빈 파일이 있으면 렌더가 그물 틀을 원래 모양대로 깎는다 (renderer.prepare_character)
+
+
 def write_mask(mask: np.ndarray, mask_path: str | Path) -> bool:
     Path(mask_path).parent.mkdir(parents=True, exist_ok=True)
+    (Path(mask_path).parent / MARK).touch()
     return bool(cv2.imwrite(str(mask_path), mask))
