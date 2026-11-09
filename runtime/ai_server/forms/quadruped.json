@@ -160,6 +160,29 @@
       ],
       "cycles": 4,
       "keep_root": true
+    },
+    "walk": {
+      "gait": {
+        "swing": 22,
+        "bend": 35,
+        "cycles": 2,
+        "bob": 0.02
+      }
+    },
+    "run": {
+      "gait": {
+        "swing": 34,
+        "bend": 50,
+        "cycles": 3,
+        "bob": 0.05
+      }
+    },
+    "breathe": {
+      "rest": true,
+      "rest_bob": 0.012,
+      "rest_cycles": 1
     }
-  }
+  },
+  "_waves_why": "걷기 · 뛰기는 다리를 옆모습 걸음으로 직접 넣는다 (renderer._apply_gait, 11/9 형태 버그 3) — 사람 걷기를 붙이면 다리가 X 자로 꼬여 정면 걸음처럼 보였다",
+  "_rest_why": "가만히(숨쉬기)는 그린 자세 그대로 제자리에서 위아래로만 (renderer._apply_rest, 11/9 형태 버그 4) — 사람 숨쉬기 동작 · 숨쉬기 물결은 몸이 좌우로 흔들렸다"
 }
