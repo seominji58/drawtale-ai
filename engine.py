@@ -19,10 +19,14 @@ class QwenEngine:
         import torch
         from qwen_tts import Qwen3TTSModel
 
+        if dtype == "auto":
+            dtype = "bfloat16" if torch.cuda.is_bf16_supported() else "float16"
         self.model_id = model_id
+        self.dtype = dtype
         self.model = Qwen3TTSModel.from_pretrained(
             model_id, device_map=device, dtype=getattr(torch, dtype)
         )
+        log.info("모델 로드: %s · %s · %s", model_id, torch.cuda.get_device_name(0), dtype)
         self._lock = threading.Lock()  # GPU 하나에 한 번에 하나씩
         self._prompts: OrderedDict[str, dict] = OrderedDict()
         self._cache_size = cache_size

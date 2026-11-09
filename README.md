@@ -81,7 +81,7 @@ curl -X POST $URL/internal/v1/tts -H "Authorization: Bearer $TOKEN" -H "Content-
 
 | 값 | 기본 | 뜻 |
 |---|---|---|
-| `GPU` · `DTYPE` | `L4` · `bfloat16` | T4 로 바꾸면 `float16` |
+| `GPU` · `DTYPE` | `["L4", "A10G", "T4"]` · `auto` | 앞에서부터 남는 GPU 사용. dtype 은 GPU 에 맞춰 자동 |
 | `MODEL_ID` | 0.6B | 1.7B 로 바꿀 때 여기만 |
 | `scaledown_window` | 300초 | 이야기 한 편의 쪽들을 차례로 읽는 동안 컨테이너를 살려 둠. 길수록 유휴 비용 |
 | `max_containers` | 2 | **비용 상한.** 동시에 만드는 사람이 많아지면 올림 |

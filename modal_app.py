@@ -13,12 +13,14 @@ from pathlib import Path
 import modal
 
 MODEL_ID = "Qwen/Qwen3-TTS-12Hz-0.6B-Base"
-GPU = "L4"  # bf16 지원. T4 로 바꾸면 DTYPE 을 float16 으로
-DTYPE = "bfloat16"
+# 앞에서부터 남는 GPU 를 쓴다. L4 가 모자라면 오래 기다리지 않고 다음 것으로 (2026-11-09 L4 대기 확인)
+GPU = ["L4", "A10G", "T4"]
+# auto: GPU 가 bf16 을 지원하면(L4 · A10G) bfloat16, 아니면(T4) float16
+DTYPE = "auto"
 
 image = (
     modal.Image.debian_slim(python_version="3.11")
-    .apt_install("ffmpeg", "libsndfile1")
+    .apt_install("ffmpeg", "libsndfile1", "sox")  # sox: qwen-tts 가 찾는다
     # 실제로 돌려 본 뒤 버전을 고정한다 (예: qwen-tts==x.y.z)
     .pip_install("qwen-tts", "soundfile", "numpy", "fastapi", "python-multipart")
     .env({"HF_HOME": "/cache/huggingface"})
