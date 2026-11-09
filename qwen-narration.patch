@@ -1,0 +1,723 @@
+From 68334b491209d8b9ec1bed239155d43ad3ad432f Mon Sep 17 00:00:00 2001
+From: Claude <noreply@anthropic.com>
+Date: Mon, 9 Nov 2026 12:50:14 +0000
+Subject: [PATCH] =?UTF-8?q?=EB=85=B9=EC=9D=8C=20=EB=AA=A9=EC=86=8C?=
+ =?UTF-8?q?=EB=A6=AC(=EB=B3=B4=ED=98=B8=EC=9E=90=20=C2=B7=20=EC=95=84?=
+ =?UTF-8?q?=EC=9D=B4)=EB=8A=94=20=EC=9E=90=EC=B2=B4=20=EC=84=9C=EB=B2=84?=
+ =?UTF-8?q?=20drawtale-tts=20=EB=A1=9C=20=EB=82=98=EB=A0=88=EC=9D=B4?=
+ =?UTF-8?q?=EC=85=98=EB=A7=8C=20=E2=80=94=20GUARDIAN=5FVOICE=5FPROVIDER=3D?=
+ =?UTF-8?q?qwen?=
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+- 기본 나레이터 · 캐릭터 대사는 그대로 ElevenLabs. 녹음 목소리를 고른 이야기만 나레이션이 바뀐다
+- 캐릭터 판: 나레이션은 녹음 목소리, 대사는 ElevenLabs(감정 태그 그대로). 한 쪽 안의 둘은 drawtale-tts 가 잇는다
+- 목소리 id 「qv_」로 업체를 가린다: 읽기 · 지우기. 예전 ElevenLabs 녹음 목소리도 그대로 쓰고 지운다
+- POST /me/voice 에 ref_text(선택). 녹음 탓 오류는 400 + 고칠 점
+- Modal 303(오래 걸림)을 따라간다, 타임아웃 180초
+- 테스트 16개 (drawtale-tts · ElevenLabs 흉내), 전체 233 통과
+---
+ .env.example                 |   7 +
+ app/api/v1/voice.py          |  14 +-
+ app/core/config.py           |   9 ++
+ app/services/jobs.py         |  29 +++-
+ app/services/tts.py          | 176 +++++++++++++++++++++++-
+ app/services/voices.py       |   7 +-
+ tests/conftest.py            |   4 +
+ tests/test_qwen_narration.py | 256 +++++++++++++++++++++++++++++++++++
+ 8 files changed, 484 insertions(+), 18 deletions(-)
+ create mode 100644 tests/test_qwen_narration.py
+
+diff --git a/.env.example b/.env.example
+index e2922af..13af4d2 100644
+--- a/.env.example
++++ b/.env.example
+@@ -49,6 +49,13 @@ ELEVENLABS_API_KEY=
+ ELEVENLABS_VOICE_ID=uyVNoMrnUku1dZyVEXwD
+ ELEVENLABS_MODEL_ID=eleven_v4_turbo
+ #   캐릭터 목소리 판(voice_mode=characters)의 인물 목소리는 app/services/voices.py 에 있다
++# 녹음 목소리(보호자 · 아이) 업체: elevenlabs (기본) | qwen (자체 서버 drawtale-tts, Modal GPU)
++#   qwen 이면 녹음 목소리는 나레이션만, 기본 나레이터와 캐릭터 대사는 위 ElevenLabs 가 그대로 읽는다
++GUARDIAN_VOICE_PROVIDER=elevenlabs
++#   qwen 일 때 필요. 주소 · 토큰은 TTS 담당에게 받는다 (modal deploy 주소). 토큰은 여기에만 둔다
++QWEN_TTS_URL=
++QWEN_TTS_TOKEN=
++QWEN_TTS_TIMEOUT_SECONDS=180
+ 
+ # Social login — 각 개발자 콘솔에서 발급. 동의 항목(scope)은 켜지 않는다: 회원번호만 받는다
+ #   Redirect URI: http://localhost:5173/auth/{kakao|google}/callback
+diff --git a/app/api/v1/voice.py b/app/api/v1/voice.py
+index 4b2d409..01df8ca 100644
+--- a/app/api/v1/voice.py
++++ b/app/api/v1/voice.py
+@@ -100,6 +100,11 @@ def register_voice(
+         description="[필수] 보호자 본인 목소리이며 아이 · 다른 사람 목소리가 아님"
+     ),
+     consent_version: str = Form(max_length=20, description="동의한 안내문 판"),
++    ref_text: str | None = Form(
++        default=None,
++        max_length=500,
++        description="녹음에서 읽은 글 그대로 (선택). 녹음 목소리가 qwen 이면 더 닮게 만든다",
++    ),
+     db: Session = Depends(get_db),
+     user: User = Depends(current_user),
+ ) -> GuardianVoiceResponse:
+@@ -120,8 +125,15 @@ def register_voice(
+     try:
+         # 이름에 사람 정보를 넣지 않는다 — 계정 id 앞자리만
+         voice_id = tts.add_voice(
+-            f"guardian-{str(user.id)[:8]}", data, audio.filename or "voice.wav", content_type
++            f"guardian-{str(user.id)[:8]}",
++            data,
++            audio.filename or "voice.wav",
++            content_type,
++            ref_text=(ref_text or "").strip() or None,
+         )
++    except tts.VoiceRejected as e:
++        # 녹음 탓 — 무엇을 고쳐 다시 녹음하면 되는지 알려 준다
++        raise AppError(e.code, e.message) from e
+     except Exception as e:
+         log.exception("보호자 목소리 등록 실패")
+         raise AppError(
+diff --git a/app/core/config.py b/app/core/config.py
+index 6a070ea..35fbdbf 100644
+--- a/app/core/config.py
++++ b/app/core/config.py
+@@ -70,6 +70,15 @@ class Settings(BaseSettings):
+     # 속도·비용을 줄이려면 flash_v2_5
+     # 2026-10-29 청취 비교로 turbo — v4 와 별 차이 없고 크레딧이 절반 (사용자)
+     elevenlabs_model_id: str = "eleven_v4_turbo"
++    # 녹음 목소리(보호자 · 아이) 업체 (2026-11-09): "elevenlabs" (기본, 지금과 같다)
++    #   | "qwen" (자체 서버 drawtale-tts). qwen 이면 녹음 목소리는 나레이션만 읽고,
++    #   기본 나레이터와 캐릭터 대사는 그대로 TTS_PROVIDER(ElevenLabs)가 읽는다
++    guardian_voice_provider: str = "elevenlabs"
++    # drawtale-tts 주소 (modal deploy 가 알려 준 주소) 와 Bearer 토큰. 토큰은 여기에만 둔다
++    qwen_tts_url: str = ""
++    qwen_tts_token: str = ""
++    # Modal 은 쉬던 GPU 를 켜는 데(콜드 스타트) 1~2분 걸릴 수 있다
++    qwen_tts_timeout_seconds: float = 180
+     # 캐릭터 목소리 판의 인물 목소리는 app/services/voices.py 목록에 있다
+ 
+     # Social login (authorization code flow). Secrets live only here, never in the frontend.
+diff --git a/app/services/jobs.py b/app/services/jobs.py
+index eef1b04..b2a61e1 100644
+--- a/app/services/jobs.py
++++ b/app/services/jobs.py
+@@ -33,7 +33,7 @@ from app.services.story_writer import (
+     has_dialogue,
+     script_text,
+ )
+-from app.services.tts import ElevenLabsSpeech, get_tts
++from app.services.tts import get_tts
+ from app.services.voices import NARRATOR, cast_voices
+ 
+ log = logging.getLogger(__name__)
+@@ -577,10 +577,18 @@ def book_script(book: Book) -> Script:
+     )
+ 
+ 
++def _voice_types(tts) -> dict[str, tuple[str, ...]]:  # noqa: ANN001
++    """인물 목소리를 쓸 수 있으면 그 목록, 아니면 {} (OpenAI · ElevenLabs 키 없는 녹음 목소리)."""
++
++    return getattr(tts, "voice_types", None) or {}
++
++
+ def make_audio(story: Story, storage, script: Script | None = None) -> str | None:
+     """이야기를 음성으로 만들어 저장한다. 실패해도 이야기와 애니메이션은 그대로 제공한다.
+ 
+-    대본에 대사가 있고 ElevenLabs 를 쓰면 대사를 인물 목소리로 읽는다. 인물 → 목소리는
++    대본에 대사가 있고 인물 목소리를 쓸 수 있으면
++    (ElevenLabs, 또는 녹음 목소리 나레이션 + ElevenLabs 대사)
++    대사를 인물 목소리로 읽는다. 인물 → 목소리는
+     story.voice_cast 에 남긴다 (긴 동화책에서 쪽을 다시 만들어도 같은 목소리를 쓰려고).
+     그게 실패하면 나레이터 하나로 읽는다.
+     """
+@@ -592,11 +600,15 @@ def make_audio(story: Story, storage, script: Script | None = None) -> str | Non
+ 
+     try:
+         audio = None
+-        if script and has_dialogue(script) and isinstance(tts, ElevenLabsSpeech):
++        if script and has_dialogue(script) and _voice_types(tts):
+             try:
+                 lines = [line for parts in script.sentences for line in parts]
+                 voices = cast_voices(
+-                    script.cast, story.protagonist_voice, tts.voice_id, (ln.speaker for ln in lines)
++                    script.cast,
++                    story.protagonist_voice,
++                    tts.voice_id,
++                    (ln.speaker for ln in lines),
++                    _voice_types(tts),
+                 )
+                 audio = _tts_retry(lambda: tts.dialogue(lines, voices))
+                 story.voice_cast = voices
+@@ -708,7 +720,8 @@ def _tts_retry(make):  # noqa: ANN001
+ def make_page_audio(story: Story, storage, book: Book) -> list[str | None]:
+     """쪽마다 MP3. 쪽으로 나눠도 읽는 글자 수는 이야기 전체와 같다 (음성 비용이 늘지 않는다).
+ 
+-    캐릭터 목소리 판이고 ElevenLabs 면 대사가 있는 쪽은 인물 목소리로 읽는다. 인물 → 목소리는
++    캐릭터 목소리 판이고 인물 목소리를 쓸 수 있으면(make_audio 와 같다)
++    대사가 있는 쪽은 인물 목소리로 읽는다. 인물 → 목소리는
+     이야기 전체에서 한 번 정해 story.voice_cast 에 남긴다 (쪽마다 바뀌지 않게).
+     쪽 하나가 실패하면 그 쪽만 None — 프론트가 브라우저 TTS 로 읽는다.
+     """
+@@ -720,8 +733,10 @@ def make_page_audio(story: Story, storage, book: Book) -> list[str | None]:
+ 
+     voices: dict[str, str] | None = None
+     speakers = [s for p in book.pages for s, _, _ in p.lines if s != NARRATOR]
+-    if story.voice_mode == VoiceMode.characters and speakers and isinstance(tts, ElevenLabsSpeech):
+-        voices = cast_voices(book.cast, story.protagonist_voice, tts.voice_id, speakers)
++    if story.voice_mode == VoiceMode.characters and speakers and _voice_types(tts):
++        voices = cast_voices(
++            book.cast, story.protagonist_voice, tts.voice_id, speakers, _voice_types(tts)
++        )
+         story.voice_cast = voices
+ 
+     def one(page) -> str | None:
+diff --git a/app/services/tts.py b/app/services/tts.py
+index 2fc91c1..b03353f 100644
+--- a/app/services/tts.py
++++ b/app/services/tts.py
+@@ -4,6 +4,7 @@
+ API 키가 없거나 호출이 실패하면 음성 없이 진행한다 (이야기와 애니메이션은 그대로 제공).
+ """
+ 
++import base64
+ import logging
+ 
+ import httpx
+@@ -11,7 +12,7 @@ from openai import OpenAI
+ 
+ from app.core.config import get_settings
+ from app.services.story_writer import Line
+-from app.services.voices import NARRATOR, tagged
++from app.services.voices import NARRATOR, VOICE_TYPES, tagged
+ 
+ log = logging.getLogger(__name__)
+ 
+@@ -69,6 +70,15 @@ class ElevenLabsSpeech:
+             timeout,
+         )
+ 
++    @property
++    def voice_types(self) -> dict[str, tuple[str, ...]]:
++        """캐릭터 목소리 판에서 고를 목소리 (voices.cast_voices)."""
++
++        return VOICE_TYPES
++
++    def with_voice(self, voice_id: str) -> "ElevenLabsSpeech":
++        return ElevenLabsSpeech(self.api_key, voice_id, self.model_id, self.timeout)
++
+     def speak(self, text: str) -> bytes:
+         with httpx.Client(timeout=self.timeout, transport=_TRANSPORT) as http:
+             res = http.post(
+@@ -118,13 +128,123 @@ class ElevenLabsSpeech:
+             return res.content
+ 
+ 
+-def get_tts(narrator_voice_id: str | None = None) -> TextToSpeech | ElevenLabsSpeech | None:
++# ---- 녹음 목소리: 자체 서버 drawtale-tts (Qwen3-TTS, 2026-11-09) ----
++# 백엔드는 drawtale-tts 코드를 들여오지 않고 HTTP 로만 부른다 (ai_client 와 같다).
++# drawtale-tts 의 목소리 id 는 「qv_」로 시작한다. 업체를 바꾼 뒤에도 id 로 업체를 가린다.
++QWEN_VOICE_PREFIX = "qv_"
++
++
++def is_qwen_voice(voice_id: str | None) -> bool:
++    return bool(voice_id) and voice_id.startswith(QWEN_VOICE_PREFIX)
++
++
++def _qwen_ready() -> bool:
++    s = get_settings()
++    return bool(s.qwen_tts_url and s.qwen_tts_token)
++
++
++def _qwen_client() -> httpx.Client:
++    s = get_settings()
++    return httpx.Client(
++        base_url=s.qwen_tts_url.rstrip("/"),
++        headers={"Authorization": f"Bearer {s.qwen_tts_token}"},
++        timeout=s.qwen_tts_timeout_seconds,
++        # Modal 은 오래 걸리는 요청에 303 으로 「다시 오라」고 한다. 따라가야 결과를 받는다
++        follow_redirects=True,
++        transport=_TRANSPORT,
++    )
++
++
++class QwenSpeech:
++    """녹음 목소리로 나레이션을 읽는다 (drawtale-tts). ElevenLabs 판과 같은 모양이다.
++
++    캐릭터 대사는 그대로 ElevenLabs(characters)가 인물 목소리로 읽고, 둘을 drawtale-tts 가
++    한 파일로 잇는다 (백엔드에는 오디오 도구가 없다).
++    characters 가 없으면 녹음 목소리 하나로 읽는다.
++    """
++
++    def __init__(self, voice_id: str, characters: ElevenLabsSpeech | None = None) -> None:
++        self.voice_id = voice_id
++        self.characters = characters
++
++    @property
++    def voice_types(self) -> dict[str, tuple[str, ...]]:
++        return self.characters.voice_types if self.characters else {}
++
++    def _post(self, path: str, body: dict) -> bytes:
++        body = {**body, "language": "Korean", "speed": TTS_SPEED, "format": "mp3"}
++        with _qwen_client() as http:
++            res = http.post(path, json=body)
++            res.raise_for_status()
++            return res.content
++
++    def speak(self, text: str) -> bytes:
++        return self._post("/internal/v1/tts", {"voice_id": self.voice_id, "text": text})
++
++    def dialogue(self, lines: list[Line], voices: dict[str, str]) -> bytes:
++        """나레이션은 녹음 목소리, 대사는 ElevenLabs 인물 목소리로 MP3 하나."""
++
++        parts = []
++        for line in lines:
++            if not line.text.strip():
++                continue
++            voice = voices.get(line.speaker, self.voice_id)
++            if line.speaker == NARRATOR or voice == self.voice_id or self.characters is None:
++                parts.append({"voice_id": self.voice_id, "text": line.text})
++            else:
++                clip = self.characters.with_voice(voice).speak(tagged(line.text, line.emotion))
++                parts.append({"audio": base64.b64encode(clip).decode()})
++        # 빠르기는 녹음 목소리 쪽에서만 맞춘다 — ElevenLabs 대사는 이미 그 빠르기로 만들었다
++        body = {"lines": parts, "language": "Korean", "speed": 1.0, "format": "mp3"}
++        with _qwen_client() as http:
++            res = http.post("/internal/v1/dialogue", json=body)
++            res.raise_for_status()
++            return res.content
++
++
++class VoiceRejected(Exception):
++    """녹음 탓에 목소리를 만들 수 없을 때 (짧음 · 김 · 읽을 수 없음). 다시 녹음하면 된다."""
++
++    def __init__(self, code: str, message: str) -> None:
++        super().__init__(message)
++        self.code, self.message = code, message
++
++
++# drawtale-tts 의 오류 code → 녹음한 사람에게 보여 줄 말
++_QWEN_REJECTIONS = {
++    "REF_TOO_SHORT": "녹음이 너무 짧아요. 안내 문장을 끝까지 읽어 주세요.",
++    "REF_TOO_LONG": "녹음이 너무 길어요. 안내 문장만 읽어 주세요.",
++    "INVALID_AUDIO": "녹음 파일을 읽을 수 없어요. 다시 녹음해 주세요.",
++}
++
++
++def _elevenlabs(voice_id: str | None = None) -> ElevenLabsSpeech | None:
++    s = get_settings()
++    voice_id = voice_id or s.elevenlabs_voice_id
++    if not (s.tts_provider == "elevenlabs" and s.elevenlabs_api_key and voice_id):
++        return None
++    return ElevenLabsSpeech(
++        s.elevenlabs_api_key, voice_id, s.elevenlabs_model_id, timeout=s.tts_timeout_seconds
++    )
++
++
++def get_tts(
++    narrator_voice_id: str | None = None,
++) -> TextToSpeech | ElevenLabsSpeech | QwenSpeech | None:
+     """키가 없으면 None. 호출하는 쪽에서 음성 없이 진행한다.
+ 
+-    narrator_voice_id 가 있으면 나레이터를 그 목소리로 (보호자 목소리, ElevenLabs 일 때만).
++    narrator_voice_id 가 있으면 나레이터를 그 목소리로 (녹음 목소리).
++    「qv_」 목소리는 drawtale-tts 가 나레이션을 읽고, 대사는 ElevenLabs 가 읽는다.
+     """
+ 
+     settings = get_settings()
++    if is_qwen_voice(narrator_voice_id):
++        if _qwen_ready():
++            return QwenSpeech(narrator_voice_id, characters=_elevenlabs())
++        log.warning(
++            "QWEN_TTS_URL · QWEN_TTS_TOKEN 이 없어 녹음 목소리 대신 기본 나레이터로 읽습니다"
++        )
++        narrator_voice_id = None
+     if settings.tts_provider == "elevenlabs":
+         voice_id = narrator_voice_id or settings.elevenlabs_voice_id
+         if not (settings.elevenlabs_api_key and voice_id):
+@@ -153,16 +273,29 @@ ELEVENLABS_VOICE_URL = "https://api.elevenlabs.io/v1/voices/{voice_id}"
+ 
+ 
+ def voice_cloning_ready() -> bool:
+-    """보호자 목소리를 받을 수 있는지 — ElevenLabs 로 읽고 키가 있을 때만."""
++    """녹음 목소리를 받을 수 있는지.
++
++    qwen: drawtale-tts 주소 · 토큰이 있을 때. elevenlabs: ElevenLabs 로 읽고 키가 있을 때.
++    """
+ 
+     s = get_settings()
++    if s.guardian_voice_provider == "qwen":
++        return _qwen_ready()
+     return s.tts_provider == "elevenlabs" and bool(s.elevenlabs_api_key)
+ 
+ 
+-def add_voice(name: str, audio: bytes, filename: str, content_type: str) -> str:
+-    """녹음으로 목소리를 만들고 그 id 를 돌려준다. 실패하면 httpx 예외."""
++def add_voice(
++    name: str, audio: bytes, filename: str, content_type: str, ref_text: str | None = None
++) -> str:
++    """녹음으로 목소리를 만들고 그 id 를 돌려준다.
++
++    녹음 탓이면 VoiceRejected, 그 밖의 실패는 httpx 예외.
++    ref_text: 녹음에서 읽은 글 (qwen 만 쓴다). 있으면 더 닮게 만든다.
++    """
+ 
+     s = get_settings()
++    if s.guardian_voice_provider == "qwen":
++        return _qwen_add_voice(audio, filename, content_type, ref_text)
+     with httpx.Client(timeout=s.tts_timeout_seconds * 2, transport=_TRANSPORT) as http:
+         res = http.post(
+             ELEVENLABS_ADD_VOICE_URL,
+@@ -179,8 +312,37 @@ def add_voice(name: str, audio: bytes, filename: str, content_type: str) -> str:
+         return res.json()["voice_id"]
+ 
+ 
++def _qwen_add_voice(audio: bytes, filename: str, content_type: str, ref_text: str | None) -> str:
++    data = {"ref_text": ref_text} if ref_text else {}
++    with _qwen_client() as http:
++        res = http.post(
++            "/internal/v1/voices",
++            files={"audio": (filename, audio, content_type)},
++            data=data,
++        )
++        if res.status_code == 400:
++            try:
++                code = res.json()["error"]["code"]
++            except (ValueError, KeyError, TypeError):
++                code = ""
++            if code in _QWEN_REJECTIONS:
++                raise VoiceRejected(code, _QWEN_REJECTIONS[code])
++        res.raise_for_status()
++        return res.json()["voice_id"]
++
++
+ def delete_voice(voice_id: str) -> None:
+-    """ElevenLabs 에서 목소리를 지운다. 이미 없으면(404) 지운 것으로 본다."""
++    """목소리를 지운다. 이미 없으면 지운 것으로 본다.
++
++    id 로 업체를 가린다 — 업체를 바꾼 뒤에도 예전 목소리를 그 업체에서 지운다.
++    """
++
++    if is_qwen_voice(voice_id):
++        with _qwen_client() as http:
++            res = http.delete(f"/internal/v1/voices/{voice_id}")
++            if res.status_code != 404:
++                res.raise_for_status()
++        return
+ 
+     s = get_settings()
+     with httpx.Client(timeout=s.tts_timeout_seconds, transport=_TRANSPORT) as http:
+diff --git a/app/services/voices.py b/app/services/voices.py
+index b390d96..12785eb 100644
+--- a/app/services/voices.py
++++ b/app/services/voices.py
+@@ -6,7 +6,7 @@
+ 만들어 **이 팀 계정에 저장한 목소리**라 다른 계정 키로는 쓸 수 없다.
+ """
+ 
+-from collections.abc import Iterable
++from collections.abc import Iterable, Mapping, Sequence
+ 
+ # 대본에서 말하는 사람 이름. GPT 가 이 이름으로 쓴다 (story_writer.script_prompt)
+ NARRATOR = "나레이션"
+@@ -60,6 +60,7 @@ def cast_voices(
+     protagonist: str,
+     narrator_voice: str,
+     speakers: Iterable[str] = (),
++    voice_types: Mapping[str, Sequence[str]] = VOICE_TYPES,
+ ) -> dict[str, str]:
+     """인물 이름 → 목소리 id. 나레이터와 다른 인물과 겹치지 않게 고른다.
+ 
+@@ -70,8 +71,8 @@ def cast_voices(
+     used = {narrator_voice}
+ 
+     def pick(kind: str | None) -> str:
+-        own = VOICE_TYPES.get(kind or "", ())
+-        for voice in (*own, *(v for vs in VOICE_TYPES.values() for v in vs)):
++        own = tuple(voice_types.get(kind or "", ()))
++        for voice in (*own, *(v for vs in voice_types.values() for v in vs)):
+             if voice not in used:
+                 used.add(voice)
+                 return voice
+diff --git a/tests/conftest.py b/tests/conftest.py
+index b29af02..6a947ea 100644
+--- a/tests/conftest.py
++++ b/tests/conftest.py
+@@ -16,6 +16,10 @@ os.environ["RATE_LIMIT_ENABLED"] = "false"
+ os.environ["OPENAI_API_KEY"] = ""
+ os.environ["TTS_API_KEY"] = ""
+ os.environ["ELEVENLABS_API_KEY"] = ""
++# 녹음 목소리 서버(drawtale-tts)도 실제 GPU 를 부르지 않는다
++os.environ["GUARDIAN_VOICE_PROVIDER"] = "elevenlabs"
++os.environ["QWEN_TTS_URL"] = ""
++os.environ["QWEN_TTS_TOKEN"] = ""
+ 
+ import pytest  # noqa: E402
+ from fastapi.testclient import TestClient  # noqa: E402
+diff --git a/tests/test_qwen_narration.py b/tests/test_qwen_narration.py
+new file mode 100644
+index 0000000..0bf4cf3
+--- /dev/null
++++ b/tests/test_qwen_narration.py
+@@ -0,0 +1,256 @@
++"""녹음 목소리(보호자 · 아이)는 나레이션만, 캐릭터 대사는 ElevenLabs 그대로 (2026-11-09).
++
++GUARDIAN_VOICE_PROVIDER=qwen: 녹음 목소리는 자체 서버 drawtale-tts(Qwen3-TTS)가 읽는다.
++기본 나레이터와 캐릭터 대사는 지금처럼 ElevenLabs 가 읽고, 한 쪽 안에서 둘을 drawtale-tts 가 잇는다.
++drawtale-tts · ElevenLabs 모두 httpx.MockTransport 로 흉내 낸다.
++"""
++
++import base64
++import json
++import uuid
++from types import SimpleNamespace
++
++import httpx
++import pytest
++
++from app.core.config import get_settings
++from app.db.session import SessionLocal
++from app.models import GuardianVoice
++from app.services import jobs, tts
++from app.services.book import Book, Page
++from app.services.storage import get_storage
++from app.services.voices import NARRATOR, PROTAGONIST, VOICE_TYPES
++from tests.test_guardian_voice import _auth, _register, _story, _token, _upload
++
++QWEN = "tts.example"
++
++
++def _qv(n: int) -> str:
++    return "qv_" + format(n, "x") * 32
++
++
++@pytest.fixture
++def both(monkeypatch):
++    """drawtale-tts 와 ElevenLabs 를 함께 흉내 낸다."""
++
++    s = get_settings()
++    monkeypatch.setattr(s, "guardian_voice_provider", "qwen")
++    monkeypatch.setattr(s, "qwen_tts_url", f"https://{QWEN}/")
++    monkeypatch.setattr(s, "qwen_tts_token", "secret")
++    monkeypatch.setattr(s, "tts_provider", "elevenlabs")
++    monkeypatch.setattr(s, "elevenlabs_api_key", "k")
++    monkeypatch.setattr(s, "elevenlabs_voice_id", "default-voice")
++    state = {"calls": [], "made": iter([_qv(10), _qv(11)]), "reject": None}
++
++    def handler(request: httpx.Request) -> httpx.Response:
++        is_json = request.headers.get("content-type") == "application/json"
++        body = json.loads(request.content) if is_json else None
++        state["calls"].append((request.url.host, request.method, request.url.path, body, request))
++        if request.url.host == QWEN:
++            assert request.headers["authorization"] == "Bearer secret"
++            if request.url.path == "/internal/v1/voices":
++                if state["reject"]:
++                    err = {"error": {"code": state["reject"], "message": "x"}}
++                    return httpx.Response(400, json=err)
++                return httpx.Response(201, json={"voice_id": next(state["made"]), "mode": "text"})
++            if request.method == "DELETE":
++                return httpx.Response(204)
++            return httpx.Response(200, content=b"ID3qwen")
++        if request.url.path.startswith("/v1/voices"):
++            raise AssertionError("녹음 목소리를 ElevenLabs 로 보내면 안 된다")
++        return httpx.Response(200, content=b"ID3eleven:" + request.url.path.encode())
++
++    monkeypatch.setattr(tts, "_TRANSPORT", httpx.MockTransport(handler))
++    return state
++
++
++def _calls(state, host, path=None):
++    return [c for c in state["calls"] if c[0] == host and (path is None or c[2] == path)]
++
++
++def _book():
++    pages = [
++        Page(1, "place", "walk", [(NARRATOR, "숲에 갔어요.", "")]),
++        Page(
++            2,
++            "problem",
++            "idle",
++            [(NARRATOR, "길을 잃었어요.", ""), (PROTAGONIST, "어디지?", "놀람")],
++        ),
++        Page(3, "action", "wave", [(NARRATOR, "물어봤어요.", ""), ("부엉이", "이쪽이야.", "다정")]),
++    ]
++    return Book("숲", pages, [1, 2, 3], "하루", {"부엉이": "작은 동물"})
++
++
++def _story_obj(**kw):
++    base = dict(
++        id=uuid.uuid4(),
++        voice_mode="characters",
++        protagonist_voice="girl",
++        voice_cast=None,
++        narrator_voice_id=_qv(10),
++    )
++    return SimpleNamespace(**{**base, **kw})
++
++
++# ---- 어느 업체가 읽나 ----
++
++
++def test_recorded_voice_narrates_with_elevenlabs_characters(both):
++    speech = tts.get_tts(_qv(10))
++    assert isinstance(speech, tts.QwenSpeech) and speech.voice_id == _qv(10)
++    assert speech.voice_types == VOICE_TYPES  # 인물 목소리는 ElevenLabs 목록 그대로
++
++
++def test_default_narrator_stays_elevenlabs(both):
++    speech = tts.get_tts()
++    assert isinstance(speech, tts.ElevenLabsSpeech) and speech.voice_id == "default-voice"
++    speech = tts.get_tts("guardian-1")  # 예전 ElevenLabs 녹음 목소리도 그대로
++    assert isinstance(speech, tts.ElevenLabsSpeech) and speech.voice_id == "guardian-1"
++
++
++def test_without_qwen_settings_falls_back_to_default(both, monkeypatch):
++    monkeypatch.setattr(get_settings(), "qwen_tts_url", "")
++    speech = tts.get_tts(_qv(10))
++    assert isinstance(speech, tts.ElevenLabsSpeech) and speech.voice_id == "default-voice"
++
++
++def test_without_elevenlabs_one_voice_reads_all(both, monkeypatch):
++    monkeypatch.setattr(get_settings(), "elevenlabs_api_key", "")
++    speech = tts.get_tts(_qv(10))
++    assert isinstance(speech, tts.QwenSpeech) and speech.voice_types == {}
++
++
++# ---- 쪽 음성 ----
++
++
++def test_pages_mix_recorded_narration_and_elevenlabs_dialogue(both):
++    story = _story_obj()
++    paths = jobs.make_page_audio(story, get_storage(), _book())
++    assert all(paths)
++    # 1쪽(대사 없음)은 녹음 목소리로 한 번에
++    spoken = _calls(both, QWEN, "/internal/v1/tts")
++    assert [c[3]["voice_id"] for c in spoken] == [_qv(10)]
++    assert spoken[0][3]["speed"] == tts.TTS_SPEED
++    # 대사 쪽: 나레이션은 녹음 목소리, 대사는 ElevenLabs 가 만든 음성을 drawtale-tts 가 잇는다
++    dialogues = sorted(
++        (c[3] for c in _calls(both, QWEN, "/internal/v1/dialogue")),
++        key=lambda b: b["lines"][0]["text"],
++    )
++    assert len(dialogues) == 2
++    girl, owl = VOICE_TYPES["아이-여"][0], VOICE_TYPES["작은 동물"][0]
++    for body, narration, voice in (
++        (dialogues[0], "길을 잃었어요.", girl),
++        (dialogues[1], "물어봤어요.", owl),
++    ):
++        first, second = body["lines"]
++        assert first == {"voice_id": _qv(10), "text": narration}
++        assert base64.b64decode(second["audio"]) == f"ID3eleven:/v1/text-to-speech/{voice}".encode()
++        assert body["speed"] == 1.0  # ElevenLabs 대사 빠르기를 다시 바꾸지 않는다
++    # ElevenLabs 에는 대사만, 감정 태그를 붙여서
++    eleven = sorted(c[3]["text"] for c in _calls(both, "api.elevenlabs.io"))
++    assert eleven == ["[surprised] 어디지?", "[warmly] 이쪽이야."]
++    assert story.voice_cast[NARRATOR] == _qv(10)
++    assert story.voice_cast[PROTAGONIST] == girl and story.voice_cast["부엉이"] == owl
++
++
++def test_narration_mode_reads_whole_page_with_recorded_voice(both):
++    story = _story_obj(voice_mode="narration")
++    jobs.make_page_audio(story, get_storage(), _book())
++    assert len(_calls(both, QWEN, "/internal/v1/tts")) == 3
++    assert _calls(both, QWEN, "/internal/v1/dialogue") == []
++    assert _calls(both, "api.elevenlabs.io") == []
++
++
++def test_story_with_recorded_voice_and_default(client, both):
++    token = _token()
++    _register(client, token)
++    cid = _upload(client, token)
++    story = _story(client, token, cid, narrator="guardian")
++    assert story["status"] == "succeeded" and story["narrator"] == "guardian"
++    assert _calls(both, QWEN, "/internal/v1/tts")[-1][3]["voice_id"] == _qv(10)
++    plain = _story(client, token, cid)
++    assert plain["narrator"] == "default"
++    assert [c[2] for c in _calls(both, "api.elevenlabs.io")] == ["/v1/text-to-speech/default-voice"]
++
++
++# ---- 녹음 목소리 등록 · 지우기 ----
++
++
++def test_register_sends_recording_and_ref_text(client, both):
++    res = _register(client, _token(), ref_text="  오늘은 친구와 놀이터에 갔어요. ")
++    assert res.status_code == 201, res.text
++    req = _calls(both, QWEN, "/internal/v1/voices")[0][4]
++    body = req.read().decode("utf-8", "ignore")
++    assert "오늘은 친구와 놀이터에 갔어요." in body and 'name="audio"' in body
++    with SessionLocal() as db:
++        assert db.query(GuardianVoice).one().elevenlabs_voice_id == _qv(10)
++
++
++def test_register_without_ref_text(client, both):
++    assert _register(client, _token()).status_code == 201
++    req = _calls(both, QWEN, "/internal/v1/voices")[0][4]
++    assert 'name="ref_text"' not in req.read().decode("utf-8", "ignore")
++
++
++@pytest.mark.parametrize("code", ["REF_TOO_SHORT", "REF_TOO_LONG", "INVALID_AUDIO"])
++def test_bad_recording_tells_what_to_fix(client, both, code):
++    both["reject"] = code
++    res = _register(client, _token())
++    assert res.status_code == 400 and res.json()["error"]["code"] == code
++    with SessionLocal() as db:
++        assert db.query(GuardianVoice).count() == 0
++
++
++def test_ready_needs_url_and_token(monkeypatch):
++    s = get_settings()
++    monkeypatch.setattr(s, "guardian_voice_provider", "qwen")
++    monkeypatch.setattr(s, "qwen_tts_url", "")
++    assert tts.voice_cloning_ready() is False
++    monkeypatch.setattr(s, "qwen_tts_url", "https://tts.example")
++    monkeypatch.setattr(s, "qwen_tts_token", "secret")
++    assert tts.voice_cloning_ready() is True
++
++
++def test_delete_and_re_record(client, both):
++    token = _token()
++    _register(client, token)
++    _register(client, token)  # 다시 녹음하면 예전 목소리를 지운다
++    deletes = [c[2] for c in _calls(both, QWEN) if c[1] == "DELETE"]
++    assert deletes == [f"/internal/v1/voices/{_qv(10)}"]
++    assert client.delete("/api/v1/me/voice", headers=_auth(token)).status_code == 204
++    assert [c[2] for c in _calls(both, QWEN) if c[1] == "DELETE"][
++        -1
++    ] == f"/internal/v1/voices/{_qv(11)}"
++
++
++def test_old_elevenlabs_voice_is_deleted_at_elevenlabs(monkeypatch):
++    s = get_settings()
++    monkeypatch.setattr(s, "guardian_voice_provider", "qwen")
++    monkeypatch.setattr(s, "elevenlabs_api_key", "k")
++    seen = []
++
++    def handler(r):
++        seen.append((r.url.host, r.url.path))
++        return httpx.Response(200, json={})
++
++    monkeypatch.setattr(tts, "_TRANSPORT", httpx.MockTransport(handler))
++    tts.delete_voice("guardian-1")
++    assert seen == [("api.elevenlabs.io", "/v1/voices/guardian-1")]
++
++
++def test_follows_modal_redirect(both, monkeypatch):
++    """Modal 은 오래 걸리면 303 으로 다시 오라고 한다. 따라가서 결과를 받는다."""
++
++    hops = []
++
++    def handler(request):
++        hops.append(str(request.url))
++        if "__modal_attempt_token" not in str(request.url):
++            location = f"https://{QWEN}/internal/v1/tts?__modal_attempt_token=x"
++            return httpx.Response(303, headers={"location": location})
++        return httpx.Response(200, content=b"ID3late")
++
++    monkeypatch.setattr(tts, "_TRANSPORT", httpx.MockTransport(handler))
++    assert tts.get_tts(_qv(10)).speak("안녕") == b"ID3late"
++    assert len(hops) == 2
+-- 
+2.43.0
+
