@@ -608,10 +608,16 @@ def _apply_gait(drawing, gait: dict) -> None:  # noqa: ANN001
         knee, foot = root.get_transform_by_name(kn), root.get_transform_by_name(fn)
         if knee is None or foot is None:
             continue
-        ph = t + off
+        # 한 걸음 = 딛기(duty, 발이 땅에 닿은 채 다리가 머리 쪽 → 꼬리 쪽으로 고르게 밀린다) + 내딛기(나머지, 발을 들고
+        # 빠르게 머리 쪽으로). 시계추처럼 앞뒤로 같은 빠르기로 흔들면 발이 땅을 딛는 때가 없어 다리가 팔랑거렸다 (11/9 호랑이)
+        u = ((t + off) / (2 * np.pi)) % 1.0
+        duty = float(gait.get("duty", 0.65))
+        stance = u < duty
+        s_st = u / duty
+        s_sw = (u - duty) / (1 - duty)
         # 각은 반시계가 + — 머리가 오른쪽이면 + 가 머리 쪽으로 내딛기
-        thigh = head * swing * np.sin(ph)
-        lift = bend * np.clip(np.cos(ph), 0, None)          # 앞으로 내딛는 반 주기에만 발을 든다
+        thigh = head * swing * np.where(stance, 1 - 2 * s_st, -1 + 2 * (0.5 - 0.5 * np.cos(np.pi * s_sw)))
+        lift = bend * np.where(stance, 0.0, np.sin(np.pi * np.clip(s_sw, 0, 1)))   # 내딛는 동안만 발을 든다
         rt.char_joint_to_orientation[kn] = ((knee.starting_theta + thigh) % 360.0).astype(np.float32)
         rt.char_joint_to_orientation[fn] = ((foot.starting_theta + thigh - head * lift) % 360.0).astype(np.float32)
     rt.char_root_positions[:] = rt.char_root_positions[0]
@@ -677,6 +683,9 @@ class _tail_wag:
                 _apply_rest(drawing, wave)
             if wave and wave.get("gait") and neck is not None and hip is not None:
                 _apply_gait(drawing, wave["gait"])
+            # 몸 가운데를 렌더 칸 가운데로 — 대응표 시작 자리(x −0.3) 때문에 몸이 칸 왼쪽 1/4 에 놓여 옆으로 긴 그림(호랑이)은
+            # 머리가 칸 왼쪽 끝에 닿았다 (11/9). 장면은 sprite_box 로 자리를 잡아 화면 위치는 그대로다
+            _center_body(drawing)
             if neck is not None and hip is not None:
                 pos = lambda n: np.asarray(root.get_transform_by_name(n).get_world_position()[:2])  # noqa: E731
                 tol = 0.03 * float(np.linalg.norm(pos("neck") - pos("hip")))

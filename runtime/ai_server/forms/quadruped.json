@@ -163,18 +163,20 @@
     },
     "walk": {
       "gait": {
-        "swing": 22,
-        "bend": 35,
+        "swing": 20,
+        "bend": 40,
         "cycles": 2,
-        "bob": 0.02
+        "bob": 0.02,
+        "duty": 0.65
       }
     },
     "run": {
       "gait": {
-        "swing": 34,
-        "bend": 50,
+        "swing": 30,
+        "bend": 55,
         "cycles": 3,
-        "bob": 0.05
+        "bob": 0.05,
+        "duty": 0.5
       }
     },
     "breathe": {
