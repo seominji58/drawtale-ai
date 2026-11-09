@@ -160,6 +160,23 @@
       ],
       "cycles": 4,
       "keep_root": true
+    },
+    "walk": {
+      "gait": {
+        "swing": 22,
+        "bend": 35,
+        "cycles": 2,
+        "bob": 0.02
+      }
+    },
+    "run": {
+      "gait": {
+        "swing": 34,
+        "bend": 50,
+        "cycles": 3,
+        "bob": 0.05
+      }
     }
-  }
+  },
+  "_waves_why": "걷기 · 뛰기는 다리를 옆모습 걸음으로 직접 넣는다 (renderer._apply_gait, 11/9 형태 버그 3) — 사람 걷기를 붙이면 다리가 X 자로 꼬여 정면 걸음처럼 보였다"
 }

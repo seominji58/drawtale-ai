@@ -525,6 +525,42 @@ def _apply_wave(drawing, wave: dict) -> None:  # noqa: ANN001
         rt.char_root_positions[:, 1] += (bob * length * np.sin(2 * np.pi * np.arange(m) / m)).astype(np.float32)
 
 
+def _apply_gait(drawing, gait: dict) -> None:  # noqa: ANN001
+    """4족 걷기 · 뛰기 — 다리 방향을 옆모습 걸음으로 직접 넣는다 (11/9 형태 버그 3 「4족 걷기가 정면처럼 보임」).
+
+    사람 걷기 동작(CMU)을 네 다리에 나눠 붙이면 같은 쪽 앞 · 뒷다리가 똑같이 움직이고, 사람 다리가 몸 앞뒤로 엇갈리는 모양이
+    그대로 들어와 다리가 X 자로 모였다 벌어졌다 — 옆으로 걸어가는 것이 아니라 제자리에서 다리를 꼬는 정면 걸음처럼 보였다.
+    다리마다 넓적다리(엉덩이 → 무릎)를 머리 쪽 · 꼬리 쪽으로 흔들고, 앞으로 내딛는 동안 아랫다리를 굽혀 발을 든다.
+    대각선 두 다리(앞 1 · 뒷 2, 앞 2 · 뒷 1)가 같이 움직인다 (네 발 동물 걸음). 몸통 · 목은 그림 방향 그대로, 몸은 제자리에서
+    걸음마다 살짝 오르내린다 (옮겨 가기는 장면이 한다). gait 칸: swing · bend (도), cycles (한 동작에 걸음 주기), bob (몸 키 대비)
+    장 수의 정수배 주기라 반복해도 끊기지 않는다"""
+    root, rt = drawing.rig.root_joint, drawing.retargeter
+    n = rt.joint_positions.shape[0]
+    head = 1.0 if root.get_transform_by_name("neck").get_world_position()[0] >=         root.get_transform_by_name("hip").get_world_position()[0] else -1.0
+    t = 2 * np.pi * float(gait.get("cycles", 2)) * np.arange(n) / n
+    swing, bend = float(gait.get("swing", 22)), float(gait.get("bend", 30))
+    for name in ("hip", "torso", "neck"):
+        j = root.get_transform_by_name(name)
+        if j is not None and name in rt.char_joint_to_orientation:
+            rt.char_joint_to_orientation[name] = np.full(n, j.starting_theta % 360.0, np.float32)
+    for leg, off in (("right_{}_f", 0.0), ("left_{}_b", 0.0), ("left_{}_f", np.pi), ("right_{}_b", np.pi)):
+        kn, fn = leg.format("knee"), leg.format("foot")
+        knee, foot = root.get_transform_by_name(kn), root.get_transform_by_name(fn)
+        if knee is None or foot is None:
+            continue
+        ph = t + off
+        # 각은 반시계가 + — 머리가 오른쪽이면 + 가 머리 쪽으로 내딛기
+        thigh = head * swing * np.sin(ph)
+        lift = bend * np.clip(np.cos(ph), 0, None)          # 앞으로 내딛는 반 주기에만 발을 든다
+        rt.char_joint_to_orientation[kn] = ((knee.starting_theta + thigh) % 360.0).astype(np.float32)
+        rt.char_joint_to_orientation[fn] = ((foot.starting_theta + thigh - head * lift) % 360.0).astype(np.float32)
+    rt.char_root_positions[:] = rt.char_root_positions[0]
+    pts = np.asarray(drawing.rig.get_joints_2D_positions(), float)
+    tall = float(np.ptp(pts[:, 1])) if len(pts) else 0.0
+    rt.char_root_positions[:, 1] += (float(gait.get("bob", 0.02)) * tall
+                                     * np.abs(np.sin(t))).astype(np.float32)
+
+
 class _tail_wag:
     """옆모습 형태(4족형)의 동작 손질 — 머리 쪽으로 걷게 뒤집기 · 꼬리 흔들기.
 
@@ -566,6 +602,8 @@ class _tail_wag:
                     rt.char_joint_to_orientation[k] = ((360.0 - v) % 360.0).astype(np.float32)
                 x = rt.char_root_positions[:, 0]
                 rt.char_root_positions[:, 0] = 2 * x[0] - x
+            if wave and wave.get("gait") and neck is not None and hip is not None:
+                _apply_gait(drawing, wave["gait"])
             if neck is not None and hip is not None:
                 pos = lambda n: np.asarray(root.get_transform_by_name(n).get_world_position()[:2])  # noqa: E731
                 tol = 0.03 * float(np.linalg.norm(pos("neck") - pos("hip")))
@@ -577,7 +615,7 @@ class _tail_wag:
                             if src is not None:
                                 rt.char_joint_to_orientation[f"left_{k}_{side}"] = src.copy()
             # 직접 넣는 각도(냄새 맡기 …)는 뒤집기 뒤에 — 그림 자신의 방향 기준이라 뒤집으면 반대로 숙였다
-            if wave:
+            if wave and wave.get("bones"):
                 _apply_wave(drawing, wave)
             n = rt.joint_positions.shape[0]
             wag = TAIL_WAG_DEG * np.sin(4 * np.pi * np.arange(n) / n)
