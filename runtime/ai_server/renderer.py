@@ -497,12 +497,16 @@ def _apply_wave(drawing, wave: dict) -> None:  # noqa: ANN001
         # 땅 쪽으로 도는 쪽 — 오른쪽을 보는 뼈는 − 가 아래, 왼쪽을 보는 뼈는 + 가 아래 (11/5 뱀 목 마디 ±40° 렌더로 확인).
         # 냄새 맡기에서 얼굴이 돌아간 것은 부호가 아니라 각(70°)이 커서였다
         down = -1.0 if dx >= 0 else 1.0
+        # curl_mid: 가운데 마디를 두고 양끝이 위로 말려 올라간다(∪) — 머리를 축으로 말면 몸 전체가 일어서듯 돌았다 (11/9)
+        bend = (-down * curl * (i - (len(bones) - 1) / 2)) if wave.get("curl_mid") else curl * (i + 1)
         angle = (joint.starting_theta + down * float(lowers[i]) + float(amps[i]) * np.sin(t - float(wave.get("lag", 0.7)) * i)
-                 + curl * (i + 1) + turn)
+                 + bend + turn)
         rt.char_joint_to_orientation[name] = (angle % 360.0).astype(np.float32)
     if not wave.get("keep_root"):
         # 몸 위치는 사람 동작 데이터(박자용)의 오르내림 · 흔들림을 따르지 않는다 — 제자리에 둔다
         rt.char_root_positions[:] = rt.char_root_positions[0]
+    if wave.get("keep_ground"):
+        _keep_ground(drawing, bones)
     ends = [root.get_transform_by_name(m) for m in (bones[0], bones[-1])]
     if any(e is None for e in ends):
         return
@@ -528,6 +532,34 @@ def _apply_wave(drawing, wave: dict) -> None:  # noqa: ANN001
         rt.char_root_positions[:, 1] += (bob * length * np.sin(2 * np.pi * np.arange(m) / m)).astype(np.float32)
 
 
+def _keep_ground(drawing, bones: list[str]) -> None:  # noqa: ANN001
+    """몸이 땅(그린 자세의 가장 낮은 곳) 밑으로 내려가지 않게 장마다 몸을 올린다 (11/9 「뱀이 몸을 말 때 땅 밑으로
+    내려갔다가 돌며 말림」). 말기는 머리(뿌리)를 축으로 꼬리 쪽 마디를 돌려서 꼬리가 땅 밑으로 휘었다.
+    마디 방향(그린 방향 + 바뀐 각)으로 장마다 마디 끝 자리를 이어 계산해, 가장 낮은 점이 처음보다 내려간 만큼 올린다"""
+    root, rt = drawing.rig.root_joint, drawing.retargeter
+    n = rt.char_root_positions.shape[0]
+    joints = [root.get_transform_by_name(b) for b in bones]
+    if any(j is None or j.get_parent() is None for j in joints):
+        return
+    start = np.asarray(joints[0].get_parent().get_world_position()[:2], float)
+    rest = [np.asarray(j.get_world_position()[:2], float) - np.asarray(j.get_parent().get_world_position()[:2], float)
+            for j in joints]
+    low0 = min([start[1]] + [float(np.asarray(j.get_world_position()[:2], float)[1]) for j in joints])
+    xs0 = [start[0]] + [float(np.asarray(j.get_world_position()[:2], float)[0]) for j in joints]
+    mid0 = (min(xs0) + max(xs0)) / 2
+    lift = np.zeros((n, 2), np.float32)
+    for f in range(n):
+        p, pts = start.copy(), [start.copy()]
+        for j, v, b in zip(joints, rest, bones):
+            a = np.radians(float(rt.char_joint_to_orientation[b][f]) - j.starting_theta)
+            p = p + np.array([v[0] * np.cos(a) - v[1] * np.sin(a), v[0] * np.sin(a) + v[1] * np.cos(a)])
+            pts.append(p)
+        q = np.array(pts)
+        # 가로는 몸 가운데를 제자리에 (말면서 옆으로 미끄러지지 않게)
+        lift[f] = (mid0 - (q[:, 0].min() + q[:, 0].max()) / 2, max(0.0, low0 - q[:, 1].min()))
+    rt.char_root_positions[:, :2] += lift
+
+
 def _apply_rest(drawing, wave: dict) -> None:  # noqa: ANN001
     """가만히(숨쉬기) — 그린 자세 그대로 제자리에서 위아래로만 살짝 (11/9 형태 버그 4 「가만히에서 몸이 좌우로 흔들림」).
 
@@ -546,6 +578,11 @@ def _apply_rest(drawing, wave: dict) -> None:  # noqa: ANN001
     tall = float(np.ptp(pts[:, 1])) if len(pts) else 0.0
     breath = 0.5 - 0.5 * np.cos(2 * np.pi * float(wave.get("rest_cycles", 1)) * np.arange(n) / n)
     rt.char_root_positions[:, 1] += (float(wave.get("rest_bob", 0.012)) * tall * breath).astype(np.float32)
+    hops = int(wave.get("rest_hops", 0))
+    if hops:
+        # 깡충 (4족 기쁨 · 점프, 11/9) — 한 동작에 hops 번, 땅에서 뛰어올랐다 내려온다. 사람 점프 동작은 몸통이 돌아 얼굴이 뒤틀렸다
+        up = np.clip(np.sin(2 * np.pi * hops * np.arange(n) / n), 0, None) ** 1.5
+        rt.char_root_positions[:, 1] += (float(wave.get("rest_hop", 0.25)) * tall * up).astype(np.float32)
 
 
 def _apply_gait(drawing, gait: dict) -> None:  # noqa: ANN001

@@ -113,9 +113,9 @@
   "motions": {
     "walk": "quadruped/walk.yaml",
     "run": "quadruped/run.yaml",
-    "jumping_gentle": "quadruped/jumping_gentle.yaml",
+    "jumping_gentle": "quadruped/breathe.yaml",
     "breathe": "quadruped/breathe.yaml",
-    "shiver": "quadruped/shiver.yaml",
+    "shiver": "quadruped/breathe.yaml",
     "search": "quadruped/breathe.yaml"
   },
   "fallback": {
@@ -181,8 +181,25 @@
       "rest": true,
       "rest_bob": 0.012,
       "rest_cycles": 1
+    },
+    "shiver": {
+      "rest": true,
+      "rest_bob": 0,
+      "gait": {
+        "swing": 3,
+        "bend": 4,
+        "cycles": 16,
+        "bob": 0.006
+      }
+    },
+    "jumping_gentle": {
+      "rest": true,
+      "rest_bob": 0,
+      "rest_hops": 2,
+      "rest_hop": 0.22
     }
   },
   "_waves_why": "걷기 · 뛰기는 다리를 옆모습 걸음으로 직접 넣는다 (renderer._apply_gait, 11/9 형태 버그 3) — 사람 걷기를 붙이면 다리가 X 자로 꼬여 정면 걸음처럼 보였다",
-  "_rest_why": "가만히(숨쉬기)는 그린 자세 그대로 제자리에서 위아래로만 (renderer._apply_rest, 11/9 형태 버그 4) — 사람 숨쉬기 동작 · 숨쉬기 물결은 몸이 좌우로 흔들렸다"
+  "_rest_why": "가만히(숨쉬기)는 그린 자세 그대로 제자리에서 위아래로만 (renderer._apply_rest, 11/9 형태 버그 4) — 사람 숨쉬기 동작 · 숨쉬기 물결은 몸이 좌우로 흔들렸다",
+  "_motions_why": "떨기 · 점프는 사람 동작(CMU)을 붙이지 않고 직접 — 몸통이 돌아 얼굴이 뒤틀리고 몸이 돈 것처럼 보였다 (11/9 사용자 7번). 동작 파일은 장 수 · 길이만 쓴다"
 }

@@ -168,7 +168,7 @@
         "b6",
         "tail"
       ],
-      "curl": 47,
+      "curl": 26,
       "amp": [
         0,
         0,
@@ -179,7 +179,9 @@
         0
       ],
       "cycles": 1,
-      "lag": 0.0
+      "lag": 0.0,
+      "keep_ground": true,
+      "curl_mid": true
     }
   },
   "hero": {
