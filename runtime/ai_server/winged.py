@@ -26,6 +26,56 @@ MIN_CELL = 0.03
 MAX_EYE = 0.01
 
 
+def _shape_guess(img: np.ndarray, mask: np.ndarray) -> dict[str, tuple[float, float]] | None:
+    """선으로 칸을 못 나눈 그림의 관절 어림 — 몸통: 가장 두꺼운 곳, 머리: 눈(몸 안의 작은 어두운 점) 쪽,
+    날개 끝: 몸통 위로 머리에서 먼 쪽 가장 멀리 솟은 곳, 날개 뿌리: 몸통에서 날개 끝 쪽 몸 반지름만큼. 날개는 하나(두 번째는 겹침)."""
+    m = mask.astype(np.uint8)
+    if m.sum() < 50:
+        return None
+    flood = m.copy()
+    cv2.floodFill(flood, np.zeros((m.shape[0] + 2, m.shape[1] + 2), np.uint8), (0, 0), 1)
+    filled = m | (1 - flood)
+    dt = cv2.distanceTransform(filled, cv2.DIST_L2, 5)
+    by, bx = np.unravel_index(int(np.argmax(dt)), dt.shape)
+    R = float(dt[by, bx])
+    body = (float(bx), float(by))
+    light = cv2.cvtColor(img, cv2.COLOR_BGR2LAB)[..., 0]
+    ink = ((light < 90) & (dt > 0.15 * R)).astype(np.uint8)          # 몸 안쪽의 어두운 점 (테두리 선은 빼고)
+    n, lab, st, cen = cv2.connectedComponentsWithStats(ink, 8)
+    # 눈: 몸 안쪽의 작고 동그란 어두운 점 — 테두리에 붙은 선 조각 · 날개 깃 선(길쭉함)은 눈이 아니다. 가장 작은 것
+    side = np.sqrt(filled.sum())
+    eyes = sorted(((st[i, cv2.CC_STAT_AREA], cen[i]) for i in range(1, n)
+                   if st[i, cv2.CC_STAT_AREA] < 0.02 * filled.sum()
+                   and dt[int(cen[i][1]), int(cen[i][0])] > 0.2 * R
+                   and max(st[i, cv2.CC_STAT_WIDTH], st[i, cv2.CC_STAT_HEIGHT]) < 0.08 * side
+                   and max(st[i, cv2.CC_STAT_WIDTH], st[i, cv2.CC_STAT_HEIGHT])
+                   < 2.5 * max(1, min(st[i, cv2.CC_STAT_WIDTH], st[i, cv2.CC_STAT_HEIGHT]))), key=lambda e: e[0])
+    eyes = [e[1] for e in eyes]
+    head = (float(eyes[0][0]), float(eyes[0][1])) if eyes else body
+    ys, xs = np.nonzero(filled)
+    up = ys < by - 0.3 * R
+    far_head = np.hypot(xs - head[0], ys - head[1]) > 1.2 * R if eyes else np.ones_like(up)
+    cand = up & far_head
+    if not cand.any():
+        return {n_: (body if n_ != "head" else head) for n_ in NAMES}
+    d = np.hypot(xs[cand] - bx, ys[cand] - by)
+    k = int(np.argmax(d))
+    tip = (float(xs[cand][k]), float(ys[cand][k]))
+    # 날개 뿌리: 몸통에서 날개 끝으로 가다 몸이 가늘어지는 곳(두께가 몸 반지름의 반 아래) — 몸 안쪽에 두면
+    # 날개를 흔들 때 몸 앞쪽까지 같이 기울었다
+    root = body
+    for f in np.linspace(0, 1, 60):
+        x, y = bx + (tip[0] - bx) * f, by + (tip[1] - by) * f
+        if dt[int(round(y)), int(round(x))] < 0.5 * R:
+            root = (float(x), float(y))
+            break
+    mid = ((root[0] + tip[0]) / 2, (root[1] + tip[1]) / 2)
+    J = {"body": body, "head": head}
+    for w in ("wing1", "wing2"):
+        J[f"{w}_root"], J[f"{w}_mid"], J[f"{w}_tip"] = root, mid, tip
+    return J
+
+
 def find_joints(img: np.ndarray, mask: np.ndarray, facing: str | None = None) -> tuple[dict[str, tuple[float, float]], bool]:
     """관절 (몸통 · 머리 · 날개 둘), 찾았나(머리 · 몸통을 나눴나). 몸 안 날개는 정상 그림이라 찾은 것으로 — 날개 점만 몸통에 겹친다."""
     ys0, xs0 = np.nonzero(mask)
@@ -49,7 +99,9 @@ def find_joints(img: np.ndarray, mask: np.ndarray, facing: str | None = None) ->
         return float(xx.mean()) + box[0], float(yy.mean()) + box[1]
 
     body_c = centre(inside)
-    fallback = {n_: body_c for n_ in NAMES}
+    # 칸이 안 나뉘면(선 없이 색으로 한 덩어리로 칠한 새 — 11/9 사용자) 모든 점을 몸통에 겹치지 않고 모양으로 어림한다.
+    # 겹쳐 두면 미리보기가 움직이지 않고, 관절 맞추기에서도 점이 한 곳에 쌓여 옮기기 어려웠다
+    fallback = _shape_guess(img, mask) or {n_: body_c for n_ in NAMES}
     if len(cells) < 2:
         return fallback, False
 
