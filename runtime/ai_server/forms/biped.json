@@ -125,20 +125,6 @@
         "left_knee",
         "left_foot"
       ]
-    },
-    "walk_still_arms_r": {
-      "hold": [
-        "right_elbow",
-        "right_hand",
-        "left_elbow",
-        "left_hand"
-      ],
-      "mirror": [
-        "right_knee",
-        "right_foot",
-        "left_knee",
-        "left_foot"
-      ]
     }
   },
   "_rest_why": "가만히(숨쉬기)는 그린 자세 그대로 제자리에서 위아래로만 (renderer._apply_rest, 11/9 형태 버그 4) — 사람 숨쉬기 동작 · 숨쉬기 물결은 몸이 좌우로 흔들렸다",
