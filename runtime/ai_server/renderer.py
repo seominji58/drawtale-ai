@@ -74,9 +74,6 @@ MOTIONS: dict[str, tuple[Path, Path]] = {
     # 왼쪽으로 옮겨 가면 화면이 뒤집는다
     "walk": (_GENTLE_MOTIONS / "walk_steps.yaml", _GENTLE_MOTIONS / "cmu1_side.yaml"),
     "run": (_GENTLE_MOTIONS / "run_steps.yaml", _GENTLE_MOTIONS / "cmu1_side.yaml"),
-    # 왼쪽으로 옮겨 가는 쪽 (다리를 뒤집지 않은 옆면 걸음) — 화면이 그림을 좌우로 뒤집으면 아이 그림이 바뀌어 안 된다 (11/9)
-    "walk_left": (_GENTLE_MOTIONS / "walk_steps.yaml", _GENTLE_MOTIONS / "cmu1_side.yaml"),
-    "run_left": (_GENTLE_MOTIONS / "run_steps.yaml", _GENTLE_MOTIONS / "cmu1_side.yaml"),
     "walk_front": (_GENTLE_MOTIONS / "walk_steps.yaml", _GENTLE_MOTIONS / "cmu1_front.yaml"),
     "run_front": (_GENTLE_MOTIONS / "run_steps.yaml", _GENTLE_MOTIONS / "cmu1_front.yaml"),
     "jumping_gentle_orig": (_GENTLE_MOTIONS / "jumping_gentle.yaml", _META_RETARGET / "fair1_ppf.yaml"),
