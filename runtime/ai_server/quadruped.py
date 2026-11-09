@@ -476,21 +476,38 @@ CUT_EDGE = 0.2
 CUT_GROW = 0.45
 
 
-def _grow_cut(mask: np.ndarray, box: dict, shape: tuple[int, int]) -> dict | None:
-    """마스크가 상자 변을 CUT_EDGE 넘게 덮은 쪽으로 상자를 넓힌 새 상자. 넓힐 쪽이 없으면 None."""
+def _grow_cut(mask: np.ndarray, box: dict, shape: tuple[int, int], first: dict | None = None) -> dict | None:
+    """마스크가 상자 변을 CUT_EDGE 넘게 덮은 쪽으로 상자를 넓힌 새 상자. 넓힐 쪽이 없으면 None.
+    first(처음 상자)를 주면 넓혀진 띠에서도 따로 본다 — 왼쪽으로 넓힌 곳에서 악어 꼬리가 위로 이어지면 위로도 (11/9).
+    상자 전체 변으로 보면 그 꼬리는 위 변의 일부라 문턱을 못 넘었다"""
     H, W = shape
     l, t, r, b = box["left"], box["top"], box["right"], box["bottom"]
     m = mask > 0
-    bw, bh = max(1, r - l), max(1, b - t)
     k = 2
+
+    def cover(ys: slice, xs: slice, axis: int) -> float:
+        part = m[ys, xs]
+        return float(part.any(axis=axis).mean()) if part.size else 0.0
+    spans_x = [(l, r)]
+    spans_y = [(t, b)]
+    if first is not None:
+        if l < first["left"]:
+            spans_x.append((l, first["left"]))
+        if r > first["right"]:
+            spans_x.append((first["right"], r))
+        if t < first["top"]:
+            spans_y.append((t, first["top"]))
+        if b > first["bottom"]:
+            spans_y.append((first["bottom"], b))
     sides = {
-        "left": m[t:b, l:l + k].any(axis=1).mean() if l > 0 else 0,
-        "right": m[t:b, max(l, r - k):r].any(axis=1).mean() if r < W else 0,
-        "top": m[t:t + k, l:r].any(axis=0).mean() if t > 0 else 0,
-        "bottom": m[max(t, b - k):b, l:r].any(axis=0).mean() if b < H else 0,
+        "left": max(cover(slice(a, z), slice(l, l + k), 1) for a, z in spans_y) if l > 0 else 0,
+        "right": max(cover(slice(a, z), slice(max(l, r - k), r), 1) for a, z in spans_y) if r < W else 0,
+        "top": max(cover(slice(t, t + k), slice(a, z), 0) for a, z in spans_x) if t > 0 else 0,
+        "bottom": max(cover(slice(max(t, b - k), b), slice(a, z), 0) for a, z in spans_x) if b < H else 0,
     }
     if max(sides.values()) <= CUT_EDGE:
         return None
+    bw, bh = max(1, r - l), max(1, b - t)
     nl = max(0, l - round(CUT_GROW * bw)) if sides["left"] > CUT_EDGE else l
     nr = min(W, r + round(CUT_GROW * bw)) if sides["right"] > CUT_EDGE else r
     nt = max(0, t - round(CUT_GROW * bh)) if sides["top"] > CUT_EDGE else t
@@ -515,8 +532,9 @@ def cut_out(image_path: str, grow: bool = False, reach: bool = REACH) -> dict:
     # 그림이 탐지 상자 테두리를 굵게 가로질러 이어지면(상자가 몸통만 잡음) 그쪽으로 넓혀 다시 — 악어 꼬리 · 뒷다리가
     # 상자 밖이라 통째로 잘렸다 (11/9 사용자). 꼭 맞는 상자는 끝(머리 꼭대기 · 발끝)만 살짝 닿아 이 비율을 넘지 않는다.
     # 색칠된 곳(_colored)만 센다 — 흰 다리 · 종이 끝이 걸친 기린은 종이 가장자리까지 넓어져 마스크에 종이가 들어왔다
+    first = dict(box)
     for _ in range(3):
-        wider = _grow_cut(small & _colored(img), box, img.shape[:2])
+        wider = _grow_cut(small & _colored(img), box, img.shape[:2], first)
         if wider is None:
             break
         box = {**wider, "score": box["score"]}
