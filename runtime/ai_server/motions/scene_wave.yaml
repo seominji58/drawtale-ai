@@ -1,0 +1,12 @@
+# 관절 각도로 만든 장면 등장인물 동작 (runtime/tools/make_scene_motions.py, 2026-11-09). scene_front.yaml 과 함께 쓴다
+filepath: scene_wave.bvh
+start_frame_idx: 0
+end_frame_idx: 39
+groundplane_joint: LeftFoot
+forward_perp_joint_vectors:
+- - LeftShoulder
+  - RightShoulder
+- - LeftUpLeg
+  - RightUpLeg
+scale: 0.025
+up: +y

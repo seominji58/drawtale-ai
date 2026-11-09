@@ -82,6 +82,10 @@ MOTIONS: dict[str, tuple[Path, Path]] = {
     # 장면 등장인물(친구 · 엄마 · 직업인 …, 팔을 몸에 붙여 그린 일러스트)이 걸어 들어올 때 — 걷기와 같은 동작에 팔만 그린
     # 자세 그대로 (forms/biped.json waves.walk_still_arms). 팔까지 움직이면 몸에 붙은 팔이 날개처럼 찢어졌다 (11/9)
     "walk_still_arms": (_GENTLE_MOTIONS / "walk_steps.yaml", _GENTLE_MOTIONS / "cmu1_front.yaml"),
+    # 장면 등장인물 그림띠용 (프론트 tools/people-moves, 11/9): 한 팔만 들어 흔드는 인사(흔들기 구간을 프론트가 되풀이) · 일자걸음.
+    # 관절 각도로 만든다 (runtime/tools/make_scene_motions.py). 첫 장이 팔을 조금 벌리고 선 그린 자세
+    "scene_wave": (_GENTLE_MOTIONS / "scene_wave.yaml", _GENTLE_MOTIONS / "scene_front.yaml"),
+    "scene_walk": (_GENTLE_MOTIONS / "scene_walk.yaml", _GENTLE_MOTIONS / "scene_front.yaml"),
     # 이야기 쪽 동작 9개 (2026-11-04, pt_docs 17 — 쪽 45%가 가만히였다). CMU 후보 32개 중 평면 그림에서 몸이
     # 뒤집히거나 팔이 뭉개지지 않고 서로 달라 보이는 것만 골랐고, 만세 · 떨기는 관절 각도로 만들었다.
     # 이름은 백엔드 쪽 동작 이름과 같다. 만드는 법은 runtime/tools/install_more_motions.py

@@ -82,6 +82,7 @@ def analyze(
     file: UploadFile = File(...),
     form: str = Form("biped", description="형태 (GET /internal/v1/forms). 없으면 사람(2족형)"),
     facing: str = Form("", description="옆모습 형태의 머리 쪽 left · right. 없으면 추측 (「얼굴이 반대쪽이에요」)"),
+    mask_from: str = Form("", description="alpha: 오린 그림(투명 바탕)이면 투명도를 몸 모양으로 (장면 등장인물, 2026-11-09). 비우면 아이 그림 방식"),
 ):
     """그림을 분석해 bbox, 관절 15개를 반환한다.
 
@@ -110,8 +111,19 @@ def analyze(
         with open(temp_path, "wb") as f:
             f.write(file.file.read())
 
+        # 장면 등장인물: 분석이 흰 바탕으로 바꾸기 전에 투명도를 읽어 둔다 (ai_server/alpha_mask.py)
+        alpha = None
+        if mask_from == "alpha":
+            from ai_server import alpha_mask
+            alpha = alpha_mask.read_alpha(temp_path)
+
         result = analyze_image(temp_path, mask_path=str(session_dir / "mask.png"), form=form,
                                facing=facing if facing in ("left", "right") else None)
+
+        # 아이 그림 방식 마스크(흰 옷이 종이로 지워짐) 대신 투명도
+        if result.get("success") and alpha is not None:
+            from ai_server import alpha_mask
+            alpha_mask.write_mask(alpha, session_dir / "mask.png")
 
         if not result.get("success"):
             shutil.rmtree(session_dir, ignore_errors=True)
