@@ -464,6 +464,40 @@ def drop_background(img: np.ndarray, mask: np.ndarray) -> np.ndarray:
     return out if (out > 0).sum() > 0.2 * (mask > 0).sum() else mask
 
 
+def _colored(img: np.ndarray) -> np.ndarray:
+    """색칠한 곳 (채도가 높거나 아주 어두운 곳, 0/255) — 흰 종이 · 회색 그늘 · 흰 칸은 빠진다."""
+    hsv = cv2.cvtColor(img, cv2.COLOR_BGR2HSV)
+    return (((hsv[..., 1] > 70) & (hsv[..., 2] > 40)) | (hsv[..., 2] < 60)).astype(np.uint8) * 255
+
+
+# 상자 한 변에서 그림이 이만큼(그 변 길이 대비) 넘게 걸쳐 있으면 상자 밖으로 이어진 것
+CUT_EDGE = 0.2
+# 그때 그쪽으로 넓히는 양 (상자 크기 대비)
+CUT_GROW = 0.45
+
+
+def _grow_cut(mask: np.ndarray, box: dict, shape: tuple[int, int]) -> dict | None:
+    """마스크가 상자 변을 CUT_EDGE 넘게 덮은 쪽으로 상자를 넓힌 새 상자. 넓힐 쪽이 없으면 None."""
+    H, W = shape
+    l, t, r, b = box["left"], box["top"], box["right"], box["bottom"]
+    m = mask > 0
+    bw, bh = max(1, r - l), max(1, b - t)
+    k = 2
+    sides = {
+        "left": m[t:b, l:l + k].any(axis=1).mean() if l > 0 else 0,
+        "right": m[t:b, max(l, r - k):r].any(axis=1).mean() if r < W else 0,
+        "top": m[t:t + k, l:r].any(axis=0).mean() if t > 0 else 0,
+        "bottom": m[max(t, b - k):b, l:r].any(axis=0).mean() if b < H else 0,
+    }
+    if max(sides.values()) <= CUT_EDGE:
+        return None
+    nl = max(0, l - round(CUT_GROW * bw)) if sides["left"] > CUT_EDGE else l
+    nr = min(W, r + round(CUT_GROW * bw)) if sides["right"] > CUT_EDGE else r
+    nt = max(0, t - round(CUT_GROW * bh)) if sides["top"] > CUT_EDGE else t
+    nb = min(H, b + round(CUT_GROW * bh)) if sides["bottom"] > CUT_EDGE else b
+    return {"left": nl, "top": nt, "right": nr, "bottom": nb}
+
+
 def cut_out(image_path: str, grow: bool = False, reach: bool = REACH) -> dict:
     """사람 관절 모델 없이 그림 영역을 잘라 낸다 — 4족형 · 사슬형 · 지느러미형이 함께 쓴다.
     {"original", "box"(분석 크기, score 포함), "big_box"(원본 크기), "mask"(원본 크기 0/255)} 또는 {"error": 메시지}"""
@@ -478,6 +512,15 @@ def cut_out(image_path: str, grow: bool = False, reach: bool = REACH) -> dict:
     if box["right"] <= box["left"] or box["bottom"] <= box["top"]:
         return {"error": "INVALID_BBOX: Character bounding box is invalid"}
     small = build_mask(img, box)
+    # 그림이 탐지 상자 테두리를 굵게 가로질러 이어지면(상자가 몸통만 잡음) 그쪽으로 넓혀 다시 — 악어 꼬리 · 뒷다리가
+    # 상자 밖이라 통째로 잘렸다 (11/9 사용자). 꼭 맞는 상자는 끝(머리 꼭대기 · 발끝)만 살짝 닿아 이 비율을 넘지 않는다.
+    # 색칠된 곳(_colored)만 센다 — 흰 다리 · 종이 끝이 걸친 기린은 종이 가장자리까지 넓어져 마스크에 종이가 들어왔다
+    for _ in range(3):
+        wider = _grow_cut(small & _colored(img), box, img.shape[:2])
+        if wider is None:
+            break
+        box = {**wider, "score": box["score"]}
+        small = build_mask(img, box)
     before = cv2.resize(small, (original.shape[1], original.shape[0]), interpolation=cv2.INTER_NEAREST)
     after = A.refine_mask(original, before)
     big_box = {k: round(v / scale) for k, v in box.items() if k != "score"}
