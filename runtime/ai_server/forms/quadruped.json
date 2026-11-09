@@ -190,12 +190,7 @@
     "shiver": {
       "rest": true,
       "rest_bob": 0,
-      "gait": {
-        "swing": 3,
-        "bend": 4,
-        "cycles": 16,
-        "bob": 0.006
-      }
+      "rest_jitter": 0.08
     },
     "jumping_gentle": {
       "rest": true,

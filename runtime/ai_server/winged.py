@@ -111,9 +111,12 @@ def find_joints(img: np.ndarray, mask: np.ndarray, facing: str | None = None) ->
     body_c = centre(inside)
     # 칸이 안 나뉘면(선 없이 색으로 한 덩어리로 칠한 새 — 11/9 사용자) 모든 점을 몸통에 겹치지 않고 모양으로 어림한다.
     # 겹쳐 두면 미리보기가 움직이지 않고, 관절 맞추기에서도 점이 한 곳에 쌓여 옮기기 어려웠다
-    fallback = _shape_guess(img, mask) or {n_: body_c for n_ in NAMES}
+    guess = _shape_guess(img, mask)
+    fallback = guess or {n_: body_c for n_ in NAMES}
+    # 모양 어림이 머리 · 날개를 나눴으면(머리 ≠ 몸통, 날개 끝 ≠ 몸통) 찾은 것으로 — 관절 고치기로 보내지 않고 바로 움직임 보기 (11/9)
+    shaped = bool(guess) and guess["head"] != guess["body"] and guess["wing1_tip"] != guess["body"]
     if len(cells) < 2:
-        return fallback, False
+        return fallback, shaped
 
     # 머리: 눈이 든 칸 (눈 = 큰 선 덩어리가 아닌 작은 잉크 점)
     m_ink, lab_ink, st_ink, cen_ink = cv2.connectedComponentsWithStats(ink, 8)

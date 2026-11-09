@@ -637,6 +637,12 @@ def _apply_rest(drawing, wave: dict) -> None:  # noqa: ANN001
     tall = float(np.ptp(pts[:, 1])) if len(pts) else 0.0
     breath = 0.5 - 0.5 * np.cos(2 * np.pi * float(wave.get("rest_cycles", 1)) * np.arange(n) / n)
     rt.char_root_positions[:, 1] += (float(wave.get("rest_bob", 0.012)) * tall * breath).astype(np.float32)
+    jitter = float(wave.get("rest_jitter", 0))
+    if jitter:
+        # 떨기 (4족, 11/9) — 몸 전체를 잘게 덜덜(위아래). 다리만 후들거리면 다리가 짧은 그림에서 거의 안 보였다.
+        # 좌우로 흔들면 렌더 칸 「제자리」 손질(_in_place)이 몸 가로 이동을 지워 아무것도 안 보였다
+        k = np.arange(n)
+        rt.char_root_positions[:, 1] += (jitter * tall * np.abs(np.sin(np.pi * k / 2.0))).astype(np.float32)
     hops = int(wave.get("rest_hops", 0))
     if hops:
         # 깡충 (4족 기쁨 · 점프, 11/9) — 한 동작에 hops 번, 땅에서 뛰어올랐다 내려온다. 사람 점프 동작은 몸통이 돌아 얼굴이 뒤틀렸다
