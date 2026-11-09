@@ -69,15 +69,11 @@ MOTIONS: dict[str, tuple[Path, Path]] = {
     # 점프는 웅크릴 때 몸 · 머리가 83% 로 눌려서, 걷기 · 뛰기는 다리 PCA 투영이 프레임마다 뒤집혀 다리가 꼬여서.
     # 고치기 전 판은 *_orig 로 남겨 둔다 (비교용, 백엔드는 쓰지 않음)
     "jumping_gentle": (_GENTLE_MOTIONS / "jumping_soft.yaml", _META_RETARGET / "fair1_ppf.yaml"),
-    # 주인공 걷기 · 뛰기 다리는 옆면(cmu1_side, 11/9 사용자 「오른쪽으로 발걸음이 나와야」) — 정면(cmu1_front)이면 제자리 정면
-    # 걸음인데 장면은 옆으로 옮겨 어색했다. 그대로가 오른쪽으로 걷는다. 왼쪽으로 옮겨 가는 쪽은 *_left (다리만 뒤집음,
-    # forms/biped.json waves.mirror — 그림을 뒤집지 않으려고, 백엔드가 같이 렌더한다).
-    # 무릎을 두 배 굽힌 *_steps(정면 걸음용)는 옆면에서 바지 · 다리가 고무처럼 휘었다 — 원래 걸음(walk · run)으로
-    "walk": (_GENTLE_MOTIONS / "walk.yaml", _GENTLE_MOTIONS / "cmu1_side.yaml"),
-    "run": (_GENTLE_MOTIONS / "run.yaml", _GENTLE_MOTIONS / "cmu1_side.yaml"),
-    "walk_left": (_GENTLE_MOTIONS / "walk.yaml", _GENTLE_MOTIONS / "cmu1_side.yaml"),
-    "run_left": (_GENTLE_MOTIONS / "run.yaml", _GENTLE_MOTIONS / "cmu1_side.yaml"),
-    # 정면 제자리 걸음 — 장면 등장인물이 걸어 들어올 때 (tools/people-moves, 화면이 가는 쪽으로 기울인다)
+    # 걷기 · 뛰기는 정면 제자리 걸음 (11/9 사용자 결정 — 정면 그림을 옆으로 걷게 하면 다리가 엇갈려 꼬이고 휘었다.
+    # 옆면 걸음 cmu1_side 는 실험으로 남김). 장면이 그림을 옆으로 옮기고 가는 쪽으로 기울인다
+    "walk": (_GENTLE_MOTIONS / "walk_steps.yaml", _GENTLE_MOTIONS / "cmu1_front.yaml"),
+    "run": (_GENTLE_MOTIONS / "run_steps.yaml", _GENTLE_MOTIONS / "cmu1_front.yaml"),
+    "walk_side": (_GENTLE_MOTIONS / "walk.yaml", _GENTLE_MOTIONS / "cmu1_side.yaml"),
     "walk_front": (_GENTLE_MOTIONS / "walk_steps.yaml", _GENTLE_MOTIONS / "cmu1_front.yaml"),
     "jumping_gentle_orig": (_GENTLE_MOTIONS / "jumping_gentle.yaml", _META_RETARGET / "fair1_ppf.yaml"),
     "walk_orig": (_GENTLE_MOTIONS / "walk.yaml", _GENTLE_MOTIONS / "cmu1_human.yaml"),
@@ -407,6 +403,48 @@ def _remember(cache: "OrderedDict", key: str, value) -> None:
         cache.popitem(last=False)
 
 
+# 그물(mesh) 안쪽 점 간격 — 메타 기본은 그림 칸 전체를 40×40 으로만 나눠, 다리 · 팔처럼 가는 곳은 안쪽 점이 거의 없었다.
+# 큰 삼각형이 통째로 꺾여 걸을 때 테두리가 울퉁불퉁했다 (11/9 사용자 「관절이랑 몸통 전체가 울퉁불퉁」). 더 촘촘하게
+MESH_GRID = int(os.environ.get("MESH_GRID", "90"))
+
+
+class _dense_mesh:
+    """Meta AnimatedDrawing._generate_mesh 를 안쪽 점만 촘촘하게(MESH_GRID) 바꾼 판 — 나머지는 원래와 같다."""
+
+    def __init__(self) -> None:
+        import animated_drawings.model.animated_drawing as ad
+
+        self._cls = ad.AnimatedDrawing
+        self._orig = ad.AnimatedDrawing._generate_mesh
+
+        def gen(drawing) -> None:  # noqa: ANN001
+            from scipy.spatial import Delaunay
+            from shapely import geometry
+            from skimage import measure
+
+            contours = measure.find_contours(drawing.mask, 128)
+            contours.sort(key=len, reverse=True)
+            outside = measure.approximate_polygon(contours[0], tolerance=0.25)
+            outline = geometry.Polygon(contours[0])
+            from shapely.prepared import prep
+            inside_test = prep(outline)
+            g = np.linspace(0, drawing.img_dim, MESH_GRID)
+            xv, yv = np.meshgrid(g, g)
+            pts = [(x, y) for x, y in zip(xv.ravel(), yv.ravel()) if inside_test.contains(geometry.Point(x, y))]
+            vertices = np.concatenate([outside, np.array(pts).reshape(-1, 2)]).astype(np.float32)
+            tris = []
+            for t in Delaunay(vertices).simplices:
+                if inside_test.contains(geometry.Point(np.mean(vertices[t], 0))):
+                    tris.append(t)
+            vertices /= drawing.img_dim
+            drawing.mesh = {"vertices": vertices, "triangles": tris}
+
+        ad.AnimatedDrawing._generate_mesh = gen
+
+    def release(self) -> None:
+        self._cls._generate_mesh = self._orig
+
+
 class _reuse_setup:
     """Meta AnimatedDrawing 의 준비 계산 두 가지를 입력이 같으면 다시 쓴다 (결과 · 부작용 모두 원래와 같게).
 
@@ -671,7 +709,16 @@ class _tail_wag:
                     for name in wave["mirror"]:
                         if name in rt.char_joint_to_orientation:
                             rt.char_joint_to_orientation[name] = ((360.0 - rt.char_joint_to_orientation[name]) % 360.0).astype(np.float32)
-                if wave and (wave.get("hold") or wave.get("mirror")):   # hold: 이 뼈들만 그린 방향 그대로
+                if wave and wave.get("straight_legs"):
+                    # 무릎을 굽히지 않는다 — 아랫다리를 넓적다리 방향 그대로 (11/9 사용자 「옷 때문에 깨진다」). 긴 바지 · 치마가 무릎에서
+                    # 한 덩어리로 꺾여 고무처럼 휘었다. 엉덩이에서만 흔드는 종이 인형 걸음
+                    for side in ("right", "left"):
+                        k, f = f"{side}_knee", f"{side}_foot"
+                        if k in rt.char_joint_to_orientation and f in rt.char_joint_to_orientation:
+                            j_k, j_f = root.get_transform_by_name(k), root.get_transform_by_name(f)
+                            bent = (j_f.starting_theta - j_k.starting_theta) if j_k is not None and j_f is not None else 0.0
+                            rt.char_joint_to_orientation[f] = ((rt.char_joint_to_orientation[k] + bent) % 360.0).astype(np.float32)
+                if wave and (wave.get("hold") or wave.get("mirror") or wave.get("straight_legs")):   # hold: 이 뼈들만 그린 방향 그대로
                     for name in wave.get("hold") or ():
                         j = root.get_transform_by_name(name)
                         if j is not None and name in rt.char_joint_to_orientation:
@@ -972,12 +1019,13 @@ def render_animation(
                 still = _in_place() if sprite_path else None
                 thin = _thin_frames() if sprite_path else None
                 reuse = _reuse_setup() if REUSE_SETUP else None
+                dense = _dense_mesh() if MESH_GRID != 40 else None
                 # 물결로 움직이는 형태(사슬형 · 지느러미형)는 형태 정의의 그 동작 물결
                 wag = _tail_wag(forms.get(form).get("waves", {}).get(motion))
                 try:
                     animated_drawings.render.start(str(mvc_path))
                 finally:
-                    for patch in (frames, still, thin, reuse, wag):
+                    for patch in (frames, still, thin, reuse, wag, dense):
                         if patch is not None:
                             patch.release()
                 return frames
