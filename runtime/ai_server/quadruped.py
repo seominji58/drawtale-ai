@@ -279,8 +279,19 @@ def find_joints(mask: np.ndarray, facing: str | None = None) -> tuple[dict[str, 
     centers = [(a + b) / 2 for a, b in leg_runs]
     # 다리 둘도 찾은 것으로 — 옆모습은 반대편 다리를 그리지 않는 아이가 많다 (소 · 기린, 운영 11/4). 앞뒤로 떨어져 있고
     # 둘 다 다리 하나 굵기일 때만 (붙여 그린 다리 한 쌍이 넓적한 한 덩어리면 지금처럼 어른이 맞춘다). 각 다리는 한 쌍을 겹쳐 놓는다
-    two = (len(leg_runs) == 2 and centers[1] - centers[0] >= W * 0.3
-           and all(b - a <= W * 0.22 for a, b in leg_runs))
+    def two_legs(runs: list[tuple[int, int]]) -> bool:
+        cs = [(a + b) / 2 for a, b in runs]
+        return len(runs) == 2 and cs[1] - cs[0] >= W * 0.3 and all(b - a <= W * 0.22 for a, b in runs)
+    two = two_legs(leg_runs)
+    if len(leg_runs) < 3 and not two:
+        # 머리를 아래로 늘어뜨려 그린 소는 다리 세는 줄에서 머리 · 앞다리가 한 덩어리(넓음)라 다리 둘로 안 쳤다 (11/9 운영).
+        # 다른 높이(아래쪽부터)에서 다리 둘이 따로 보이면 그 줄로
+        for y in sorted(rows, reverse=True):
+            runs = _legs(_runs(mask[y], min_w), W)
+            if two_legs(runs):
+                probe, leg_runs, two = y, runs, True
+                centers = [(a + b) / 2 for a, b in runs]
+                break
     found = (len(centers) >= 3 or two) and (bottom - belly) >= H * 0.08
     if len(centers) < 2:
         return template(mask, facing), False
