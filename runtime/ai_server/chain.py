@@ -1,7 +1,8 @@
 """사슬형(뱀 · 지렁이) · 지느러미형(물고기 · 고래) 분석 — 몸 가운데 선을 같은 간격 마디로 (pt_docs 19, 11/5).
 
 그림 영역은 4족형과 같은 방법(quadruped.cut_out). 마스크의 뼈대 선에서 가장 긴 길이 몸 가운데 선이고,
-눈 · 콧구멍처럼 몸 안의 어두운 점이 가까운 끝이 머리다(없으면 굵은 끝). 마디 수 · 이름은 형태 정의의 joints.
+눈(eyes.py: 작고 속이 찬 검은 점)에서 시작해 가장 먼 끝까지가 몸 가운데 선이고 눈 쪽이 머리다(눈이 없으면
+가장 긴 길에서 몸 안 어두운 점이 가까운 끝, 그것도 없으면 굵은 끝). 마디 수 · 이름은 형태 정의의 joints.
 지느러미형은 뼈대 끝이 갈라진 꼬리지느러미의 한쪽 모서리로 가서, 꼬리 끝만 몸 방향으로 쭉 뻗은 지느러미 끝에 둔다.
 움직임은 renderer._apply_wave (형태 정의 waves). 시험: experiments/chain (디지털 그림 뱀 · 물고기).
 """
@@ -14,6 +15,7 @@ import cv2
 import numpy as np
 
 from ai_server import analyzer as A, forms
+from ai_server import eyes as E
 from ai_server import quadruped as Q
 
 # 몸 가운데 선이 그림 긴 변의 이만큼도 안 되면 못 찾은 것 (점 하나 · 동그라미)
@@ -82,8 +84,16 @@ def find_joints(mask: np.ndarray, original: np.ndarray, names: list[str], fin: b
     skel = skeletonize(filled > 0)
     if not skel.any():
         return template(mask, names, facing), False
-    a, _ = _far(skel, tuple(np.argwhere(skel)[0]))
-    _, line = _far(skel, a)                                     # 가장 긴 길 (지름)
+    # 눈이 있으면 눈에서 가장 가까운 뼈대 점에서 가장 먼 끝까지가 몸 가운데 선, 눈 쪽이 머리 (11/10, eyes.py).
+    # 가장 긴 길(지름)로만 보면 물고기는 등지느러미 끝으로, 가는 선 뱀은 눈이 지워져 굵은 꼬리 끝이 머리가 됐다
+    eye = E.eye_centre(E.find_eyes(original, mask), 0.15 * max(h, w)) if facing not in ("left", "right") else None
+    sk = np.argwhere(skel)
+    if eye is not None:
+        start = tuple(sk[int(np.argmin(np.hypot(sk[:, 1] - eye[0], sk[:, 0] - eye[1])))])
+        _, line = _far(skel, start)
+    else:
+        a, _ = _far(skel, tuple(sk[0]))
+        _, line = _far(skel, a)                                 # 가장 긴 길 (지름)
     line = _extend(_extend(line, filled)[::-1], filled)[::-1]
     ys, xs = np.nonzero(mask)
     if len(line) < MIN_LINE * max(np.ptp(xs), np.ptp(ys)):
@@ -92,6 +102,8 @@ def find_joints(mask: np.ndarray, original: np.ndarray, names: list[str], fin: b
     # 머리 쪽: 지정했으면(「얼굴이 반대쪽이에요」) 그대로, 아니면 몸 안 어두운 점(눈)이 가까운 끝, 없으면 굵은 끝
     if facing in ("left", "right"):
         head_first = (line[0][1] <= line[-1][1]) == (facing == "left")
+    elif eye is not None:
+        head_first = True
     else:
         inner = (original.min(axis=2) < 80) & (cv2.erode(filled, np.ones((9, 9), np.uint8)) > 0)
         iy, ix = np.nonzero(inner)

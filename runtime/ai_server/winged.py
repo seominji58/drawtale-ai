@@ -17,13 +17,12 @@ import cv2
 import numpy as np
 
 from ai_server import analyzer as A
+from ai_server import eyes as E
 from ai_server import quadruped as Q
 
 NAMES = ["body", "head", "wing1_root", "wing1_mid", "wing1_tip", "wing2_root", "wing2_mid", "wing2_tip"]
 # 칸으로 치는 넓이 (그림 안 종이 넓이 대비)
 MIN_CELL = 0.03
-# 눈으로 치는 잉크 점 넓이 상한
-MAX_EYE = 0.01
 
 
 def _shape_guess(img: np.ndarray, mask: np.ndarray) -> dict[str, tuple[float, float]] | None:
@@ -39,47 +38,50 @@ def _shape_guess(img: np.ndarray, mask: np.ndarray) -> dict[str, tuple[float, fl
     by, bx = np.unravel_index(int(np.argmax(dt)), dt.shape)
     R = float(dt[by, bx])
     body = (float(bx), float(by))
-    light = cv2.cvtColor(img, cv2.COLOR_BGR2LAB)[..., 0]
-    ink = ((light < 90) & (dt > 0.15 * R)).astype(np.uint8)          # 몸 안쪽의 어두운 점 (테두리 선은 빼고)
-    n, lab, st, cen = cv2.connectedComponentsWithStats(ink, 8)
-    # 눈: 몸 안쪽의 작고 동그란 어두운 점 — 테두리에 붙은 선 조각 · 날개 깃 선(길쭉함)은 눈이 아니다. 가장 작은 것
-    side = np.sqrt(filled.sum())
-    eyes = sorted(((st[i, cv2.CC_STAT_AREA], cen[i]) for i in range(1, n)
-                   if st[i, cv2.CC_STAT_AREA] < 0.02 * filled.sum()
-                   and dt[int(cen[i][1]), int(cen[i][0])] > 0.2 * R
-                   and max(st[i, cv2.CC_STAT_WIDTH], st[i, cv2.CC_STAT_HEIGHT]) < 0.08 * side
-                   and max(st[i, cv2.CC_STAT_WIDTH], st[i, cv2.CC_STAT_HEIGHT])
-                   < 2.5 * max(1, min(st[i, cv2.CC_STAT_WIDTH], st[i, cv2.CC_STAT_HEIGHT]))), key=lambda e: e[0])
-    eyes = [e[1] for e in eyes]
     ys, xs = np.nonzero(filled)
-    # 날개 끝: 몸통보다 위로 가장 높이 솟은 곳 (아이들은 날개를 위로 그린다). 눈 위치로 먼저 정하면 날개 깃 사이 선을
-    # 눈으로 잘못 봐 머리 · 날개가 뒤바뀌었다 (11/9 분홍 새)
     up = ys < by - 0.3 * R
     if not up.any():
         return {n_: body for n_ in NAMES}
-    k = int(np.argmin(ys[up]))
-    tip = (float(xs[up][k]), float(ys[up][k]))
-    # 머리: 날개 끝 반대쪽(가로)으로 몸통에서 가장 멀리 나간 곳 — 그 근처에 눈 점이 있으면 눈
-    side = -1.0 if tip[0] >= bx else 1.0
-    mid_band = (ys > by - 2.0 * R) & (ys < by + 0.5 * R)
-    far = (xs - bx) * side
-    cand = mid_band & (far > 0)
-    if cand.any():
-        i = int(np.argmax(far[cand]))
-        edge = (float(xs[cand][i]), float(ys[cand][i]))
-        near = [e for e in eyes if (e[0] - bx) * side > 0 and np.hypot(e[0] - edge[0], e[1] - edge[1]) < 1.5 * R]
-        head = (float(near[0][0]), float(near[0][1])) if near else (bx + (edge[0] - bx) * 0.75, edge[1] + 0.3 * R)
+
+    def wing(sel: np.ndarray) -> tuple[tuple[float, float], tuple[float, float], tuple[float, float]]:
+        """sel 안에서 가장 높이 솟은 곳이 날개 끝, 몸통에서 거기로 가다 몸이 가늘어지는 곳(두께가 몸 반지름의 반 아래)이
+        뿌리. 몸 안쪽에 두면 날개를 흔들 때 몸 앞쪽까지 같이 기울었다"""
+        k = int(np.argmin(ys[sel]))
+        tip = (float(xs[sel][k]), float(ys[sel][k]))
+        root = body
+        for f in np.linspace(0, 1, 60):
+            x, y = bx + (tip[0] - bx) * f, by + (tip[1] - by) * f
+            if dt[int(round(y)), int(round(x))] < 0.5 * R:
+                root = (float(x), float(y))
+                break
+        return root, ((root[0] + tip[0]) / 2, (root[1] + tip[1]) / 2), tip
+
+    # 눈 (eyes.py: 작고 속이 찬 검은 점, 11/10). 눈이 몸통 바로 위면 앞모습: 날개는 몸통 왼쪽 · 오른쪽에서 각각 가장 높이
+    # 솟은 곳. 옆모습처럼 「가장 높은 곳의 반대쪽」을 머리로 보면 앞모습 새는 머리가 다른 쪽 날개 끝에 잡혔다
+    eye = E.eye_centre(E.find_eyes(img, mask), 1.5 * R)
+    if eye is not None and abs(eye[0] - bx) < 0.5 * R:
+        J = {"body": body, "head": eye}
+        for w, sel in (("wing1", up & (xs < bx - 0.5 * R)), ("wing2", up & (xs > bx + 0.5 * R))):
+            J[f"{w}_root"], J[f"{w}_mid"], J[f"{w}_tip"] = wing(sel if sel.any() else up)
+        return J
+    # 옆모습: 날개 끝은 몸통보다 위로 가장 높이 솟은 곳 (아이들은 날개를 위로 그린다). 눈이 있으면 그 반대쪽에서.
+    # 눈을 넓이로만 고르던 때는 날개 깃 사이 선을 눈으로 봐 머리 · 날개가 뒤바뀌었다 (11/9 분홍 새)
+    if eye is not None and (up & ((xs - bx) * (eye[0] - bx) < 0)).any():
+        root, mid, tip = wing(up & ((xs - bx) * (eye[0] - bx) < 0))
+        head = eye
     else:
-        head = body
-    # 날개 뿌리: 몸통에서 날개 끝으로 가다 몸이 가늘어지는 곳(두께가 몸 반지름의 반 아래) — 몸 안쪽에 두면
-    # 날개를 흔들 때 몸 앞쪽까지 같이 기울었다
-    root = body
-    for f in np.linspace(0, 1, 60):
-        x, y = bx + (tip[0] - bx) * f, by + (tip[1] - by) * f
-        if dt[int(round(y)), int(round(x))] < 0.5 * R:
-            root = (float(x), float(y))
-            break
-    mid = ((root[0] + tip[0]) / 2, (root[1] + tip[1]) / 2)
+        root, mid, tip = wing(up)
+        # 머리: 날개 끝 반대쪽(가로)으로 몸통에서 가장 멀리 나간 곳
+        side = -1.0 if tip[0] >= bx else 1.0
+        mid_band = (ys > by - 2.0 * R) & (ys < by + 0.5 * R)
+        far = (xs - bx) * side
+        cand = mid_band & (far > 0)
+        if cand.any():
+            i = int(np.argmax(far[cand]))
+            edge = (float(xs[cand][i]), float(ys[cand][i]))
+            head = (bx + (edge[0] - bx) * 0.75, edge[1] + 0.3 * R)
+        else:
+            head = body
     J = {"body": body, "head": head}
     for w in ("wing1", "wing2"):
         J[f"{w}_root"], J[f"{w}_mid"], J[f"{w}_tip"] = root, mid, tip
@@ -118,14 +120,11 @@ def find_joints(img: np.ndarray, mask: np.ndarray, facing: str | None = None) ->
     if len(cells) < 2:
         return fallback, shaped
 
-    # 머리: 눈이 든 칸 (눈 = 큰 선 덩어리가 아닌 작은 잉크 점)
-    m_ink, lab_ink, st_ink, cen_ink = cv2.connectedComponentsWithStats(ink, 8)
-    big = 1 + int(np.argmax(st_ink[1:, cv2.CC_STAT_AREA])) if m_ink > 1 else -1
+    # 머리: 눈이 든 칸. 눈은 eyes.py (작고 속이 찬 검은 점). 넓이로만 고르던 때는 꼬리 세모 테두리 같은 작은 선 고리도
+    # 눈이 되어 옆모습 새의 머리가 꼬리에 잡혔다 (11/10)
     head = None
-    for j in range(1, m_ink):
-        if j == big or st_ink[j, cv2.CC_STAT_AREA] > MAX_EYE * total:
-            continue
-        ex, ey = int(cen_ink[j][0]), int(cen_ink[j][1])
+    for gx, gy in E.find_eyes(img, mask):
+        ex, ey = int(gx) - box[0], int(gy) - box[1]
         r = int(2 * lw)
         near = [i for i in cells if (lab[max(0, ey - r):ey + r, max(0, ex - r):ex + r] == i).any()]
         if near:
