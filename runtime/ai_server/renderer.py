@@ -71,8 +71,10 @@ MOTIONS: dict[str, tuple[Path, Path]] = {
     "jumping_gentle": (_GENTLE_MOTIONS / "jumping_soft.yaml", _META_RETARGET / "fair1_ppf.yaml"),
     # 걷기 · 뛰기는 정면 제자리 걸음 (11/9 사용자 결정 — 정면 그림을 옆으로 걷게 하면 다리가 엇갈려 꼬이고 휘었다.
     # 옆면 걸음 cmu1_side 는 실험으로 남김). 장면이 그림을 옆으로 옮기고 가는 쪽으로 기울인다
-    "walk": (_GENTLE_MOTIONS / "walk_steps.yaml", _GENTLE_MOTIONS / "cmu1_front.yaml"),
-    "run": (_GENTLE_MOTIONS / "run_steps.yaml", _GENTLE_MOTIONS / "cmu1_front.yaml"),
+    # 사람형 주인공 걷기 · 달리기는 장면 등장인물과 같은 걸음 (2026-11-10 사용자 「등장인물처럼 무릎 굽히며 걷는 걸음을 주인공에도」).
+    # 전에는 walk_steps(무릎을 앞으로 드는 CMU 걸음)라 앞에서 보면 다리가 옆으로 꺾였다. 달리기는 같은 걸음을 화면이 빠르게 돌린다
+    "walk": (_GENTLE_MOTIONS / "scene_walk.yaml", _GENTLE_MOTIONS / "scene_front.yaml"),
+    "run": (_GENTLE_MOTIONS / "scene_walk.yaml", _GENTLE_MOTIONS / "scene_front.yaml"),
     "walk_side": (_GENTLE_MOTIONS / "walk.yaml", _GENTLE_MOTIONS / "cmu1_side.yaml"),
     "walk_front": (_GENTLE_MOTIONS / "walk_steps.yaml", _GENTLE_MOTIONS / "cmu1_front.yaml"),
     "jumping_gentle_orig": (_GENTLE_MOTIONS / "jumping_gentle.yaml", _META_RETARGET / "fair1_ppf.yaml"),
