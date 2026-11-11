@@ -15,7 +15,8 @@ import modal
 MODEL_ID = "Qwen/Qwen3-TTS-12Hz-0.6B-Base"
 # flash-attn (2026-11-11 시험): 설치 실패 — qwen-tts 가 까는 torch 2.15 · CUDA 13.2 에 맞는 미리 빌드된 판이 없고,
 # 이미지에 CUDA 컴파일러가 없어 직접 빌드도 못 한다. 대신 engine.py 가 PyTorch 내장 가속(SDPA)을 시도한다
-FLASH_ATTN = False
+FLASH_ATTN = True
+TORCH_VERSION = "2.8.0"
 # 앞에서부터 남는 GPU 를 쓴다. L4 가 모자라면 오래 기다리지 않고 다음 것으로 (2026-11-09 L4 대기 확인)
 # T4 는 flash-attn 을 쓸 수 없어(Ampere 이후만) flash-attn 을 켜면 뺀다
 GPU = ["L4", "A10G"] if FLASH_ATTN else ["L4", "A10G", "T4"]
