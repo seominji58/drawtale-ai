@@ -48,6 +48,7 @@ class QwenEngine:
             self.model = Qwen3TTSModel.from_pretrained(model_id, **kwargs)
         # Modal 로그에 남긴다 (검증 자료: 어떤 GPU · 어떤 방식으로 돌았는지)
         print(
+            f"[engine] 모델 로드: {model_id} · GPU {torch.cuda.get_device_name(0)} · {dtype}"
             f" · torch {torch.__version__}"
             f" · attention {attn or '기본(PyTorch)'}",
             flush=True,
