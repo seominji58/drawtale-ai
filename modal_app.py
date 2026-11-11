@@ -13,8 +13,8 @@ from pathlib import Path
 import modal
 
 MODEL_ID = "Qwen/Qwen3-TTS-12Hz-0.6B-Base"
-# flash-attn (2026-11-11 시험): 설치 실패 — qwen-tts 가 까는 torch 2.15 · CUDA 13.2 에 맞는 미리 빌드된 판이 없고,
-# 이미지에 CUDA 컴파일러가 없어 직접 빌드도 못 한다. 대신 engine.py 가 PyTorch 내장 가속(SDPA)을 시도한다
+# flash-attn 2차 시험 (2026-11-11): torch 를 2.8 로 고정하고 미리 빌드된 판만 받는다.
+# 설치에 실패하면 지우고 그대로 뜬다. 효과가 없으면 False 로 되돌린다
 FLASH_ATTN = True
 TORCH_VERSION = "2.8.0"
 # 앞에서부터 남는 GPU 를 쓴다. L4 가 모자라면 오래 기다리지 않고 다음 것으로 (2026-11-09 L4 대기 확인)
@@ -23,18 +23,26 @@ GPU = ["L4", "A10G"] if FLASH_ATTN else ["L4", "A10G", "T4"]
 # auto: GPU 가 bf16 을 지원하면(L4 · A10G) bfloat16, 아니면(T4) float16
 DTYPE = "auto"
 
-image = (
-    modal.Image.debian_slim(python_version="3.11")
-    .apt_install("ffmpeg", "libsndfile1", "sox")  # sox: qwen-tts 가 찾는다
-    # 실제로 돌려 본 뒤 버전을 고정한다 (예: qwen-tts==x.y.z)
-    .pip_install("qwen-tts", "soundfile", "numpy", "fastapi", "python-multipart")
+image = modal.Image.debian_slim(python_version="3.11").apt_install(
+    "ffmpeg", "libsndfile1", "sox"  # sox: qwen-tts 가 찾는다
 )
 if FLASH_ATTN:
-    # 설치된 torch 에 맞는 미리 빌드된 판을 받는다 (여기엔 CUDA 컴파일러가 없어 직접 빌드는 못 한다).
-    # 맞는 판이 없으면 설치에 실패하고, 그래도 이미지는 만들어진다 — 서버는 flash-attn 없이 지금처럼 뜬다
+    # qwen-tts 보다 먼저 torch 2.8 을 깔아 둔다
+    image = image.pip_install(
+        f"torch=={TORCH_VERSION}",
+        f"torchaudio=={TORCH_VERSION}",
+        index_url="https://download.pytorch.org/whl/cu128",
+    )
+image = image.pip_install("qwen-tts", "soundfile", "numpy", "fastapi", "python-multipart")
+if FLASH_ATTN:
+    # 빌드 없이 미리 빌드된 판만 받고, 핵심 부분이 없으면 지운다
     image = image.pip_install("packaging", "ninja", "psutil", "wheel").run_commands(
-        "pip install flash-attn --no-build-isolation"
-        " || echo '[image] flash-attn 설치 실패: 없이 진행합니다'"
+        "python -c \"import torch; print('[image] torch', torch.__version__)\"",
+        "(FLASH_ATTENTION_SKIP_CUDA_BUILD=TRUE pip install 'flash-attn==2.8.3' --no-build-isolation"
+        " && python -c \"import importlib.util, sys;"
+        " sys.exit(0 if importlib.util.find_spec('flash_attn_2_cuda') else 1)\""
+        " && echo '[image] flash-attn 설치 성공')"
+        " || (pip uninstall -y flash-attn; echo '[image] flash-attn 설치 실패: 없이 진행합니다')",
     )
 image = (
     image.env(
