@@ -15,7 +15,7 @@ import modal
 MODEL_ID = "Qwen/Qwen3-TTS-12Hz-0.6B-Base"
 # flash-attn 2차 시험 (2026-11-11): torch 를 2.8 로 고정하고 미리 빌드된 판만 받는다.
 # 설치에 실패하면 지우고 그대로 뜬다. 효과가 없으면 False 로 되돌린다
-FLASH_ATTN = True
+FLASH_ATTN = False
 TORCH_VERSION = "2.8.0"
 # 앞에서부터 남는 GPU 를 쓴다. L4 가 모자라면 오래 기다리지 않고 다음 것으로 (2026-11-09 L4 대기 확인)
 # T4 는 flash-attn 을 쓸 수 없어(Ampere 이후만) flash-attn 을 켜면 뺀다
