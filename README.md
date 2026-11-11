@@ -1,226 +1,144 @@
-# drawtale-ai
+# drawtale-tts
 
-DrawTale AI Runtime — 손그림에서 캐릭터 · 관절을 찾고 애니메이션을 렌더링하는 **내부 전용 AI 서버**입니다.
-Backend만 호출하며 외부(Frontend, 인터넷)에는 공개하지 않습니다.
+보호자 목소리로 이야기를 읽어 주는 **음성 복제 TTS 서버**입니다 (Qwen3-TTS, Modal GPU).
+ElevenLabs Instant Voice Cloning 자리를 대신합니다. 백엔드(`drawtale-backend`)만 HTTP 로 부릅니다.
 
-- API 계약서: `drawtale-backend/docs/api-contract.md` 3장 (Backend ↔ AI)
-- 담당: A1 (Runtime) · A2 (Pose 모델 학습)
-- 진행 상황 (항목별 상태): [docs/진행상황.md](docs/진행상황.md)
+- 그림 AI(`drawtale-ai`)와 **저장소 · 배포 · GPU 를 따로** 둡니다. 서로 배포가 묶이지 않습니다.
+- 백엔드는 이 서버 코드를 import 하지 않고 HTTP 로만 부릅니다 (`ai_client.py` 와 같은 원칙).
 
 ## 구조
 
-```text
-drawtale-ai/
-├── runtime/                     # A1 · AI 서버 (FastAPI, Python 3.10)
-│   ├── ai_server/
-│   │   ├── main.py              #   엔드포인트
-│   │   ├── analyzer.py          #   검출 → crop → 관절 추정 → 마스크
-│   │   └── schemas.py           #   요청/응답 형식
-│   ├── Dockerfile
-│   └── requirements.txt
-├── torchserve/                  # Meta 모델 서버 (TorchServe, Python 3.8) Docker
-├── third_party/AnimatedDrawings/  # Meta 원본 코드 (MIT) — 수정하지 않음, render에서 사용 예정
-├── training/                    # A2 · Pose 모델 학습
-└── docker-compose.yml           # torchserve + ai 함께 실행
+```
+modal_app.py      Modal 배포 (GPU · Volume · Secret)
+api.py            HTTP API (FastAPI) — 인증 · 검사 · 오류 모양
+engine.py         Qwen3-TTS 감싸기 (GPU 에서만 만든다)
+store.py          보호자 목소리 보관 (Modal Volume 위 폴더)
+audio.py          참조 음성 다듬기 · MP3 만들기 · 긴 글 나누기
+test_api.py       GPU 없이 API 전체 시험 (가짜 엔진 + 실제 ffmpeg)
 ```
 
-```text
-Backend(8000) ──HTTP──▶ ai(8001) ──HTTP──▶ torchserve(8080, Meta 검출 · 관절 모델)
-```
+## 지금 구현된 API
 
-## 실행 (Docker, 권장)
+> 계약서가 정해지면 그에 맞춰 바꿉니다. 아래는 지금 코드의 동작입니다.
 
-Docker Desktop만 있으면 됩니다. 첫 빌드는 PyTorch 설치와 Meta 모델 다운로드 때문에 오래 걸립니다(10~30분).
+모든 요청에 `Authorization: Bearer <TTS_API_TOKEN>` (health 만 빼고).
+오류는 `{"error": {"code": "...", "message": "..."}}` — `message` 는 사용자에게 보여 줘도 되는 말입니다.
 
-```bash
-docker compose up -d --build
-docker compose ps            # torchserve가 healthy가 되면 ai가 시작됨
-```
-
-- AI 서버 문서: http://127.0.0.1:8001/docs
-- 헬스체크: http://127.0.0.1:8001/internal/v1/health
-- TorchServe 상태: http://127.0.0.1:8080/ping
-- 로그: `docker compose logs -f ai` · 종료: `docker compose down`
-
-### 분석 테스트
-
-```bash
-curl -F "file=@third_party/AnimatedDrawings/test_annotations/image.png" \
-     http://127.0.0.1:8001/internal/v1/analyze
-```
-
-## 로컬 실행 (Docker 없이, 개발용)
-
-TorchServe는 Docker로 띄우고, AI 서버만 로컬에서 실행할 수 있습니다.
-
-```bash
-docker compose up -d torchserve
-
-cd runtime
-python -m venv .venv
-# Windows: .venv\Scripts\activate   /   macOS·Linux: source .venv/bin/activate
-pip install -r requirements.txt
-uvicorn ai_server.main:app --reload --port 8001
-```
-
-| 환경변수 | 기본값 | 설명 |
+| 요청 | 하는 일 | 응답 |
 |---|---|---|
-| `TORCHSERVE_URL` | `http://127.0.0.1:8080` | Meta 모델 서버 주소 (Docker 안에서는 `http://torchserve:8080`) |
+| `GET /internal/v1/health` | 상태 | `{"status": "ok", "model": "..."}` |
+| `POST /internal/v1/voices` (multipart: `audio`, `ref_text` 선택) | 목소리 등록 | `201 {"voice_id": "qv_…", "mode": "text" \| "x_vector", "seconds": 8.4}` |
+| `POST /internal/v1/tts` (JSON: `voice_id`, `text`, `language`=Korean, `speed`=1.0, `format`=mp3) | 읽기 | `200 audio/mpeg` 바이트 |
+| `POST /internal/v1/dialogue` (JSON: `lines`, `speed`, `format`) | 대사를 차례로 이어 하나로. 줄마다 `{voice_id, text}`(여기서 읽기) 또는 `{audio}`(다른 곳에서 만든 음성, base64) | `200 audio/mpeg` 바이트 |
+| `DELETE /internal/v1/voices/{voice_id}` | 지우기 | `204` (원래 없어도 204) |
 
-## 모델 파일
+오류 code: `UNAUTHORIZED`(401) · `INVALID_AUDIO` · `REF_TOO_SHORT` · `REF_TOO_LONG` · `TEXT_TOO_LONG`(400) ·
+`VOICE_NOT_FOUND`(404) · `VALIDATION_ERROR`(422) · `VOICE_FAILED` · `TTS_FAILED`(502)
 
-Meta 사전학습 모델(`drawn_humanoid_detector.mar`, `drawn_humanoid_pose_estimator.mar`)은
-`torchserve/Dockerfile`이 빌드할 때 Meta GitHub Release에서 자동으로 받습니다. Git에 올리지 않습니다.
+### 참조 음성 규칙
 
-- https://github.com/facebookresearch/AnimatedDrawings/releases/tag/v0.0.1
+- 앞뒤 무음은 서버가 걷어 냅니다. 무음을 뺀 길이가 **3~30초**여야 합니다.
+- **소리 크기는 서버가 맞춥니다** (EBU R128 `loudnorm`). 작게 녹음돼도 참조 음성을 키우고, 만든 음성도 늘 비슷한 크기(-16 LUFS)로 내보냅니다. 아주 작은 잡음뿐인 녹음은 키우지 않고 거절합니다.
+- **`ref_text` 를 주면 (권장, `mode: text`)** 녹음에서 실제로 읽은 글과 **정확히** 같아야 합니다.
+  녹음 화면에서 정해진 글을 읽게 하고 그 글을 함께 보내면 됩니다. 30초를 넘으면 `REF_TOO_LONG`.
+- **`ref_text` 가 없으면 (`mode: x_vector`)** 글 없이 목소리 특징만 씁니다. 길면 앞 30초만 씁니다.
+  편하지만 닮은 정도가 떨어질 수 있습니다 — 두 방식을 들어 보고 고르세요.
 
-## 현재 상태
+### 읽기 규칙
 
-| 엔드포인트 | 상태 |
-|---|---|
-| `GET /internal/v1/health` | ✅ 동작 — 실제 TorchServe 상태 반영 |
-| `POST /internal/v1/analyze` | ✅ 동작 — 파일 업로드(`file`) → bbox, 관절 15개(관절마다 `score`), 검출 `confidence`, 마스크 크기, 메타데이터 |
-| `POST /internal/v1/render` | ✅ 동작 — 보정 관절 + motion → MP4 |
-| `DELETE /internal/v1/sessions/{id}` | ✅ 동작 — 임시 파일 정리 |
+- `text` 는 1,000자까지. 120자가 넘으면 문장 단위로 나눠 만들고 0.3초 쉼을 두고 잇습니다.
+- `speed` 는 음높이를 바꾸지 않고 빠르기만 바꿉니다 (0.5~1.5). 백엔드 `TTS_SPEED = 0.9` 와 맞추려면 `0.9`.
 
-Backend 연동 테스트 완료 (2026-09-28): 업로드 → 분석 → 관절 15개 반환, 에러 처리까지 확인.
+### 서비스 목소리 (나레이터 · 캐릭터)
 
-**측정값** (20코어 PC, CPU only)
-
-| 항목 | 값 |
-|---|---|
-| 분석 시간 | 약 1.5초 (2000x2000 기준) |
-| 렌더링 시간 | 약 35~40초 (839프레임) |
-| 결과 MP4 크기 | 0.6~1.7MB |
-| TorchServe 메모리 | 약 1.4GB |
-| AI 서버 메모리 | 약 100MB |
-| TorchServe 이미지 | 5.84GB (CPU 전용) |
-| AI 서버 이미지 | 1.15GB |
-
-> **작업자 수 제한**: TorchServe는 기본적으로 CPU 코어 수만큼 작업자를 만들어 모델을 그만큼 복제한다.
-> 20코어에서 17GB를 써서 16GB VM에 올릴 수 없었기 때문에,
-> `torchserve/config.properties`에 `default_workers_per_model=1`을 설정했다.
->
-> **CPU 전용 PyTorch**: Meta 원본 Dockerfile은 GPU(CUDA) 버전을 설치해 이미지가 32.8GB였다.
-> 배포 대상 Azure VM에 GPU가 없으므로 CPU 전용 wheel로 교체해 5.84GB로 줄였다.
-> 분석 결과는 동일하며 오히려 더 빠르다 (3.2초 → 1.4초).
-
-## 사용 흐름
-
-```text
-1. POST /internal/v1/analyze  (그림 파일)
-   → request_id, bbox, 관절 15개  … 원본과 마스크는 서버에 보관됨
-
-2. (사용자가 Frontend에서 관절 보정)
-
-3. POST /internal/v1/render  (request_id, 보정 관절, motion)
-   → MP4 파일
-
-4. DELETE /internal/v1/sessions/{request_id}  (정리)
-```
-
-**사용 가능한 motion**: `wave_hello`, `jumping`, `jumping_jacks`, `dab`, `zombie`,
-**`wave_hello_gentle`, `jumping_gentle`** (순화 동작, 아래)
-
-### 순화 동작 (`*_gentle`)
-
-아이 그림은 팔을 몸통에 붙여 그리는 경우가 많다. 그런 그림은 **팔이 몸 쪽으로 내려오거나 팔꿈치가
-접힐 때** 겨드랑이 메시가 몸통 위로 눌려 팔이 덩어리처럼 뭉개진다 (팔이 벌어져 있을 때는 멀쩡하다).
-
-`*_gentle` 은 Meta BVH 에서 만든 판이다.
-
-- 팔(쇄골·위팔) 회전을 50% 로 줄인다 — fair1 기본 자세가 T자라서 팔이 벌어진 쪽에 머문다
-- 팔꿈치(아래팔) 회전은 20% 만 남긴다 — 거의 편 채로
-- 몸 전체의 수평 이동을 고정한다 — 제자리에서 움직여 벌린 손이 화면 밖으로 잘리지 않는다
-
-`runtime/tools/make_gentle_motions.py` 가 만들고 결과(`runtime/ai_server/motions/`)를 커밋해 둔다.
-`third_party/` 는 고치지 않는다. cmu1 뼈대(`jumping_jacks`)는 기본 자세가 팔 내림이라 같은 방법이
-맞지 않아 만들지 않았다. 원본 동작은 그대로 남아 있다.
-
-## 완료된 작업
-
-- [x] 관절 · bbox 좌표를 원본 이미지 기준으로 변환
-- [x] 응답 메타데이터: `model_version`, `pipeline_version`, `coordinate_space`, `processing_time_ms`
-- [x] health의 `model_loaded`를 실제 TorchServe 상태로 표시
-- [x] `async def` → `def` (처리 중 서버 전체가 멈추지 않게)
-- [x] TorchServe 작업자 수 제한 (17GB → 1.5GB)
-- [x] TorchServe 주소를 `TORCHSERVE_URL` 환경변수로 분리
-- [x] CPU 전용 PyTorch (32.8GB → 5.84GB)
-- [x] 마스크 이미지 저장 (렌더링에 사용)
-- [x] `POST /internal/v1/render` 구현
-- [x] 관절 `score` · 검출 `confidence` 응답, 여러 명(`MULTIPLE_CHARACTERS`) · 사람이 아닌 그림(`LOW_CONFIDENCE`) 걸러내기 — 아래 「점수와 걸러내기」
-
-## 처리 가능한 그림
-
-| 그림 종류 | 지원 |
-|---|---|
-| 선만 그린 그림 (색칠 없음) | ✅ |
-| 색칠한 그림 | ✅ |
-| 뭉뚱그린 살 형태 | ✅ |
-| 얇은 선 | ✅ |
-| 선이 일부 끊긴 그림 | ✅ |
-| 종이에 그린 사진 (얼룩·음영) | ✅ |
-| 배경이 캐릭터와 밝기가 비슷한 그림 | ⚠️ 실패할 수 있음 |
-
-색칠은 필수가 아니다. 사람 형태로 보이면 대부분 처리된다.
-
-> **관절 위치 정확도**: Meta 모델은 사람 사진으로 학습되어 4등신 캐릭터 그림에서
-> 관절이 안쪽으로 몰리는 경향이 있다. 애니메이션에서 팔다리가 다소 휘어 보인다.
-> 개선 실험 결과는 [docs/관절인식-실험-기록.md](docs/관절인식-실험-기록.md) 참고.
-> 근본 해결은 A2의 손그림 전용 Pose 모델 교체로 기대한다.
-
-## 점수와 걸러내기
-
-analyze 응답의 `joints[].score`(0~1)는 Pose 모델이 그 관절을 얼마나 확신하는지다.
-`hip` · `torso` 처럼 두 점의 중간점은 낮은 쪽 점수를 쓴다. `confidence`는 캐릭터 검출 점수다.
-백엔드가 그대로 프론트에 넘기고, 프론트는 낮은 관절이 있으면 어른 확인(S-05 「어른에게 도움 받기」, S-06 표시)을 권한다.
-
-| 실패 code | 언제 | 기준 |
-|---|---|---|
-| `LOW_CONFIDENCE` | 사람 모양으로 보기 어려운 그림 (낙서, 도형) | 검출 점수 < 0.3, 또는 관절 점수 평균 < 0.35 |
-| `MULTIPLE_CHARACTERS` | 따로 떨어진 사람이 둘 이상 | 두 번째 검출 점수 ≥ 0.8 이고 첫 번째 상자와 50% 미만 겹침 |
-| `NO_CHARACTER_DETECTED` | 너무 흐리거나 아무것도 못 찾음 | 검출 결과 없음 (기존) |
-
-기준은 2026-10-02 실제 그림으로 잰 값에서 정했다 (CPU, Meta 예제 그림).
-
-| 그림 | 검출 | 관절 평균 | 관절 최저 | 결과 |
-|---|---|---|---|---|
-| Meta 예제 char1·2·3·5 | 0.99 이상 | 0.81~0.91 | 0.65~0.88 | 통과 |
-| char4 (잘라낸 그림) | 0.99 | 0.80 | 0.51 | 통과 |
-| char4 원본 사진 (막대 사람, 옆에 라디오·조명) | 0.71 | 0.44 | 0.15 | 통과, 낮은 관절 8개 → 어른 확인 |
-| char6 | 0.95 | 0.56 | 0.32 | 통과, 낮은 관절 4개 |
-| 마늘 캐릭터 | 0.99 | 0.66 | 0.30 | 통과, 팔 2개 낮음 |
-| char1 살짝 흐림 (blur 12) | 0.81 | 0.81 | 0.71 | 통과 |
-| char1 · char5 많이 흐림 (blur 20~25) | 없음 | - | - | `NO_CHARACTER_DETECTED` |
-| 동그라미 하나 | 0.997 | 0.23 | 0.10 | `LOW_CONFIDENCE` |
-| 낙서 | 0.97 | 0.10 | 0.07 | `LOW_CONFIDENCE` |
-| char1 · char2 나란히 | 0.998 / 0.99 | - | - | `MULTIPLE_CHARACTERS` |
-| char5 · char6 나란히 | 0.99 (하나만 검출) | 0.81 | 0.66 | 통과 (두 번째를 못 찾음) |
-
-- **검출 점수로는 사람인지 가리지 못한다.** 낙서와 동그라미도 0.97 이상이다. 그래서 관절 점수 평균을 쓴다.
-- 처음에 두 번째 검출 기준을 0.5로 두었더니 char4 원본(한 명)이 라디오·조명(0.54) 때문에 여러 명으로 걸렸다. 0.8로 올렸다.
-- 두 사람을 나란히 그려도 검출기가 하나만 찾으면 걸러지지 않는다. 그 경우 점수가 높은 한 명만 쓴다.
-
-## 테스트 도구
-
-`output/` 폴더에 애니메이션 생성·관절 확인 스크립트가 있다.
-사용법은 [output/README.md](output/README.md) 참고.
+drawtale 의 **모든 음성**을 이 서버가 읽는다면, 보호자 목소리 말고도 기본 나레이터와 캐릭터 종류
+(아이-여 · 아이-남 · 어른-여 · 어른-남 · 할머니 · 할아버지 · 작은 동물 · 큰 동물)마다 목소리를 **같은 등록 API로** 만들어 둡니다.
+녹음은 **쓸 권리가 있는 것**(팀원 · 성우 녹음 등, 동의 받은 것)만 씁니다. 받은 `qv_…` id 를 백엔드 담당에게 넘기면
+백엔드 `.env` 의 `QWEN_NARRATOR_VOICE_ID` · `QWEN_CHARACTER_VOICES` 에 들어갑니다.
 
 ```bash
-python output/render.py <이미지경로> <motion>
+curl -sS -X POST $URL/internal/v1/voices -H "Authorization: Bearer $TOKEN" \
+  -F audio=@narrator.wav -F ref_text="녹음에서 읽은 글 그대로"
 ```
 
-## 남은 작업
+## 로컬 시험 (GPU 필요 없음)
 
-- [ ] Peak RAM 측정 (렌더링 중)
-- [ ] 임시 파일 자동 정리 (오래된 세션)
-- [ ] 동시 요청 처리 정책 (현재는 순차 처리)
-- [ ] 배경 밝기가 캐릭터와 비슷할 때 실패 처리 및 안내
-- [ ] 캐릭터가 이미지 가장자리까지 꽉 찬 그림 — 마스크가 이미지 전체(흰 비율 1.0)가 되어 render 가 `RENDER_FAILED`(numpy concatenate 차원 오류)로 끝난다. Meta 예제 char1 · char2 의 `texture.png` 처럼 여백 없이 잘라 낸 그림에서 재현. `feat/gentle-motions` 의 분석 코드로도 같다 (2026-10-02 확인). 사진으로 찍은 그림(char4 원본, char5)은 된다. analyze 단계에서 알아채 아이에게 「조금 떨어져서 찍어 주세요」로 돌려보내는 것이 좋겠다
+```bash
+pip install -r requirements-dev.txt      # ffmpeg 도 깔려 있어야 합니다
+pytest -q
+```
 
-## Git 규칙
+## Modal 배포
 
-- `dev` 브랜치에서 작업 → 팀장 확인 후 `dev → main` PR
-- 가상환경, 모델 가중치(`*.pth`, `*.mar`), 결과 영상(`*.mp4`, `*.gif`), 데이터셋은 올리지 않음 (`.gitignore`)
-- 백업 파일(`*_backup.py`)을 만들지 않고 Git 커밋으로 이력 관리
-- `third_party/AnimatedDrawings`는 Meta 원본이므로 수정하지 않음
+```bash
+modal setup                                                  # 처음 한 번 로그인
+modal secret create drawtale-tts TTS_API_TOKEN=$(openssl rand -hex 32)
+modal serve modal_app.py      # 개발: 임시 주소, 코드 바꾸면 바로 반영
+modal deploy modal_app.py     # 배포: 고정 주소 (https://<workspace>--drawtale-tts-ttsservice-web.modal.run 모양)
+```
+
+확인:
+
+```bash
+URL=https://...modal.run ; TOKEN=...
+curl $URL/internal/v1/health
+curl -X POST $URL/internal/v1/voices -H "Authorization: Bearer $TOKEN" \
+  -F audio=@ref_audio.wav -F ref_text="오늘은 친구와 함께 놀이터에 갔어요."
+curl -X POST $URL/internal/v1/tts -H "Authorization: Bearer $TOKEN" -H "Content-Type: application/json" \
+  -d '{"voice_id":"qv_...","text":"친구와 함께 재미있게 놀았어요.","speed":0.9}' -o out.mp3
+```
+
+첫 요청은 이미지 빌드 · 모델 다운로드로 오래 걸립니다. 이후에도 컨테이너가 꺼져 있다가 켜질 때(콜드 스타트)는
+수십 초가 걸리니 **백엔드 쪽 타임아웃을 넉넉히** (예: 120초) 잡아 주세요.
+
+### 조정할 곳 (`modal_app.py`)
+
+| 값 | 기본 | 뜻 |
+|---|---|---|
+| `GPU` · `DTYPE` | `L4` · `bfloat16` | T4 로 바꾸면 `float16` |
+| `MODEL_ID` | 0.6B | 1.7B 로 바꿀 때 여기만 |
+| `scaledown_window` | 300초 | 이야기 한 편의 쪽들을 차례로 읽는 동안 컨테이너를 살려 둠. 길수록 유휴 비용 |
+| `max_containers` | 5 | 동시에 켜는 최대 대수 (백엔드 PAGE_AUDIO_WORKERS=5 와 맞춤). 비용은 GPU 쓴 시간이라 대수를 늘려도 거의 같음 |
+
+**flash-attn (`FLASH_ATTN`, 2026-11-11 시험 중):** 이미지를 만들 때 설치된 torch 에 맞는 미리 빌드된 flash-attn 을 받는다.
+맞는 판이 없으면 설치만 실패하고 서버는 지금처럼 뜬다. 로그의 `[engine] 모델 로드: … · attention flash_attention_2` 로
+켜졌는지 확인한다. T4 는 flash-attn 을 쓸 수 없어 켜 두면 GPU 목록에서 뺀다. 효과가 없거나 문제가 생기면 `FLASH_ATTN = False`.
+
+**예열 · 컴파일 캐시:** 컨테이너가 켜질 때 예열용 소리(사람 목소리 아님)로 한 번 만들어 GPU 코드 컴파일을 끝내고,
+그 결과를 Volume(`/cache/triton`, `/cache/inductor`)에 남긴다. 다음에 켜지는 컨테이너는 다시 컴파일하지 않는다.
+요청이 와야 컨테이너가 켜지므로 **배포 후 맨 처음 켜지는 컨테이너는 예열 시간만큼 늦게 뜬다** — 그다음부터 줄어든다.
+로그의 `[engine] 예열 완료 N초` 로 확인한다.
+
+## 데이터 · 개인정보
+
+- 참조 음성은 **Modal Volume `drawtale-tts-voices`** 에 목소리마다 폴더 하나로 둡니다 (`ref.wav`, `meta.json`).
+  Modal 은 미국 회사라 **국외 이전 대상이 ElevenLabs → Modal 로 바뀝니다.** 백엔드 동의 안내문(`consent_version`)을 바꿔야 합니다.
+- `DELETE` 하면 폴더를 지우고 메모리 캐시도 비웁니다. 백엔드의 탈퇴 · 동의 철회 흐름(`_forget`)에서 부르면 됩니다.
+- 녹음을 받은 원본 바이트는 다듬은 WAV 만 남기고 버립니다.
+
+## 검증 상태 (2026-11-09)
+
+| 항목 | 상태 | 근거 |
+|---|---|---|
+| API · 오디오 처리 · 저장 · 인증 | 확인 | `test_api.py` 29개 (가짜 엔진 + 실제 ffmpeg) |
+| Modal 배포 · health | 확인 | 배포 주소 health 200 |
+| 실제 Qwen 으로 목소리 등록 | 확인 (`modal serve`) | 등록 시 모델로 참조 음성을 준비해 본다 — 3.9초 참조 음성으로 성공 |
+| 실제 Qwen 으로 생성 · 대사 잇기 · 시간 · GPU | **`verify_real.py` 로 확인** | 아래 |
+
+`test_api.py` 는 GPU 없이 도는 가짜 엔진(FakeEngine)이라 **실제 Qwen 호출(`engine.py`)은 검증하지 않는다.**
+실제 검증은 배포된 서버에 이 스크립트를 돌려 남긴다.
+
+```bash
+python verify_real.py --url https://...modal.run --ref ref_audio.wav --ref-text "녹음에서 읽은 문장"
+```
+
+`verify_out/` 에 생성 음성(`tts_1~3.mp3`, `dialogue.mp3`)과 `report.md`(단계별 성공 · 시간)가 남는다.
+콜드 스타트를 재려면 마지막 요청 뒤 5분 넘게 쉬고 돌린다. GPU 종류는 Modal 로그의 `[engine] 모델 로드` 줄,
+비용은 Modal 대시보드 Usage 에서 본다. 유사도는 참조 음성과 직접 들어 report.md 에 적는다.
+**참조 음성 · 생성 음성은 저장소에 올리지 않는다** (`.gitignore` 의 `*.wav` · `*.mp3`).
+
+## 그 밖에
+
+- `create_voice_clone_prompt` · `x_vector_only_mode` 는 qwen-tts 판에 따라 이름이 다를 수 있다. `ref_text` 없는 등록(x-vector)은 실제 GPU 로 아직 확인하지 않았다.
+- 돌아가는 것을 확인했으면 `modal_app.py` 의 `pip_install` 버전을 고정한다.
+- **이 브랜치를 drawtale-ai 의 main · dev 에 병합하지 않는다.** 그림 AI 파일이 없는 독립 프로젝트라 병합하면 그림 AI 전체가 지워진다. 별도 저장소로 옮길 예정.
