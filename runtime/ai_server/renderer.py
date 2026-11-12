@@ -9,6 +9,7 @@ GIF로 렌더링한 뒤 ffmpeg으로 MP4로 변환한다.
 """
 
 import hashlib
+import logging
 from collections import OrderedDict
 import os
 import shutil
@@ -652,6 +653,39 @@ def _apply_rest(drawing, wave: dict) -> None:  # noqa: ANN001
         rt.char_root_positions[:, 1] += (float(wave.get("rest_hop", 0.25)) * tall * up).astype(np.float32)
 
 
+def _thick_legs(drawing, pos) -> float:  # noqa: ANN001
+    """다리 굵기: 무릎 높이에서 다리와 이어진 그물 점들의 가로 폭 / 다리 길이 (다리 넷 중 가장 큰 값).
+    붙여 그린 한 쌍은 둘이 한 덩어리라 둘을 합친 폭이 나온다 — 따로 흔들면 찢기는 그림이라 그것도 굵은 것으로 본다"""
+    try:
+        v = np.asarray(drawing.mesh["vertices"], float)
+        step = 1.0 / 40 * 1.2   # Meta 안쪽 점 간격(그림 칸 / 40)보다 조금 넓은 틈이면 떨어진 것
+        worst = 0.0
+        for e in ("f", "b"):
+            for sd in ("left", "right"):
+                h, k, f = pos(f"{sd}_hip_{e}"), pos(f"{sd}_knee_{e}"), pos(f"{sd}_foot_{e}")
+                length = float(np.linalg.norm(f - h))
+                if length <= 1e-6:
+                    continue
+                d = (f - h) / length
+                nrm = np.array([-d[1], d[0]])
+                # 무릎 높이에서 잰다 — 넓적다리 위쪽은 배와 이어져 몸통 폭까지 잡혔다 (가는 다리 고양이가 3.3)
+                rel = v - k
+                band = (np.abs(rel @ d) < 0.06 * length) & (np.abs(rel @ np.array([-d[1], d[0]])) < 0.8 * length)
+                side = np.sort(rel[band] @ nrm)
+                if side.size == 0:
+                    continue
+                c = int(np.argmin(np.abs(side)))
+                lo = hi = c
+                while lo > 0 and side[lo] - side[lo - 1] < step:
+                    lo -= 1
+                while hi < side.size - 1 and side[hi + 1] - side[hi] < step:
+                    hi += 1
+                worst = max(worst, float(side[hi] - side[lo]) / length)
+        return worst
+    except Exception:  # noqa: BLE001
+        return 0.0
+
+
 def _apply_gait(drawing, gait: dict) -> None:  # noqa: ANN001
     """4족 걷기 · 뛰기 — 다리 방향을 옆모습 걸음으로 직접 넣는다 (11/9 형태 버그 3 「4족 걷기가 정면처럼 보임」).
 
@@ -679,8 +713,14 @@ def _apply_gait(drawing, gait: dict) -> None:  # noqa: ANN001
         short = body_len > 0 and np.mean(legs) / body_len < float(gait.get("short_leg", 0.5))
     except Exception:  # noqa: BLE001
         short = False
+    thick = _thick_legs(drawing, _pos)
+    logging.getLogger(__name__).info("4족 다리 굵기 %.2f 짧은 다리 %s", thick, short)
     if short:
         swing, bend, bob = swing * 0.45, 0.0, bob * 2.5
+    elif thick > float(gait.get("thick_leg", 0.6)):
+        # 다리가 굵거나 두 다리를 붙여 그린 그림(무릎 높이 다리 폭 / 다리 길이 > 0.6 — 굵게 붙은 갈색 개 0.73, 가는 다리 고양이 0.38 · 호랑이 0.44)은 크게 흔들면 넓은 다리 그물이 비틀려
+        # 벌어질 때 가늘고 길게 늘어나고 모일 때 뭉쳤다 (11/12 사용자 갈색 개 「펴졌다 얇아졌다」). 흔들기 · 무릎 굽힘을 줄인다
+        swing, bend = swing * 0.55, bend * 0.35
     for name in ("hip", "torso", "neck"):
         j = root.get_transform_by_name(name)
         if j is not None and name in rt.char_joint_to_orientation:
