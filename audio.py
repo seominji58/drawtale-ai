@@ -22,6 +22,17 @@ _TRIM_SILENCE = (
 # 참조 음성이 작으면 만든 목소리도 작게 나오기 쉬워 참조 음성부터 맞춘다
 REF_LOUDNESS = "loudnorm=I=-20:TP=-2:LRA=11"
 OUT_LOUDNESS = "loudnorm=I=-16:TP=-1.5:LRA=11"  # 휴대폰 · 태블릿에서 듣기 좋은 크기
+# 음색 다듬기: 목소리를 조금 더 꽉 차고 따뜻하게. 원래 목소리와 달라지지 않게 아주 약하게 건다
+WARMTH = ",".join(
+    [
+        "highpass=f=70",  # 웅웅거리는 아주 낮은 잡음을 걷는다
+        "bass=g=2.5:f=180:w=0.7",  # 낮은 소리를 살짝 보강
+        "equalizer=f=3200:t=q:w=1.2:g=1.5",  # 발음이 또렷하게
+        "equalizer=f=7500:t=q:w=1.5:g=-1.5",  # 쇳소리를 조금 줄인다
+        "acompressor=threshold=0.1:ratio=2.5:attack=10:release=150:makeup=1",  # 크기를 고르게
+        "aecho=0.9:0.9:28|47:0.10|0.06",  # 아주 약한 방 울림
+    ]
+)
 
 
 class AudioError(Exception):
@@ -109,7 +120,7 @@ def decode(data: bytes, sample_rate: int) -> np.ndarray:
     return np.asarray(samples, dtype=np.float32).reshape(-1)
 
 
-def encode(samples: np.ndarray, sample_rate: int, fmt: str = "mp3", speed: float = 1.0) -> bytes:
+def encode(samples: np.ndarray, sample_rate: int, fmt: str = "mp3", speed: float = 1.0, enhance: bool = True) -> bytes:
     """생성된 음성을 MP3(또는 WAV)로. 소리 크기를 맞추고(OUT_LOUDNESS),
     speed 는 음높이를 바꾸지 않고 빠르기만 바꾼다 (ffmpeg atempo).
     대사 잇기에서는 이은 뒤 한 번에 맞춰 줄마다 크기가 덜 들쭉날쭉하다.
@@ -117,7 +128,7 @@ def encode(samples: np.ndarray, sample_rate: int, fmt: str = "mp3", speed: float
 
     buf = io.BytesIO()
     sf.write(buf, samples, sample_rate, format="WAV")
-    filters = ([f"atempo={speed}"] if speed != 1.0 else []) + [OUT_LOUDNESS]
+    filters = ([f"atempo={speed}"] if speed != 1.0 else []) + ([WARMTH] if enhance else []) + [OUT_LOUDNESS]
     # loudnorm 은 내부에서 표본율을 올리므로 원래 표본율로 되돌린다
     args = ["-ac", "1", "-af", ",".join(filters), "-ar", str(sample_rate)]
     if fmt == "mp3":
