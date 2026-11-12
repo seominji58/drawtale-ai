@@ -748,6 +748,43 @@ def _apply_gait(drawing, gait: dict) -> None:  # noqa: ANN001
     rt.char_root_positions[:, 1] += (bob * tall * np.abs(np.sin(t))).astype(np.float32)
 
 
+def _folded_arms(drawing) -> list[str]:  # noqa: ANN001
+    """몸 앞에 모아 그린 팔(팔짱 · 배 앞에 모은 손) — 그린 그림에서 손이 두 어깨 사이 안쪽, 어깨와 엉덩이 사이 높이에 있는 쪽 (사람형만).
+    그 팔은 몸통과 한 덩어리로 그려져, 동작이 팔을 몸 옆으로 내리면 팔과 몸통이 함께 찢어졌다 (11/12 사용자 「걸음을 멈췄어요」 쪽).
+    자리는 그린 관절(char_cfg) — 뼈대 자리는 이미 동작 첫 장으로 움직여 있다"""
+    try:
+        at = {j["name"]: np.asarray(j["loc"], float) for j in drawing.char_cfg.skeleton}
+    except Exception:  # noqa: BLE001
+        return []
+    rs, ls, hip = at.get("right_shoulder"), at.get("left_shoulder"), at.get("hip")
+    if rs is None or ls is None or hip is None:
+        return []
+    x0, x1 = sorted((rs[0], ls[0]))
+    width = x1 - x0
+    top, bottom = sorted(((rs[1] + ls[1]) / 2, hip[1]))
+    out = []
+    for side in ("right", "left"):
+        h = at.get(f"{side}_hand")
+        if h is None or width <= 0:
+            continue
+        if x0 + 0.15 * width < h[0] < x1 - 0.15 * width and top < h[1] < bottom:
+            out.append(side)
+    return out
+
+
+def _hold_folded_arms(drawing, root, rt) -> None:  # noqa: ANN001
+    """몸 앞에 모은 팔은 어느 동작에서든 그린 자세 그대로 — 다리 · 몸만 움직인다 (팔짱 낀 채 걷기). 손 흔들기 · 만세는 약해지지만 찢어지지 않는다"""
+    folded = _folded_arms(drawing)
+    if folded:
+        logging.getLogger(__name__).warning("몸 앞에 모은 팔 %s: 그린 자세 그대로", folded)
+    for side in folded:
+        for part in ("shoulder", "elbow", "hand"):
+            name = f"{side}_{part}"
+            j = root.get_transform_by_name(name)
+            if j is not None and name in rt.char_joint_to_orientation:
+                rt.char_joint_to_orientation[name] = np.full(rt.char_root_positions.shape[0], j.starting_theta % 360.0, np.float32)
+
+
 class _tail_wag:
     """옆모습 형태(4족형)의 동작 손질 — 머리 쪽으로 걷게 뒤집기 · 꼬리 흔들기.
 
@@ -779,6 +816,7 @@ class _tail_wag:
             rt = drawing.retargeter
             mid, tip = root.get_transform_by_name("tail_mid"), root.get_transform_by_name("tail_tip")
             if mid is None or tip is None:      # 꼬리 관절이 없는 형태(2족형 · 사슬형 · 지느러미형)는 물결만
+                _hold_folded_arms(drawing, root, rt)
                 if wave and wave.get("mirror"):
                     # 옆면 걷기(cmu1_side)는 다리가 화면 왼쪽으로 내딛는다 — 이 뼈들만 세로축에 대해 뒤집어 오른쪽으로 (11/9)
                     for name in wave["mirror"]:
