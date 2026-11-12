@@ -124,6 +124,7 @@ def main() -> None:
         for i, text in enumerate(TEXTS, 1):
             step(f"읽기 {i} ({'콜드 직후' if i == 1 else '따뜻한 상태'})", speak(i, text))
         if (out / "tts_1.mp3").exists():
+            step("비교용: 음색 다듬기 없이", plain)
             step("대사 잇기 (dialogue)", dialogue)
         if not args.keep_voice:
             step("목소리 지우기", delete)
