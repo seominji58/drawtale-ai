@@ -1,47 +1,7 @@
-# Python / 가상환경
-.venv/
-venv/
-env/
 __pycache__/
-*.pyc
-.ipynb_checkpoints/
-
-# 환경변수
-.env
-.env.*
-!.env.example
-
-# 모델 가중치 / 데이터셋 (Git에 올리지 않음 - Blob 또는 Drive로 공유)
-*.pth
-*.pt
-*.ckpt
-*.onnx
-*.mar
-*.bin
-model_store/
-checkpoints/
-data/
-datasets/
-
-# 결과물
-*.mp4
-*.gif
-*.avi
-outputs/
-*_out/
-
-# IDE / OS
-.vscode/
-.idea/
-.DS_Store
-Thumbs.db
-
-# 테스트 결과물은 올리지 않고, 실행 스크립트만 올린다
-output/*
-!output/README.md
-!output/*.py
-
-# Mixamo 동작 데이터 — 원본 파일은 공개 저장소에 올리지 않는다.
-# 서비스에서 쓰는 것은 허용되지만 재배포는 금지라, 팀 안에서만 나눈다.
-# 라이선스: 08 기술 스택 문서 참고
-third_party/AnimatedDrawings/examples/bvh/mixamo/
+.pytest_cache/
+.venv/
+*.wav
+*.mp3
+*.zip
+verify_out/
