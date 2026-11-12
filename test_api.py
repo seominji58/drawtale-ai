@@ -100,7 +100,7 @@ def test_register_and_speak(client, engine):
 
 def test_wav_output(client):
     vid = register(client, tone(5)).json()["voice_id"]
-    res = client.post("/internal/v1/tts", headers=AUTH, json={"voice_id": vid, "text": "안녕", "format": "wav"})
+    res = client.post("/internal/v1/tts", headers=AUTH, json={"voice_id": vid, "text": "안녕", "format": "wav", "enhance": False})
     data, sr = sf.read(io.BytesIO(res.content))
     assert sr == 24000 and abs(len(data) - 24000) < 240
 
@@ -204,7 +204,7 @@ def test_dialogue_reads_each_line_with_its_voice(client, engine):
         {"voice_id": b, "text": "안녕!"},
         {"voice_id": a, "text": "나도 인사했어요."},
     ]
-    res = client.post("/internal/v1/dialogue", headers=AUTH, json={"lines": lines, "format": "wav"})
+    res = client.post("/internal/v1/dialogue", headers=AUTH, json={"lines": lines, "format": "wav", "enhance": False})
     assert res.status_code == 200, res.text
     assert [(v, t) for v, t, _ in engine.calls] == [(a, "숲에 갔어요."), (b, "안녕!"), (a, "나도 인사했어요.")]
     data, sr = sf.read(io.BytesIO(res.content))
@@ -238,7 +238,7 @@ def test_dialogue_mixes_own_voice_and_given_audio(client, engine):
         {"audio": base64.b64encode(mp3(1.0)).decode()},
         {"voice_id": a, "text": "인사했어요."},
     ]
-    res = client.post("/internal/v1/dialogue", headers=AUTH, json={"lines": lines, "format": "wav"})
+    res = client.post("/internal/v1/dialogue", headers=AUTH, json={"lines": lines, "format": "wav", "enhance": False})
     assert res.status_code == 200, res.text
     assert [t for _, t, _ in engine.calls] == ["숲에 갔어요.", "인사했어요."]
     data, sr = sf.read(io.BytesIO(res.content))
