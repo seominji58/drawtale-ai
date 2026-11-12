@@ -43,6 +43,7 @@ class TTSRequest(BaseModel):
     # 아이가 따라올 수 있게 천천히 (백엔드 TTS_SPEED 0.9 와 맞춘다). 음높이는 그대로
     speed: float = Field(default=1.0, ge=0.5, le=1.5)
     format: Literal["mp3", "wav"] = "mp3"
+    enhance: bool = True
 
 
 MAX_LINE_AUDIO_MB = 5
@@ -68,6 +69,7 @@ class DialogueRequest(BaseModel):
     language: str = "Korean"
     speed: float = Field(default=1.0, ge=0.5, le=1.5)
     format: Literal["mp3", "wav"] = "mp3"
+    enhance: bool = True
 
 
 def create_app(
@@ -156,7 +158,7 @@ def create_app(
             for part in audio.split_text(text, chunk_chars):
                 samples, sample_rate = engine.synthesize(voice, part, req.language)
                 chunks.append(samples)
-            body = audio.encode(audio.join(chunks, sample_rate), sample_rate, req.format, req.speed)
+            body = audio.encode(audio.join(chunks, sample_rate), sample_rate, req.format, req.speed, req.enhance)
         except Exception as e:
             log.exception("음성 생성 실패 %s", voice.id)
             raise ApiError("TTS_FAILED", "음성을 만들지 못했어요.", 502) from e
@@ -212,7 +214,7 @@ def create_app(
                     except audio.AudioError as e:
                         raise ApiError("INVALID_AUDIO", "대사 음성을 읽을 수 없어요.") from e
             # 빠르기는 여기서 읽은 줄에만 맞추고 싶지만 한 파일이라 전체에 건다 — 보내는 쪽이 정한다
-            body = audio.encode(audio.join(chunks, sample_rate), sample_rate, req.format, req.speed)
+            body = audio.encode(audio.join(chunks, sample_rate), sample_rate, req.format, req.speed, req.enhance)
         except ApiError:
             raise
         except Exception as e:
