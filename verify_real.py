@@ -86,7 +86,17 @@ def main() -> None:
             return f"{len(text)}자 → tts_{i}.mp3 (서버 처리 {r.headers.get('x-processing-seconds')}초)"
 
         return run
-
+        
+    def plain():
+        r = http.post(
+            "/internal/v1/tts",
+            json={"voice_id": voice["voice_id"], "text": TEXTS[0], "speed": 0.9, "enhance": False},
+        )
+        if r.status_code >= 400:
+            raise RuntimeError(f"HTTP {r.status_code} {r.text[:200]}")
+        (out / "tts_1_plain.mp3").write_bytes(r.content)
+        return "→ tts_1_plain.mp3 (음색 다듬기 없이 — tts_1.mp3 와 비교)"
+        
     def dialogue():
         # 다른 곳(ElevenLabs)에서 만든 대사 대신 위에서 만든 음성을 넣어 잇기만 확인한다
         clip = base64.b64encode((out / "tts_1.mp3").read_bytes()).decode()
